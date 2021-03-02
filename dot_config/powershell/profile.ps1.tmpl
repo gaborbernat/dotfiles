@@ -1,0 +1,38 @@
+# user specific configuration
+$ENV:PYTHONIOENCODING = "UTF-8"
+
+Clear-Host
+Set-Alias -Name ls -Value lsd
+Set-Alias -Name g -Value git
+Set-Alias -Name rmi -Value Remove-Item
+Set-Alias -Name gr -Value Select-String
+Set-Alias -Name open -Value ii
+{{ if eq .chezmoi.os "windows" -}}
+function t {
+    git diff HEAD
+}
+{{ else -}}
+Set-Alias -Name t -Value tig
+{{ end -}}
+
+$ENV:PATH = (
+    "$HOME/.local/bin",
+    "$HOME/.cargo/bin",
+    "$HOME/go/bin",
+    {{ if ne .chezmoi.os "windows" -}}
+    "/usr/local/bin",
+    {{ end -}}
+    $ENV:PATH
+) -join ":"
+
+function ic {
+    # shortcut for imgcat
+    wezterm imgcat $args
+}
+# Autocomplete tab
+Set-PSReadlineKeyHandler -Key Tab -Function MenuComplete
+Set-PSReadlineKeyHandler -Key UpArrow -Function HistorySearchBackward
+Set-PSReadlineKeyHandler -Key DownArrow -Function HistorySearchForward
+
+Invoke-Expression (&starship init powershell)
+Invoke-Expression (& { (lua "$HOME/git/github/z.lua/z.lua" --init powershell) -join "`n" })
