@@ -1,0 +1,51 @@
+[user]
+name = Bernát Gábor
+email = {{ .email }}
+signingkey = {{ .signingkey }}
+
+[core]
+editor = nvim
+excludesfile = ~/.gitignore_global
+pager = delta
+[checkout]
+defaultRemote=origin
+[init]
+defaultBranch = main
+[push]
+default = matching
+[credential]
+helper = store
+[commit]
+gpgsign = true
+[interactive]
+diffFilter = delta --color-only
+
+[delta]
+plus-color = "#012800"
+line-numbers = true
+minus-color = "#340001"
+syntax-theme = Monokai Extended
+side-by-side = false
+
+[alias]
+co = checkout
+ca = commit --amend -s
+can = commit --amend --no-edit -s
+pu = push
+rbu = rebase upstream/master
+rbm = rebase upstream/main
+rb = rebase
+rh = reset --hard
+ri = rebase -i
+cm = commit -s -m
+fa = fetch --all --prune --tags --force --prune-tags --auto-gc --show-forced-updates
+s = status
+aa = add --all .
+br = branch -va
+rv = remote -v
+pr = pull --rebase
+cpc = cherry-pick
+cl = clean -fxd
+cou = "!git fetch upstream && git checkout --no-track -b $1 upstream/master && git push -u origin -f"
+com = "!git fetch upstream && git checkout --no-track -b $1 upstream/main && git push -u origin -f"
+cor = "!git fetch upstream && git checkout --no-track -b $1 upstream/rewrite && git push -u origin -f"
