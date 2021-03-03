@@ -24,6 +24,7 @@ $ENV:PATH = (
     {{ end -}}
     $ENV:PATH
 ) -join ":"
+$ENV:EDITOR = "nvim"
 
 function ic {
     # shortcut for imgcat
@@ -36,3 +37,15 @@ Set-PSReadlineKeyHandler -Key DownArrow -Function HistorySearchForward
 
 Invoke-Expression (&starship init powershell)
 Invoke-Expression (& { (lua "$HOME/git/github/z.lua/z.lua" --init powershell) -join "`n" })
+
+$PromptScript = (Get-Item function:Prompt).ScriptBlock
+function Prompt {
+    $PreservedExitStatus = $? # Before doing anything else, capture current $?
+    $CurrentWorkingDirectory = Split-Path -Path ((Get-Location).Path.Replace($Env:USER, "~")) -Leaf
+    $Host.UI.RawUI.WindowTitle = "$CurrentWorkingDirectory"
+    if ($? -ne $PreservedExitStatus) { 
+        Write-Error "" -ErrorAction Ignore # Powershell 7+     
+    }
+    Invoke-Command $PromptScript
+}
+
