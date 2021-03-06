@@ -52,4 +52,12 @@ if wezterm.target_triple == "x86_64-apple-darwin" then
 end
 for k, v in pairs(platform) do module[k] = v end
 
+wezterm.on("update-right-status", function(window, pane)
+    local args = {
+        {Attribute = {Italic = true}},
+        {Text = wezterm.strftime("%Y-%m-%d %H:%M:%S")}
+    };
+    window:set_right_status(wezterm.format(args));
+end);
+
 return module
