@@ -1,0 +1,13 @@
+add_newline = false
+
+[character]
+use_symbol_for_status = true
+
+[cmd_duration]
+show_milliseconds = true
+
+[directory]
+truncation_length = 10
+
+[memory]
+disabled = false
