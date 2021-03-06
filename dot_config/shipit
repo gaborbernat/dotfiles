@@ -1,0 +1,52 @@
+// ==UserScript==
+// @name         shipit
+// @namespace    http://bgabor8.com/
+// @version      0.1
+// @author       bgabor8
+// @match        https://github.com/*/*/pull/*
+// @grant        GM.xmlHttpRequest
+// ==/UserScript==
+(function() {
+    var urls = ["https://media.tenor.co/images/e3cef91b522243efb296f3f5a9b750a6/tenor.gif",
+        "https://media.tenor.co/images/bee8bf98cd1c1d9659af200f8aa71206/tenor.gif",
+        "https://media.tenor.co/images/fa5133dfa140eef25f4e084ecdd6bdf1/tenor.gif",
+        "https://media.tenor.co/images/22179354ce434e8d0d8b0aa83d3854a4/tenor.gif",
+        "https://media.tenor.co/images/82cee43ca40954e27af8e2c525f36946/tenor.gif",
+        "https://media.tenor.co/images/ed3439e725c2f4138e90398f51edd935/tenor.gif",
+        "https://media.tenor.co/images/b05a23c5855c35db77f39915f3ec3cbe/tenor.gif",
+        "https://media.tenor.co/images/8d47727f6439a7746ed89589cc8ea60c/tenor.gif",
+        "https://media.tenor.co/images/6a0369528972e7db38971981eb47551f/tenor.gif",
+        "https://media.tenor.co/images/a166e08adae30f2886d975d7ba75a80c/tenor.gif",
+        "https://media.tenor.co/images/4c1ce240c202fc218c52955238d0de6f/tenor.gif",
+        "https://media.tenor.co/images/9221f462cc907550d4e609f1f4cdddd6/tenor.gif",
+        "https://media.tenor.co/images/9b62b88ff61992982fd07d35c996fde0/tenor.gif",
+        "https://media.tenor.co/images/9de7fd256ae2d94410a0b8e08c941071/tenor.gif",
+        "https://media.tenor.co/images/76fa091fcc87387bf6051e9f2e833d5d/tenor.gif",
+        "https://media.tenor.co/images/4b80ad8677bfb721a69deca82e5dbf59/tenor.gif",
+        "https://media.tenor.co/images/d8c94a556aa20a3f58b843bef75e1f83/tenor.gif",
+        "https://media.tenor.co/images/76cf0c280d6e6203e92fe5db0c21506b/tenor.gif",
+        "https://media.tenor.co/images/15c955585420695acab185a96d094a82/tenor.gif",
+        "https://media.tenor.co/images/5245187da1067bd4868a4e6adc2f6778/tenor.gif",
+        "https://media.tenor.co/images/6653c1c2bb9f06aa32e7f98a2e765ebf/tenor.gif",
+        "https://media.tenor.co/images/89f67ff0aeccfec451f91f09cfda6c87/tenor.gif",
+        "https://media.tenor.co/images/32e438131b328e62f4deee9d8cf917fd/tenor.gif",
+        "https://media.tenor.co/images/8d1ad23477a2adc9c565eb5a312c999b/tenor.gif",
+        "https://media.tenor.co/images/1b08c43b241186d2ec93967083a5499d/tenor.gif",
+        "https://media.tenor.co/images/18ae86fcb295c6d30028dedf7a946970/tenor.gif",
+        "https://media.tenor.co/images/9ede2bb5cc7104ce66f58bfbbaede426/tenor.gif",
+        "https://media.tenor.co/images/db2bf004a05a4c5b9c0ae1b24ef045b7/tenor.gif",
+        "https://media.tenor.co/images/8818a6b1669d4af3b2f20fb2c55a87c5/tenor.gif",
+        "https://media.tenor.co/images/881314d317f9aa4ccd6ef6c0bd0fe1c5/tenor.gif",
+        "https://media.tenor.co/images/941c44710128b9b360436d86f2201597/tenor.gif",
+        "https://media.tenor.co/images/aa5ae0f203b7e0d862a8d5170db9e52b/tenor.gif",
+
+
+    ];
+    document.body.addEventListener('click', function(e) {
+        var msg;
+        if (urls.length && e.target.name === 'pull_request_review[event]' && e.target.value === 'approve') {
+            msg = document.querySelector('#pull_request_review_body')
+            msg.value = `${msg.value}\n![](${urls[Math.floor(Math.random() * urls.length)]})`;
+        }
+    });
+}());
