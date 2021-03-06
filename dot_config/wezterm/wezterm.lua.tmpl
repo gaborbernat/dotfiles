@@ -4,13 +4,21 @@ local module = {
     font = wezterm.font("JetBrainsMono Nerd Font Mono"),
     color_scheme = "Monokai Remastered",
     scrollback_lines = 35000,
-    font_size = 8,
-    dpi = 111.0,
     enable_scroll_bar = false,
     term = "xterm-256color",
     cursor_blink_rate = 0,
     default_cursor_style = "SteadyBar",
     use_ime = false,
+    dpi = 111.0,
+    {{ if (eq .chezmoi.os "darwin") }}
+    default_prog = {"/usr/local/bin/pwsh", "-NoLogo"},
+    font_size = 8,
+    {{ else if (eq .chezmoi.os "linux" ) }}
+    default_prog = {"/usr/bin/pwsh", "-NoLogo"},
+    font_size = 11,
+    {{ else }}
+    -- other operating system
+    {{ end }}
     disable_default_key_bindings = true,
     keys = {
         {
@@ -32,11 +40,11 @@ local module = {
         },
         {
             key = "v",
-            mods = "SUPER",
+            mods = {{ if (eq .chezmoi.os "darwin") }} "SUPER" {{ else }} "ALT" {{end}},
             action = wezterm.action {PasteFrom = "Clipboard"}
         }, {
             key = "c",
-            mods = "SUPER",
+            mods = {{ if (eq .chezmoi.os "darwin") }} "SUPER" {{ else }} "ALT" {{end}},
             action = wezterm.action {CopyTo = "ClipboardAndPrimarySelection"}
         },
         {key="PageUp", mods="SHIFT", action=wezterm.action{ScrollByPage=-1}},
@@ -45,12 +53,6 @@ local module = {
         {key="DownArrow", mods="SHIFT", action=wezterm.action{ScrollByLine=1}},
     }
 };
-
-local platform = {};
-if wezterm.target_triple == "x86_64-apple-darwin" then
-    platform = require('macOS');
-end
-for k, v in pairs(platform) do module[k] = v end
 
 wezterm.on("update-right-status", function(window, pane)
     local args = {

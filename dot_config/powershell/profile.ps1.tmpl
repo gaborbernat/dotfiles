@@ -7,37 +7,33 @@ Set-Alias -Name g -Value git
 Set-Alias -Name rmi -Value Remove-Item
 Set-Alias -Name gr -Value Select-String
 Set-Alias -Name open -Value ii
-{{ if eq .chezmoi.os "windows" -}}
-function t {
-    git diff HEAD
-}
-{{ else -}}
 Set-Alias -Name t -Value tig
-{{ end -}}
 
 $ENV:PATH = (
     "$HOME/.local/bin",
     "$HOME/.cargo/bin",
     "$HOME/go/bin",
-    {{ if ne .chezmoi.os "windows" -}}
+    {{ if (eq .chezmoi.os "darwin") }}
     "/usr/local/bin",
-    {{ end -}}
+    {{ else if (eq .chezmoi.os "linux" ) }}
+    "/snap/bin",
+    {{ end }}
     $ENV:PATH
 ) -join ":"
-$ENV:EDITOR = "nvim"
+$ENV:EDITOR = "vim"
 
 function ic {
     # shortcut for imgcat
     wezterm imgcat $args
 }
-# Autocomplete tab
 Set-PSReadlineKeyHandler -Key Tab -Function MenuComplete
 Set-PSReadlineKeyHandler -Key UpArrow -Function HistorySearchBackward
 Set-PSReadlineKeyHandler -Key DownArrow -Function HistorySearchForward
 
 Invoke-Expression (&starship init powershell)
-Invoke-Expression (& { (lua "$HOME/git/github/z.lua/z.lua" --init powershell) -join "`n" })
+Invoke-Expression (& { (zoxide init powershell) -join "`n" })
 
+# set cwd name as tab title
 $PromptScript = (Get-Item function:Prompt).ScriptBlock
 function Prompt {
     $PreservedExitStatus = $? # Before doing anything else, capture current $?
@@ -48,4 +44,14 @@ function Prompt {
     }
     Invoke-Command $PromptScript
 }
+
+{{ if (ne .chezmoi.os "windows") }}
+# Turns application-key mode ON before displaying the PS prompt and back OFF right after.
+$function:PSConsoleHostReadLine = " `$Host.UI.Write(`"``e[?1h`"); $function:PSConsoleHostReadLine; `$Host.UI.Write(`"``e[?1l`") "
+# For non-interactive invocations of the PowerShell CLI: turn application-key mode off too, 
+# So that it is left OFF on exiting (obviously won't work for -NoProfile invocations).
+$Host.UI.Write("`e[?1l")
+{{ end }}
+
+
 
