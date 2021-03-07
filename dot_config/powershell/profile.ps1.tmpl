@@ -28,6 +28,9 @@ function ic {
 function pcu {
    pre-commit autoupdate $args
 }
+function lt {
+   lsd --tree $args
+}
 function pcr {
    pre-commit run --all-files $args
 }
