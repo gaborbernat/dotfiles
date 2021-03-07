@@ -23,8 +23,13 @@ $ENV:PATH = (
 $ENV:EDITOR = "vim"
 
 function ic {
-    # shortcut for imgcat
-    wezterm imgcat $args
+    wezterm imgcat $args # shortcut for imgcat
+}
+function pcu {
+   pre-commit autoupdate $args
+}
+function pcr {
+   pre-commit run --all-files $args
 }
 Set-PSReadlineKeyHandler -Key Tab -Function MenuComplete
 Set-PSReadlineKeyHandler -Key UpArrow -Function HistorySearchBackward

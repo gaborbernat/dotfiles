@@ -15,7 +15,8 @@ local module = {
     font_size = 8,
     {{ else if (eq .chezmoi.os "linux" ) }}
     default_prog = {"/usr/bin/pwsh", "-NoLogo"},
-    font_size = 11,
+    window_decorations = "RESIZE",
+    font_size = 9,
     {{ else }}
     -- other operating system
     {{ end }}
