@@ -1,13 +1,27 @@
 // ==UserScript==
 // @name         shipit
-// @namespace    http://bgabor8.com/
+// @namespace    http://bernat.tech/
 // @version      0.1
 // @author       bgabor8
 // @match        https://github.com/*/*/pull/*
 // @grant        GM.xmlHttpRequest
 // ==/UserScript==
-(function() {
-    var urls = ["https://media.tenor.co/images/e3cef91b522243efb296f3f5a9b750a6/tenor.gif",
+(function() {    
+    var urls = [
+        "https://media.tenor.co/images/b64253f542857e925f636da6227eee35/tenor.gif",
+        "https://media.tenor.co/images/ee5d987f3179823003ac57dbc9cec195/tenor.gif",
+        "https://media.tenor.co/images/836fbead76ae60ae9bc939a04ae2327c/tenor.gif",        
+        "https://media.tenor.co/images/cd17aa15413e54e27ff6f2d37f6e38ec/tenor.gif",
+        "https://media.tenor.co/images/1e53478092d1fffc31c01c78c32a0c3b/tenor.gif",
+        "https://media.tenor.co/images/2324a204882dcdfdc3fdac73c0c27a43/tenor.gif",
+        "https://media.tenor.co/images/662d0e55e8efc96e8c107f270aefe242/tenor.gif",        
+        "https://media.tenor.co/images/ee5d987f3179823003ac57dbc9cec195/tenor.gif",
+        "https://media.tenor.co/images/37568e2d86ed1b72323d239af51ac8c9/tenor.gif",        
+        "https://media.tenor.co/images/0729d8125f80f37fdc3ed6c0f874822f/tenor.gif",
+        "https://media.tenor.co/images/052405d990b72064f31af6104ebf9398/tenor.gif",
+        "https://media.tenor.co/images/5b0afc48993d1493cedc2b6526e327bd/tenor.gif",
+        "https://media.tenor.co/images/8c3b94318be3ffc3027ace49bc0daefe/tenor.gif",
+        "https://media.tenor.co/images/d3588d1607f7cbe362c78130d7f3803d/tenor.gif",
         "https://media.tenor.co/images/bee8bf98cd1c1d9659af200f8aa71206/tenor.gif",
         "https://media.tenor.co/images/fa5133dfa140eef25f4e084ecdd6bdf1/tenor.gif",
         "https://media.tenor.co/images/22179354ce434e8d0d8b0aa83d3854a4/tenor.gif",

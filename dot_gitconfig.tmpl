@@ -49,3 +49,8 @@ cl = clean -fxd
 cou = "!git fetch upstream && git checkout --no-track -b $1 upstream/master && git push -u origin -f"
 com = "!git fetch upstream && git checkout --no-track -b $1 upstream/main && git push -u origin -f"
 cor = "!git fetch upstream && git checkout --no-track -b $1 upstream/rewrite && git push -u origin -f"
+
+{{ if (eq .chezmoi.os "windows") }}
+[gpg]
+program = C:\\Program Files (x86)\\GnuPG\\bin\\gpg.exe
+{{ end }}

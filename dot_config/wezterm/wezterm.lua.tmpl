@@ -1,7 +1,11 @@
 local wezterm = require 'wezterm';
 
 local module = {
+    {{ if (eq .chezmoi.os "windows") }}
+    font = wezterm.font("JetBrainsMono NF"),
+    {{ else }}
     font = wezterm.font("JetBrainsMono Nerd Font Mono"),
+    {{ end }}
     color_scheme = "Monokai Remastered",
     scrollback_lines = 35000,
     enable_scroll_bar = false,
@@ -18,7 +22,9 @@ local module = {
     window_decorations = "RESIZE",
     font_size = 16,
     {{ else }}
-    -- other operating system
+    default_prog = {"C:\\Program Files\\PowerShell\\7\\pwsh.exe", "-NoLogo"},
+    window_decorations = "RESIZE",
+    font_size = 10,
     {{ end }}
     disable_default_key_bindings = true,
     keys = {
