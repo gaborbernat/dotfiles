@@ -1,0 +1,66 @@
+# user specific configuration
+$ENV:PYTHONIOENCODING = "UTF-8"
+
+Clear-Host
+Set-Alias -Name ls -Value lsd
+Set-Alias -Name g -Value git
+Set-Alias -Name rmi -Value Remove-Item
+Set-Alias -Name gr -Value Select-String
+Set-Alias -Name open -Value ii
+Set-Alias -Name t -Value tig
+
+$ENV:PATH = (
+    "$HOME/.local/bin",
+    "$HOME/.cargo/bin",
+    "$HOME/go/bin",
+    {{ if (eq .chezmoi.os "darwin") }}
+    "/usr/local/bin",
+    {{ else if (eq .chezmoi.os "linux" ) }}
+    "/snap/bin",
+    {{ else if (eq .chezmoi.os "windows" ) }}
+    {{ end }}
+    $ENV:PATH
+) -join ":"
+$ENV:EDITOR = "vim"
+
+function ic {
+    wezterm imgcat $args # shortcut for imgcat
+}
+function pcu {
+   pre-commit autoupdate $args
+}
+function lt {
+   lsd --tree $args
+}
+function pcr {
+   pre-commit run --all-files $args
+}
+Set-PSReadlineKeyHandler -Key Tab -Function MenuComplete
+Set-PSReadlineKeyHandler -Key UpArrow -Function HistorySearchBackward
+Set-PSReadlineKeyHandler -Key DownArrow -Function HistorySearchForward
+
+Invoke-Expression (&starship init powershell)
+Invoke-Expression (& { (zoxide init powershell) -join "`n" })
+
+# set cwd name as tab title
+$PromptScript = (Get-Item function:Prompt).ScriptBlock
+function Prompt {
+    $PreservedExitStatus = $? # Before doing anything else, capture current $?
+    $CurrentWorkingDirectory = Split-Path -Path ((Get-Location).Path.Replace($Env:USER, "~")) -Leaf
+    $Host.UI.RawUI.WindowTitle = "$CurrentWorkingDirectory"
+    if ($? -ne $PreservedExitStatus) { 
+        Write-Error "" -ErrorAction Ignore # Powershell 7+     
+    }
+    Invoke-Command $PromptScript
+}
+
+{{ if (ne .chezmoi.os "windows") }}
+# Turns application-key mode ON before displaying the PS prompt and back OFF right after.
+$function:PSConsoleHostReadLine = " `$Host.UI.Write(`"``e[?1h`"); $function:PSConsoleHostReadLine; `$Host.UI.Write(`"``e[?1l`") "
+# For non-interactive invocations of the PowerShell CLI: turn application-key mode off too, 
+# So that it is left OFF on exiting (obviously won't work for -NoProfile invocations).
+$Host.UI.Write("`e[?1l")
+{{ end }}
+
+
+
