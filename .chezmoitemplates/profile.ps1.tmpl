@@ -41,6 +41,7 @@ Set-PSReadlineKeyHandler -Key DownArrow -Function HistorySearchForward
 
 Invoke-Expression (&starship init powershell)
 Invoke-Expression (& { (zoxide init powershell) -join "`n" })
+Import-Module DockerCompletion
 
 # set cwd name as tab title
 $PromptScript = (Get-Item function:Prompt).ScriptBlock
