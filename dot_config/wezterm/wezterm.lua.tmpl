@@ -16,7 +16,7 @@ local module = {
     dpi = 111.0,
     {{ if (eq .chezmoi.os "darwin") }}
     default_prog = {"/usr/local/bin/pwsh", "-NoLogo"},
-    font_size = 8,
+    font_size = 13,
     {{ else if (eq .chezmoi.os "linux" ) }}
     default_prog = {"/usr/bin/pwsh", "-NoLogo"},
     window_decorations = "RESIZE",
