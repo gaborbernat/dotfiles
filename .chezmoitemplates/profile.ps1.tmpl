@@ -63,5 +63,6 @@ $function:PSConsoleHostReadLine = " `$Host.UI.Write(`"``e[?1h`"); $function:PSCo
 $Host.UI.Write("`e[?1l")
 {{ end }}
 
-
-
+function py-versions {
+    py --list | Select-String -Pattern '\-\d+\.\d+' | %{py $_.matches.Value --version}
+}
