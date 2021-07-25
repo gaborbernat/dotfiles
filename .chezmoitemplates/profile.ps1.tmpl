@@ -66,3 +66,8 @@ $Host.UI.Write("`e[?1l")
 function py-versions {
     py --list | Select-String -Pattern '\-\d+\.\d+' | %{py $_.matches.Value --version}
 }
+
+{{ if (ne .chezmoi.os "windows") }}
+$ENV:GPG_TTY=$(tty)
+{{ end }}
+ 
