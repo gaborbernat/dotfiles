@@ -6,7 +6,6 @@ signingkey = {{ .signingkey }}
 [core]
 editor = vim
 excludesfile = ~/.gitignore_global
-pager = delta
 [checkout]
 defaultRemote=origin
 [init]
@@ -17,15 +16,6 @@ default = matching
 helper = store
 [commit]
 gpgsign = true
-[interactive]
-diffFilter = delta --color-only
-
-[delta]
-plus-color = "#012800"
-line-numbers = true
-minus-color = "#340001"
-syntax-theme = Monokai Extended
-side-by-side = false
 
 [alias]
 co = checkout
