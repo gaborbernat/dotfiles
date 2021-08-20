@@ -17,6 +17,7 @@ $ENV:PATH = (
     "/usr/local/bin",
     {{ else if (eq .chezmoi.os "linux" ) }}
     "/snap/bin",
+    "/opt/miniconda3/bin/",
     {{ else if (eq .chezmoi.os "windows" ) }}
     {{ end }}
     $ENV:PATH
