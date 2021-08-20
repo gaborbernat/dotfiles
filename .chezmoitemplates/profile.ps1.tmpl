@@ -65,7 +65,14 @@ $Host.UI.Write("`e[?1l")
 {{ end }}
 
 function py-versions {
+    {{ if (eq .chezmoi.os "windows") }}
     py --list | Select-String -Pattern '\-\d+\.\d+' | %{py $_.matches.Value --version}
+    {{ else }}
+    py --list | Select-String '[│] (.*)' -AllMatches | Foreach-Object {echo $_.Matches.Groups[1].Value $(Invoke-Expression -Command "$($_.Matches.Groups[1].Value) -c 'import sys; import os; print(sys.version+os.linesep)'") }
+    {{ end }}
+}
+function update-allow-list {
+    Remove-Item ./whitelist.txt -ErrorAction ignore && pcr | Select-String -AllMatches -Pattern "misspelt word: '(.*)'" | ForEach-Object {$_.Matches.Groups[1].Value.ToLower()} | Sort-Object -Unique | Out-File -Pathwhitelist.txt
 }
 
 {{ if (ne .chezmoi.os "windows") }}
