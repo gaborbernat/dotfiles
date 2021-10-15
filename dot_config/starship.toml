@@ -1,3 +1,19 @@
 add_newline = false
+
 [cmd_duration]
+min_time = 500
 show_milliseconds = true
+
+[directory]
+truncation_length = 8
+truncate_to_repo = false
+
+[docker_context]
+disabled = true
+
+[package]
+disabled = true
+
+[python]
+disabled = true
+
