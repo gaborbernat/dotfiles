@@ -1,0 +1,174 @@
+# Core
+set -gx EDITOR code
+set -gx VISUAL code
+set -gx TERM screen-256color
+set -gx SHELL /opt/homebrew/bin/fish
+set -gx DEBUG_PRINT_LIMIT 1000000
+set -gx DOCKER_BUILDKIT 1
+set -gx COMPOSE_BAKE true
+set -gx COMPOSE_PROGRESS plain
+
+# Path
+set -gx PATH \
+    $HOME/.local/sbin \
+    $HOME/.local/bin \
+    $HOME/.cargo/bin \
+    /opt/homebrew/opt/gnu-sed/libexec/gnubin \
+    /opt/homebrew/opt/gawk/libexec/gnubin \
+    /opt/homebrew/opt/gnu-indent/libexec/gnubin \
+    /opt/homebrew/opt/coreutils/libexec/gnubin \
+    /opt/homebrew/sbin \
+    /opt/homebrew/bin/ \
+    /usr/local/bin \
+    /opt/homebrew/opt/ed/bin \
+    /opt/homebrew/opt/findutils/libexec/gnubin \
+    /opt/homebrew/opt/flex/bin \
+    /opt/homebrew/opt/make/libexec/gnubin \
+    /opt/homebrew/opt/zip/bin \
+    /Applications/Docker.app/Contents/Resources/bin \
+    $HOME/go/bin \
+    $PATH
+
+# bb-homebrew
+set -gx PKG_CONFIG_PATH \
+    /opt/homebrew/Cellar/mysql-client/8.3.0/lib/pkgconfig \
+    /opt/homebrew/Cellar/protobuf@21/21.12/lib/pkgconfig \
+    /opt/homebrew/opt/openssl@1.1/lib/pkgconfig \
+    /opt/homebrew/opt/python@3.14/lib/pkgconfig
+
+set -gx MACOSX_DEPLOYMENT_TARGET (sw_vers -productVersion)
+set -gx LDFLAGS "-L/opt/homebrew/opt/ncurses/lib -L/opt/homebrew/opt/sqlite/lib -L/opt/homebrew/opt/librdkafka/lib/"
+set -e CFLAGS
+set -gx CPPFLAGS "-I/opt/homebrew/opt/ncurses/include -I/opt/homebrew/opt/sqlite/include -I/opt/homebrew/opt/librdkafka/include"
+
+# GO
+set -gx GOPATH $HOME/go
+
+set -gx DIFF_AGAINST upstream/main
+set -gx PY_PYTHON 3.14
+
+if status --is-interactive
+    # Add local functions directory
+    set --global fish_function_path $__fish_config_dir/local_functions $fish_function_path
+
+    # abbreviations
+    abbr --add g git
+    abbr --add gca "git aa; git can; git pu -f"
+    abbr --add grv "gh repo view -w"
+    abbr --add gpv "gh pr view -w"
+    abbr --add gr ./gradlew
+    abbr --add prs "gh pr create -f; gh pr view -w"
+    abbr --add prsd "gh pr create -f -d; gh pr view -w"
+    abbr --add l lsd
+    abbr --add h hatch
+    abbr --add hr hatch run
+    abbr --add v nvim
+    abbr --add t tig
+    abbr --add b env TERM=xterm-256color bat
+    abbr --add p pycharm . &
+    abbr --add i idea . &
+    abbr --add d docker compose
+    abbr --add du 'docker compose up -d --wait'
+    abbr --add do 'docker compose down'
+    abbr --add de 'docker compose exec app'
+    abbr --add i wezterm imgcat
+    abbr --add pcu 'prek autoupdate -j 12'
+    abbr --add pcr 'prek run --all-files'
+    function u
+        brew upgrade
+        brew cleanup
+        uv self update
+        update_python
+        uv tool upgrade --all
+        set tmp (mktemp -d); npm update -g --cache $tmp; rm -rf $tmp
+        rustup update
+        cargo install-update -a
+        sdk selfupdate
+        fisher update
+        if type -q update_docker_images
+            update_docker_images
+        end
+        docker system prune -f --volumes | grep "Total reclaimed space"
+    end
+
+    # load tools
+    zoxide init fish | source
+    atuin init fish | source
+
+    # fish interactive changes
+    set fish_greeting
+    function fish_title
+        echo (basename (pwd)): $argv
+    end
+
+    function dbu -a val
+        docker compose down $val
+        docker compose --progress plain build $val && docker compose up $val
+    end
+
+    function dbr -a val
+        docker compose build $val && docker compose run --rm $val
+    end
+    eval (direnv hook fish)
+
+    # Add SDKMAN candidates to PATH
+    for candidate in (find -L "$HOME/.sdkman/candidates" -type d -path '*/current/bin' 2>/dev/null)
+        fish_add_path $candidate
+    end
+
+    # Fish-compatible 'sdk' function
+    function sdk
+        set --local sdk_bash_cmd "source $HOME/.sdkman/bin/sdkman-init.sh; sdk $argv"
+
+        # Check for special 'use' command case
+        if test (count $argv) -gt 0; and test (string match --regex '^use' $argv)
+            # Set environment variables to look for
+            set --local env_vars PATH JAVA_HOME
+            set --local output (bash -c "$sdk_bash_cmd; SDK_STATUS=\$?; env | grep -E '^($(string join '|' $env_vars))='; exit \$SDK_STATUS")
+            # Used to access the exit code of sdk instead of grep
+            set --local sdk_status $status
+            if test $sdk_status -eq 0
+                for line in $output
+                    # Ignore output by sdk
+                    if not string match --quiet '*=*' $line
+                        continue
+                    end
+
+                    set --local key (echo $line | cut --delimiter '=' --fields 1)
+                    set --local value (echo $line | cut --delimiter '=' --fields 2-)
+
+                    # Ignore environment variables we're not looking for
+                    if not contains $key $env_vars
+                        continue
+                    end
+
+                    set --export $key $value
+                end
+                printf '\n%s\n' (set_color green)"Using $argv[2] version $argv[3] in this shell."(set_color normal)
+            else
+                printf '\n%s\n' (set_color --bold red)'Stop! Candidate version is not installed.'(set_color normal)
+                printf '\n%s\n' (set_color --bold yellow)'Tip: Run the following to install this version'(set_color normal)
+                printf '\n%s\n' (set_color --bold yellow)"\$ sdk install $argv[2] $argv[3]"(set_color normal)
+            end
+
+            return $std_status
+        else
+            bash -c $sdk_bash_cmd
+        end
+    end
+
+    # Source work-specific config if exists
+    if test -f "$HOME/.local/share/chezmoi-private/fish_work.fish"
+        source "$HOME/.local/share/chezmoi-private/fish_work.fish"
+    end
+
+    # Source secrets if exists
+    if test -f "$HOME/.secrets"
+        source "$HOME/.secrets"
+    end
+
+end
+
+# bun
+set --export BUN_INSTALL "$HOME/.bun"
+set --export PATH $BUN_INSTALL/bin $PATH

@@ -1,0 +1,118 @@
+[user]
+    name = Bernát Gábor
+    email = gaborjbernat@gmail.com
+    signingkey = {{ .signingkey }}
+
+[core]
+    editor = vim
+    excludesfile = ~/.gitignore_global
+    commitGraph = true
+
+[maintenance]
+    auto = true
+
+[checkout]
+    defaultRemote = origin
+
+[init]
+    defaultBranch = main
+
+[push]
+    default = simple
+    autoSetupRemote = true
+    followTags = true
+
+[commit]
+    gpgsign = true
+
+[rerere]
+    enabled = true
+    autoupdate = true
+
+[rebase]
+    autoStash = true
+    updateRefs = true
+
+[apply]
+    whitespace = fix
+
+[merge]
+    conflictStyle = zdiff3
+
+[diff]
+    algorithm = histogram
+    renames = true
+
+[status]
+    branch = true
+    showStash = true
+
+[fetch]
+    prune = true
+    pruneTags = true
+
+[alias]
+    co = checkout
+    s  = status
+    rv = remote -v
+    aa = add -A
+    br = branch -vv
+    cm  = commit -s -m
+    ca  = commit --amend -s
+    can = commit --amend --no-edit -s
+    rb  = rebase
+    ri  = rebase -i
+    rbm = rebase upstream/main
+    rbu = rebase upstream/master
+    rh = reset --hard
+    pr = pull --rebase --autostash
+    pu = push
+    pf = push --force-with-lease
+    cpc = cherry-pick
+    cl = clean -fxd
+
+    fa = "!f(){ \
+        set -e; \
+        git fetch --tags --force --auto-gc --show-forced-updates upstream; \
+        git push --prune origin 'refs/tags/*:refs/tags/*'; \
+    }; f"
+
+    cou = "!f(){ \
+        set -e; b=\"$1\"; \
+        [ -n \"$b\" ] || { echo 'usage: git cou <branch>'; exit 2; }; \
+        git fetch upstream; \
+        git switch -c \"$b\" --no-track upstream/master; \
+        git push -u origin \"$b\"; \
+    }; f"
+
+    com = "!f(){ \
+        set -e; b=\"$1\"; \
+        [ -n \"$b\" ] || { echo 'usage: git com <branch>'; exit 2; }; \
+        git fetch upstream; \
+        git switch -c \"$b\" --no-track upstream/main; \
+        git push -u origin \"$b\"; \
+    }; f"
+
+    cor = "!f(){ \
+        set -e; b=\"$1\"; \
+        [ -n \"$b\" ] || { echo 'usage: git cor <branch>'; exit 2; }; \
+        git fetch upstream; \
+        git switch -c \"$b\" --no-track upstream/rewrite; \
+        git push -u origin \"$b\"; \
+    }; f"
+
+    sync = "!f(){ \
+        set -e; \
+        git fetch upstream; \
+        b=$(git branch --show-current); \
+        upstream_branch=$(git symbolic-ref --quiet --short refs/remotes/upstream/HEAD 2>/dev/null | sed 's|^upstream/||'); \
+        [ -n \"$upstream_branch\" ] || upstream_branch=main; \
+        git rebase \"upstream/$upstream_branch\"; \
+        git push -u origin \"$b\"; \
+    }; f"
+
+[credential]
+    helper = osxkeychain
+
+[includeIf "gitdir:~/"]
+    path = ~/.local/share/chezmoi-private/gitconfig_work

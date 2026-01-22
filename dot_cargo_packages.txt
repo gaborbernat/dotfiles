@@ -1,0 +1,4 @@
+# Cargo packages to install
+cargo-insta
+cargo-nextest
+cargo-update

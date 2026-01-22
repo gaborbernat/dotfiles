@@ -1,0 +1,31 @@
+#!/bin/bash
+# uv tools hash: {{ include "dot_uv_tools.txt.tmpl" | sha256sum }}
+set -euo pipefail
+
+install_tools() {
+    local file="$1"
+    local default_python=""
+    while IFS= read -r line; do
+        if [[ "$line" =~ ^#\ python:\ (.+) ]]; then
+            default_python="${BASH_REMATCH[1]}"
+            continue
+        fi
+        [[ -z "$line" || "$line" =~ ^# ]] && continue
+        read -ra args <<< "$line"
+        if [[ -n "$default_python" && ! "$line" =~ --python ]]; then
+            args+=(--python "$default_python")
+        fi
+        echo "  Installing ${args[0]}..."
+        uv tool install --upgrade "${args[@]}" || echo "  ⚠️  Failed to install ${args[0]}"
+    done < "$file"
+}
+
+echo "📦 Installing uv tools..."
+install_tools "$HOME/.uv_tools.txt"
+
+if [[ -f "$HOME/.local/share/chezmoi-private/uv_tools_work.txt" ]]; then
+    echo "📦 Installing work uv tools..."
+    install_tools "$HOME/.local/share/chezmoi-private/uv_tools_work.txt"
+fi
+
+echo "✅ uv tools installed"

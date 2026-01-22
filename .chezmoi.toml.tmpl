@@ -1,0 +1,31 @@
+{{- $signingkey := "" -}}
+
+{{- $gpgOutput := output "gpg" "--list-secret-keys" "--keyid-format" "short" -}}
+{{- if not $gpgOutput -}}
+{{-   fail "No GPG secret keys found. Please set up GPG first." -}}
+{{- end -}}
+
+{{- $keys := list -}}
+{{- range (splitList "\n" $gpgOutput) -}}
+{{-   if regexMatch "^sec" . -}}
+{{-     $keyMatch := regexFind "[0-9A-F]{8,}" . -}}
+{{-     if $keyMatch -}}
+{{-       $keys = append $keys $keyMatch -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+
+{{- if eq (len $keys) 0 -}}
+{{-   fail "No GPG secret keys found. Please set up GPG first." -}}
+{{- else if eq (len $keys) 1 -}}
+{{-   $signingkey = index $keys 0 -}}
+{{- else -}}
+{{-   if stdinIsATTY -}}
+{{-     $signingkey = promptChoiceOnce . "signingkey" "Select GPG signing key" $keys -}}
+{{-   else -}}
+{{-     $signingkey = index $keys 0 -}}
+{{-   end -}}
+{{- end -}}
+
+[data]
+    signingkey = {{ $signingkey | quote }}
