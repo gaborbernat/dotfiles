@@ -1,0 +1,28 @@
+#!/bin/bash
+
+if [ -z "$1" ]; then
+  echo "Usage: $0 <url>"
+  exit 1
+fi
+
+URL="$1"
+
+curl -s --trace-ascii - --trace-time -o /dev/null "$URL" | awk '
+/Recv data/ {
+  match($0, /Recv data, ([0-9]+) bytes/, m)
+  if (m[1] > 0) {
+    split($1, t, ":")
+    sec = t[1]*3600 + t[2]*60 + int(t[3])
+    if (sec != last_sec && last_sec != "") {
+      printf("%s  %.2f KB/s\n", last_ts, sum / 1024)
+      sum = 0
+    }
+    sum += m[1]
+    last_sec = sec
+    last_ts = sprintf("%02d:%02d:%02d", t[1], t[2], int(t[3]))
+  }
+}
+END {
+  if (last_ts != "")
+    printf("%s  %.2f KB/s\n", last_ts, sum / 1024)
+}'

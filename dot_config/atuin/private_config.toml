@@ -1,0 +1,28 @@
+# Use fuzzy search everywhere
+search_mode = "fuzzy"
+
+# Keep history globally, but rank by context
+filter_mode = "global"
+
+# Don't be prefix-only (this is the magic)
+inline_height = 30
+
+# Do not record trivial noise
+history_filter = [
+  "^cd$",
+  "^pwd$",
+  "^exit$",
+  "^clear$"
+]
+
+# Extra safety for tokens / secrets
+secrets_filter = true
+
+# Compact, fast UI
+show_preview = true
+show_help = true
+
+style = "compact"
+
+# Prevent accidental mass deletion
+delete_confirm = true

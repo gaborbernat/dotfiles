@@ -1,0 +1,15 @@
+#!/bin/bash
+# Brewfile hash: {{ include "dot_Brewfile.tmpl" | sha256sum }}
+set -euo pipefail
+
+if command -v brew >/dev/null 2>&1; then
+    echo "🍺 Installing Homebrew packages..."
+    brew bundle --global
+    if [[ -f "$HOME/.local/share/chezmoi-private/Brewfile_work" ]]; then
+        echo "🍺 Installing work Homebrew packages..."
+        brew bundle --file="$HOME/.local/share/chezmoi-private/Brewfile_work"
+    fi
+    echo "✅ Homebrew packages installed"
+else
+    echo "⚠️  Homebrew not found, skipping brew bundle"
+fi

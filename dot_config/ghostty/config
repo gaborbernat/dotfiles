@@ -1,0 +1,15 @@
+adjust-cursor-thickness = 2
+command = /opt/homebrew/bin//fish
+cursor-click-to-move = true
+cursor-color = #FFFF00
+cursor-opacity = 1
+cursor-style = bar
+cursor-style-blink = true
+font-family = "JetBrainsMono Nerd Font"
+font-size = 13
+link-url = true
+mouse-hide-while-typing = true
+mouse-scroll-multiplier = 1
+scrollback-limit = 20000000
+theme = Detuned
+keybind = shift+enter=text:\x1b\r

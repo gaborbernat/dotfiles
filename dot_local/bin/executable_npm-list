@@ -1,0 +1,51 @@
+#!/bin/bash
+
+# ANSI color codes
+YELLOW='\033[1;33m'
+CYAN='\033[0;36m'
+BOLD='\033[1m'
+RESET='\033[0m'
+
+# Check for package.json
+if [ ! -f "package.json" ]; then
+  echo -e "${YELLOW}Error:${RESET} package.json not found in the current directory."
+  exit 1
+fi
+
+# Print header
+printf "${BOLD}%-20s %s${RESET}\n" "Script" "Command"
+printf "${BOLD}%-20s %s${RESET}\n" "------" "-------"
+
+# Extract, group, and print scripts
+node -e "
+const scripts = require('./package.json').scripts;
+const yellow = '\x1b[1;33m';
+const cyan = '\x1b[0;36m';
+const reset = '\x1b[0m';
+
+const grouped = {};
+
+for (const [key, val] of Object.entries(scripts)) {
+  let base;
+  if (key.startsWith('pre') && scripts[key.slice(3)]) {
+    base = key.slice(3);
+    grouped[base] = grouped[base] || {};
+    grouped[base].pre = val;
+  } else if (key.startsWith('post') && scripts[key.slice(4)]) {
+    base = key.slice(4);
+    grouped[base] = grouped[base] || {};
+    grouped[base].post = val;
+  } else {
+    base = key;
+    grouped[base] = grouped[base] || {};
+    grouped[base].main = val;
+  }
+}
+
+Object.keys(grouped).sort().forEach(base => {
+  const { pre, main, post } = grouped[base];
+  if (pre) console.log(yellow + ('pre' + base).padEnd(20) + reset + ' ' + cyan + pre + reset);
+  if (main) console.log(yellow + base.padEnd(20) + reset + ' ' + cyan + main + reset);
+  if (post) console.log(yellow + ('post' + base).padEnd(20) + reset + ' ' + cyan + post + reset);
+});
+"

@@ -1,0 +1,11 @@
+#!/bin/bash
+# Work configs setup
+set -euo pipefail
+
+if [[ -d "$HOME/.local/share/chezmoi-private" ]]; then
+    if [[ -f "$HOME/.local/share/chezmoi-private/uv.toml" ]]; then
+        mkdir -p "$HOME/.config/uv"
+        ln -sf "$HOME/.local/share/chezmoi-private/uv.toml" "$HOME/.config/uv/uv.toml"
+        echo "✅ Linked work uv.toml"
+    fi
+fi

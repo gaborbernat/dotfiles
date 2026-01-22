@@ -1,0 +1,26 @@
+repos:
+  - repo: builtin
+    hooks:
+      - id: trailing-whitespace
+        priority: 1
+      - id: end-of-file-fixer
+        priority: 1
+      - id: check-executables-have-shebangs
+        priority: 2
+      - id: check-toml
+        priority: 2
+      - id: detect-private-key
+        priority: 2
+      - id: mixed-line-ending
+        args: [--fix=lf]
+        priority: 1
+
+  - repo: local
+    hooks:
+      - id: check-no-hardcoded-home
+        name: Check for hardcoded home paths
+        entry: bash -c 'if grep -lF "$HOME" "$@" 2>/dev/null; then echo "Found hardcoded home paths - use \$HOME variable instead"; exit 1; fi' --
+        language: system
+        types: [text]
+        exclude: ^(\.pre-commit-config\.yaml|CLAUDE\.md)$
+        priority: 2

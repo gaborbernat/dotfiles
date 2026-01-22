@@ -1,0 +1,15 @@
+#!/bin/bash
+# Work scripts hash: {{ glob "dot_local/bin/executable_*" | join "\n" | sha256sum }}
+set -euo pipefail
+
+if [[ -d "$HOME/.local/share/chezmoi-private/bin" ]]; then
+    echo "📦 Installing private bin scripts..."
+    for script in "$HOME/.local/share/chezmoi-private/bin"/*; do
+        if [[ -f "$script" ]]; then
+            name=$(basename "$script")
+            cp "$script" "$HOME/.local/bin/$name"
+            chmod +x "$HOME/.local/bin/$name"
+        fi
+    done
+    echo "✅ Private scripts installed"
+fi

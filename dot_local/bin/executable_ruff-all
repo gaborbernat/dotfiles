@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+
+ruff format "$1"
+ruff check --fix --unsafe-fixes "$1"
