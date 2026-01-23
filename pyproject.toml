@@ -1,0 +1,15 @@
+[tool.ruff]
+target-version = "py314"
+line-length = 120
+format.preview = true
+format.docstring-code-line-length = 120
+format.docstring-code-format = true
+lint.select = ["ALL"]
+lint.ignore = [
+  "COM812",  # conflicts with formatter
+  "CPY",     # no copyright
+  "D",       # no docs
+  "ISC001",  # conflicts with formatter
+  "S",       # we trust ourselves
+  "PLR2004", # magic numbers are fine
+]

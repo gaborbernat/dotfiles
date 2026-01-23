@@ -1,4 +1,6 @@
 README.md
+pyproject.toml
+.pre-commit-config.yaml
 **/.venv
 **/__pycache__
 **/.ruff_cache

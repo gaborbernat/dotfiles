@@ -24,3 +24,15 @@ repos:
         types: [text]
         exclude: ^(\.pre-commit-config\.yaml|CLAUDE\.md)$
         priority: 2
+      - id: ruff-format
+        name: ruff format
+        entry: ruff format
+        language: system
+        types: [python]
+        priority: 3
+      - id: ruff-check
+        name: ruff check
+        entry: ruff check --fix --unsafe-fixes
+        language: system
+        types: [python]
+        priority: 3
