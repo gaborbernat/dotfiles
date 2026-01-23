@@ -65,7 +65,7 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
     set default_branch (gh repo view $repo --json defaultBranchRef --jq '.defaultBranchRef.name')
 
     set owner (string split / $repo)[1]
-    set name  (string split / $repo)[2]
+    set name (string split / $repo)[2]
 
     set target_dir $name
 

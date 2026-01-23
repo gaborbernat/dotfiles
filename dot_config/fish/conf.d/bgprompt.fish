@@ -63,10 +63,10 @@ function _bgp_pwd --on-variable PWD
                 end
             else if test $i -eq $root_count
                 # Git root itself - keep full, make bold
-                set --append result_parts (set_color --bold)"$part"(set_color normal)
+                set --append result_parts (set_color --bold)"$part"(set_color normal; set_color $bgp_color_pwd)
             else if test $i -eq $pwd_count
                 # Last component (basename) - keep full, make bold
-                set --append result_parts (set_color --bold)"$part"(set_color normal)
+                set --append result_parts (set_color --bold)"$part"(set_color normal; set_color $bgp_color_pwd)
             else
                 # Inside repo but not basename - truncate
                 set --append result_parts (string sub -l 1 $part)
@@ -74,8 +74,8 @@ function _bgp_pwd --on-variable PWD
         end
 
         set --local result (string join "/" $result_parts)
-        # Dim the slashes
-        set --global _bgp_pwd (string replace --regex --all -- '/' (set_color brblack)"/"(set_color normal) $result)
+        # Dim the slashes, reset to pwd color after
+        set --global _bgp_pwd (string replace --regex --all -- '/' (set_color brblack)"/"(set_color normal; set_color $bgp_color_pwd) $result)
     else
         # Not in a git repo - truncate all but basename
         set --local parts (string split / $pwd_display)
@@ -86,7 +86,7 @@ function _bgp_pwd --on-variable PWD
             set --local part $parts[$i]
             if test $i -eq $num_parts
                 # Basename - keep full, bold
-                set --append result_parts (set_color --bold)"$part"(set_color normal)
+                set --append result_parts (set_color --bold)"$part"(set_color normal; set_color $bgp_color_pwd)
             else if test "$part" = "~" -o "$part" = ""
                 set --append result_parts $part
             else
@@ -95,8 +95,8 @@ function _bgp_pwd --on-variable PWD
         end
 
         set --local result (string join "/" $result_parts)
-        # Dim the slashes
-        set --global _bgp_pwd (string replace --regex --all -- '/' (set_color brblack)"/"(set_color normal) $result)
+        # Dim the slashes, reset to pwd color after
+        set --global _bgp_pwd (string replace --regex --all -- '/' (set_color brblack)"/"(set_color normal; set_color $bgp_color_pwd) $result)
     end
 end
 
@@ -253,6 +253,12 @@ function _bgp_prompt --on-event fish_prompt
             set search_dir (dirname \"\$search_dir\")
         end
 
+        # Docker compose - check for running containers in current project
+        if test -f \"\$PWD/docker-compose.yml\" -o -f \"\$PWD/docker-compose.yaml\" -o -f \"\$PWD/compose.yml\" -o -f \"\$PWD/compose.yaml\"
+            set --local running (docker compose ps --status running --format '{{.Service}}' 2>/dev/null | string join ',')
+            test -n \"\$running\" && set --append contexts \"docker:\$running\"
+        end
+
         set --universal $_bgp_context (string join ' ' \$contexts)
     " &
     set --global _bgp_last_context_pid $last_pid
@@ -269,7 +275,7 @@ function _bgp_transient
     if test -n "$_bgp_transient_pending"
         set --erase _bgp_transient_pending
         commandline --function execute
-    else if test -z (commandline --current-buffer | string trim)
+    else if not string length -q -- (commandline --current-buffer | string trim)
         set --global _bgp_transient_pending 1
         commandline --function repaint
     else
@@ -302,7 +308,7 @@ end
 
 # Default values
 set --query bgp_color_error || set --global bgp_color_error $fish_color_error
-set --query bgp_color_pwd || set --global bgp_color_pwd brblue
+set --query bgp_color_pwd || set --global bgp_color_pwd green
 set --query bgp_color_git || set --global bgp_color_git yellow
 set --query bgp_color_duration || set --global bgp_color_duration brblack
 set --query bgp_color_context || set --global bgp_color_context brblack
