@@ -174,7 +174,23 @@ function _bgp_prompt --on-event fish_prompt
                     string replace --regex -- '(.+)' '@\$1'
             )
 
-            test -z \"\$$_bgp_git\" && set --universal $_bgp_git \"\$branch\"
+            # Check if in a bare repo worktree where dirname matches branch
+            set --local hide_branch false
+            set --local git_common (command git rev-parse --git-common-dir 2>/dev/null)
+            if test \"\$git_common\" != \".git\" -a -d \"\$git_common\"
+                # In a worktree - check if git_common is the bare repo
+                if command git -C \"\$git_common\" rev-parse --is-bare-repository 2>/dev/null | string match -q true
+                    if test (basename \$PWD) = \"\$branch\"
+                        set hide_branch true
+                    end
+                end
+            end
+
+            if test \"\$hide_branch\" = true
+                test -z \"\$$_bgp_git\" && set --universal $_bgp_git \"\"
+            else
+                test -z \"\$$_bgp_git\" && set --universal $_bgp_git \"\$branch\"
+            end
 
             command git diff-index --quiet HEAD 2>/dev/null
             set --local dirty_status \$status
@@ -199,7 +215,11 @@ function _bgp_prompt --on-event fish_prompt
                     set upstream \" $bgp_symbol_git_ahead\$ahead $bgp_symbol_git_behind\$behind\"
             end
 
-            set --universal $_bgp_git \"\$branch\$info\$upstream\"
+            if test \"\$hide_branch\" = true
+                set --universal $_bgp_git \"\$info\$upstream\"
+            else
+                set --universal $_bgp_git \"\$branch\$info\$upstream\"
+            end
         " &
         set --global _bgp_last_git_pid $last_pid
     else
