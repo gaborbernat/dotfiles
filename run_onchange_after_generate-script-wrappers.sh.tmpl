@@ -2,14 +2,20 @@
 # Work scripts hash: {{ glob "dot_local/bin/executable_*" | join "\n" | sha256sum }}
 set -euo pipefail
 
-if [[ -d "$HOME/.local/share/chezmoi-private/bin" ]]; then
-    echo "📦 Installing private bin scripts..."
-    for script in "$HOME/.local/share/chezmoi-private/bin"/*; do
+if [[ -d "$HOME/.local/share/chezmoi-private/scripts/src" ]]; then
+    echo "📦 Generating wrapper scripts for private Python scripts..."
+    for script in "$HOME/.local/share/chezmoi-private/scripts/src"/*.py; do
         if [[ -f "$script" ]]; then
-            name=$(basename "$script")
-            cp "$script" "$HOME/.local/bin/$name"
-            chmod +x "$HOME/.local/bin/$name"
+            name=$(basename "$script" .py)
+            wrapper="$HOME/.local/bin/$name"
+            cat > "$wrapper" << EOF
+#!/bin/bash
+set -euo pipefail
+uv run -- "\$HOME/.local/share/chezmoi-private/scripts/src/$name.py" "\$@"
+EOF
+            chmod +x "$wrapper"
+            echo "  Created wrapper: $name"
         fi
     done
-    echo "✅ Private scripts installed"
+    echo "✅ Private script wrappers generated"
 fi

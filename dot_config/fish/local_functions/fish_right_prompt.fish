@@ -16,11 +16,13 @@ function fish_right_prompt
                 case node
                     set icon "⬢ "
                 case python
-                    set icon "🐍"
+                    set icon "🐍 "
                 case go
-                    set icon "🐹"
+                    set icon "🐹 "
                 case rust
-                    set icon "🦀"
+                    set icon "🦀 "
+                case docker
+                    set icon "🐳 "
             end
 
             if test -n "$icon" -a -n "$ctx_ver"
