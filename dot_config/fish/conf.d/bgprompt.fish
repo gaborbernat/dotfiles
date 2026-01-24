@@ -235,6 +235,7 @@ function _bgp_prompt --on-event fish_prompt
         set --local found_python false
         set --local found_go false
         set --local found_rust false
+        set --local found_java false
 
         # Search up for project markers (find all ecosystems)
         while test \"\$search_dir\" != \"/\"
@@ -269,6 +270,14 @@ function _bgp_prompt --on-event fish_prompt
                     test -n \"\$ver\" && set --append contexts \"rust:\$ver\"
                 end
                 set found_rust true
+            end
+            if test \"\$found_java\" = false -a \\( -f \"\$search_dir/build.gradle\" -o -f \"\$search_dir/build.gradle.kts\" -o -f \"\$search_dir/pom.xml\" \\)
+                set --local java_bin (command -v java 2>/dev/null)
+                if test -n \"\$java_bin\"
+                    set --local ver (\$java_bin --version 2>/dev/null | head -1 | string match --regex '([0-9.]+)' | tail -1)
+                    test -n \"\$ver\" && set --append contexts \"java:\$ver\"
+                end
+                set found_java true
             end
             set search_dir (dirname \"\$search_dir\")
         end
