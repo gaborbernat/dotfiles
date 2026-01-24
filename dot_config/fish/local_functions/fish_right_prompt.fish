@@ -21,6 +21,8 @@ function fish_right_prompt
                     set icon "🐹 "
                 case rust
                     set icon "🦀 "
+                case java
+                    set icon "☕ "
                 case docker
                     set icon "🐳 "
             end
