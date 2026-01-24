@@ -1,5 +1,5 @@
-function p -d "Open PyCharm with worktree-aware project name and auto-config"
-    set --local dir (pwd)
+function p -d "Open PyCharm with worktree-aware project name and auto-config" -a path
+    set --local dir (test -n "$path" && realpath "$path" || pwd)
     set --local project_name (basename "$dir")
     set --local bare_root (git rev-parse --git-common-dir 2>/dev/null)
 
