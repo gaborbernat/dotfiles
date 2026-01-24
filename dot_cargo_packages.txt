@@ -1,4 +1,7 @@
 # Cargo packages to install
+# cargo-insta: snapshot testing
 cargo-insta
+# cargo-nextest: faster test runner
 cargo-nextest
+# cargo-update: update installed crates
 cargo-update
