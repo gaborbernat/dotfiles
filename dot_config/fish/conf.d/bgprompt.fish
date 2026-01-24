@@ -36,6 +36,15 @@ function _bgp_pwd --on-variable PWD
             set git_root $git_common
         end
 
+        # Handle symlinks: git returns real paths but PWD may use symlinks
+        if not string match -q "$git_root*" $PWD
+            set --local pwd_real (realpath $PWD 2>/dev/null)
+            if test -n "$pwd_real" && string match -q "$git_root*" $pwd_real
+                set --local rel_path (string replace "$git_root/" "" $pwd_real)
+                test -n "$rel_path" && set git_root (string replace "/$rel_path" "" $PWD) || set git_root $PWD
+            end
+        end
+
         # Inside a git repo
         set --local git_root_display (string replace -- $HOME "~" $git_root)
         set --local git_base (basename $git_root)
