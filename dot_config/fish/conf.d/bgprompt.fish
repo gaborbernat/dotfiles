@@ -20,6 +20,8 @@ function _bgp_pwd --on-variable PWD
 
     if set --query git_root[1]
         set --erase _bgp_skip_git_prompt
+    else if command git --no-optional-locks rev-parse --is-bare-repository 2>/dev/null | string match -q true
+        set --erase _bgp_skip_git_prompt
     else
         set --global _bgp_skip_git_prompt
     end
@@ -186,7 +188,7 @@ function _bgp_prompt --on-event fish_prompt
             # Check if in a bare repo worktree where dirname matches branch
             set --local hide_branch false
             set --local git_common (command git rev-parse --git-common-dir 2>/dev/null)
-            if test \"\$git_common\" != \".git\" -a -d \"\$git_common\"
+            if test \"\$git_common\" != \".git\" -a \"\$git_common\" != \".\" -a -d \"\$git_common\"
                 # In a worktree - check if git_common is the bare repo
                 if command git -C \"\$git_common\" rev-parse --is-bare-repository 2>/dev/null | string match -q true
                     if test (basename \$PWD) = \"\$branch\"
