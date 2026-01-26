@@ -69,11 +69,6 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
 
     set target_dir $name
 
-    if test -e $target_dir
-        echo "error: directory already exists: $target_dir"
-        return 2
-    end
-
     echo "Upstream repo : $repo"
     echo "Default branch: $default_branch"
 
@@ -81,9 +76,7 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
     echo "Ensuring fork exists..."
     gh repo fork $repo --fork-name $name --remote=false >/dev/null 2>&1
 
-    # Determine fork URL (SSH or HTTPS based on input format):
-    # If you already have a local clone elsewhere, gh can still resolve your fork via 'gh repo fork' + API,
-    # but easiest is to ask gh for YOUR fork explicitly:
+    # Determine fork URL
     set me (gh api user --jq .login)
     set fork "$me/$name"
     if test "$use_https" = true
@@ -92,48 +85,79 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
         set fork_url (gh repo view $fork --json sshUrl --jq '.sshUrl' 2>/dev/null)
     end
     if test -z "$fork_url"
-        # Fallback: if fork naming differs, ask gh for the parent/fork network; last resort keep origin unset.
         echo "warning: could not resolve fork repo $fork; origin remote may need manual setup"
     end
 
-    # Clone upstream as bare
-    echo "Cloning bare repo..."
-    git clone --bare $upstream_url $target_dir; or return $status
+    # Clone upstream as bare (skip if exists)
+    if not test -d $target_dir
+        echo "Cloning bare repo..."
+        git clone --bare $upstream_url $target_dir; or return $status
+    else
+        echo "Bare repo already exists, skipping clone"
+    end
 
     cd $target_dir
 
-    # Wire remotes correctly: upstream is source; origin is your fork
-    git remote rename origin upstream
-    if test -n "$fork_url"
+    # Wire remotes correctly: upstream is source; origin is your fork (idempotent)
+    if not git remote get-url upstream >/dev/null 2>&1
+        git remote rename origin upstream 2>/dev/null
+    end
+    git config remote.upstream.fetch "+refs/heads/*:refs/remotes/upstream/*"
+
+    if test -n "$fork_url"; and not git remote get-url origin >/dev/null 2>&1
         git remote add origin $fork_url
     end
+    test -n "$fork_url"; and git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
 
-    # Fetch everything
-    git fetch --all --prune --prune-tags
+    echo "Fetching upstream"
+    git fetch upstream
+    echo "Fetching origin"
+    git fetch origin 2>/dev/null
 
-    # Create worktree for default branch
-    git worktree add $default_branch $default_branch
+    # Create shared CLAUDE.md in bare repo root if it doesn't exist
+    if not test -f CLAUDE.md
+        touch CLAUDE.md
+    end
+
+    # Create worktree for default branch (skip if exists)
+    if not test -d $default_branch
+        git worktree add $default_branch $default_branch
+    end
+
+    # Symlink CLAUDE.md to default branch worktree
+    if not test -e $default_branch/CLAUDE.md
+        ln -s ../CLAUDE.md $default_branch/CLAUDE.md
+    end
 
     # Set gh default to upstream (run inside a worktree)
     cd $default_branch
     gh repo set-default $repo >/dev/null 2>&1
     cd ..
 
-    # If origin exists and branch exists on origin, use it; else create from upstream/default and push to origin
-    if git remote get-url origin >/dev/null 2>&1
-        if git show-ref --verify --quiet refs/remotes/origin/$branch
-            echo "Branch exists on origin: $branch"
-            git worktree add $branch $branch
+    # Create branch worktree (skip if exists)
+    if not test -d $branch
+        if git remote get-url origin >/dev/null 2>&1
+            if git show-ref --verify --quiet refs/remotes/origin/$branch
+                echo "Branch exists on origin: $branch"
+                git worktree add $branch $branch
+            else
+                echo "Creating new branch from upstream/$default_branch: $branch"
+                git worktree add -b $branch $branch upstream/$default_branch
+                cd $branch
+                git push -u origin $branch
+                cd ..
+            end
         else
-            echo "Creating new branch from upstream/$default_branch: $branch"
+            echo "note: no origin remote configured; creating branch locally from upstream/$default_branch"
             git worktree add -b $branch $branch upstream/$default_branch
-            cd $branch
-            git push -u origin $branch
-            cd ..
         end
     else
-        echo "note: no origin remote configured; creating branch locally from upstream/$default_branch"
-        git worktree add -b $branch $branch upstream/$default_branch
+        echo "Branch worktree already exists: $branch"
+    end
+
+    # Symlink CLAUDE.md to branch worktree
+    if not test -e $branch/CLAUDE.md
+        ln -s ../CLAUDE.md $branch/CLAUDE.md
     end
 
     cd $branch

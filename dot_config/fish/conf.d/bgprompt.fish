@@ -238,8 +238,10 @@ function _bgp_prompt --on-event fish_prompt
     end
 
     # Async context detection (node/python/go/rust versions - supports multiple)
-    # Fully async - uses fish -c (not --private) to inherit current PATH from nvm/pyenv
+    # Explicitly pass PATH to preserve nvm/pyenv/etc changes
+    set --local async_path (string escape -- $PATH)
     fish -c "
+        set -gx PATH $async_path
         set --local contexts
         set --local search_dir \$PWD
         set --local found_node false
