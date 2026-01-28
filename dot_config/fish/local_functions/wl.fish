@@ -11,8 +11,9 @@ function wl -d "List worktrees for bare repo (interactive: enter=cd, ctrl-d=dele
         end
     end
 
-    # Ensure origin fetch refspec is set (one-time fix, no fetch)
+    # Ensure fetch refspecs are set (one-time fix, no fetch)
     git -C "$bare_root" config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*" 2>/dev/null
+    git -C "$bare_root" config remote.upstream.fetch "+refs/heads/*:refs/remotes/upstream/*" 2>/dev/null
 
     # Build worktree list
     set --local entries
