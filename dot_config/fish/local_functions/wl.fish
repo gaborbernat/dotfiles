@@ -50,9 +50,9 @@ function wl -d "List worktrees for bare repo (interactive: enter=cd, ctrl-d=dele
     end
 
     set --local legend (printf "%-24s %-15s %s" "WORKTREE" "LAST COMMIT" "ORIGIN")
-    set --local header (basename "$bare_root")" (bare) | enter=cd, c=create, d=delete, r=refresh, q=quit
+    set --local header (basename "$bare_root")" (bare) | enter=cd, c=create, o=open PR, d=delete, r=refresh, q=quit
 $legend"
-    set --local result (printf '%s\n' $entries | fzf --height=~50% --header="$header" --expect=c,d,r --bind=q:abort --delimiter='\t' --with-nth=1)
+    set --local result (printf '%s\n' $entries | fzf --height=~50% --header="$header" --expect=c,o,d,r --bind=q:abort --delimiter='\t' --with-nth=1)
 
     test (count $result) -eq 0 && return 0
 
@@ -65,6 +65,10 @@ $legend"
         read -P "Branch name: " branch_name
         test -z "$branch_name" && return 0
         gcw $branch_name
+    else if test "$key" = o
+        read -P "PR number: " pr_number
+        test -z "$pr_number" && return 0
+        _wl_open_pr "$bare_root" "$pr_number"
     else if test "$key" = r
         echo "Fetching origin and upstream..."
         git -C "$bare_root" fetch origin --quiet 2>/dev/null
@@ -79,4 +83,94 @@ $legend"
     else
         cd "$wt_path"
     end
+end
+
+function _wl_open_pr -a bare_root pr_number
+    cd "$bare_root"
+
+    set pr_info (gh pr view $pr_number --json headRefName,headRepository,headRepositoryOwner --jq '[.headRefName, .headRepository.name, .headRepositoryOwner.login] | @tsv')
+    or begin
+        echo "error: could not fetch PR #$pr_number"
+        return 2
+    end
+
+    set branch (echo $pr_info | cut -f1)
+    set repo_name (echo $pr_info | cut -f2)
+    set owner (echo $pr_info | cut -f3)
+
+    if test -z "$branch"
+        echo "error: could not determine branch for PR #$pr_number"
+        return 2
+    end
+
+    set worktree_name "pr-$pr_number"
+
+    if test -d $worktree_name
+        echo "Worktree already exists: $worktree_name"
+        cd $worktree_name
+        return 0
+    end
+
+    # First check if any existing remote already has the branch (after fetching)
+    echo "Fetching remotes..."
+    git fetch --all --quiet
+
+    set remote_name ""
+    for remote in (git remote)
+        if git show-ref --verify --quiet refs/remotes/$remote/$branch
+            set remote_name $remote
+            echo "Found branch on remote: $remote_name"
+            break
+        end
+    end
+
+    # If branch not found, check if PR author's repo is available and add if needed
+    if test -z "$remote_name"
+        set target_repo (string lower "$owner/$repo_name")
+        for remote in (git remote)
+            set remote_url (git remote get-url $remote 2>/dev/null)
+            set remote_repo (string replace -r '^.*[:/]([^/]+/[^/]+?)(?:\.git)?$' '$1' "$remote_url" | string lower)
+            if test "$remote_repo" = "$target_repo"
+                set remote_name $remote
+                break
+            end
+        end
+
+        if test -z "$remote_name"
+            set remote_name $owner
+            echo "Adding remote: $remote_name"
+            set existing_url (git remote get-url upstream 2>/dev/null; or git remote get-url origin 2>/dev/null)
+            if string match -q 'git@*' "$existing_url"
+                set remote_url (gh repo view "$owner/$repo_name" --json sshUrl --jq '.sshUrl' 2>/dev/null)
+            else
+                set remote_url (gh repo view "$owner/$repo_name" --json url --jq '.url' 2>/dev/null)
+            end
+            if test -z "$remote_url"
+                echo "error: could not resolve remote URL for $owner/$repo_name"
+                return 2
+            end
+            git remote add $remote_name $remote_url
+            git config remote.$remote_name.fetch "+refs/heads/*:refs/remotes/$remote_name/*"
+        end
+
+        echo "Fetching $remote_name"
+        git fetch $remote_name
+
+        if not git show-ref --verify --quiet refs/remotes/$remote_name/$branch
+            echo "error: branch $branch not found on remote $remote_name"
+            return 2
+        end
+    end
+
+    echo "Creating worktree: $worktree_name"
+    git worktree add -b $branch $worktree_name $remote_name/$branch
+
+    cd $worktree_name
+    git branch --set-upstream-to=$remote_name/$branch
+
+    if not test -e CLAUDE.md; and test -f ../CLAUDE.md
+        ln -s ../CLAUDE.md CLAUDE.md
+    end
+
+    echo "✅ Ready: PR #$pr_number ($branch)"
 end
