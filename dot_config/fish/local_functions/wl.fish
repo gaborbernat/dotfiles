@@ -168,7 +168,10 @@ function _wl_open_pr -a bare_root pr_number
     cd $worktree_name
     git branch --set-upstream-to=$remote_name/$branch
 
-    if not test -e CLAUDE.md; and test -f ../CLAUDE.md
+    if not test -f ../CLAUDE.md
+        touch ../CLAUDE.md
+    end
+    if not test -e CLAUDE.md
         ln -s ../CLAUDE.md CLAUDE.md
     end
 

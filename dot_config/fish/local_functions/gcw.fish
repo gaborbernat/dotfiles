@@ -44,7 +44,10 @@ function gcw -d "Create or update a worktree from upstream/main" -a branch
         git -C "$worktree_path" push -u origin "$branch"
     end
 
-    if test -f "$bare_root/CLAUDE.md" -a ! -e "$worktree_path/CLAUDE.md"
+    if not test -f "$bare_root/CLAUDE.md"
+        touch "$bare_root/CLAUDE.md"
+    end
+    if not test -e "$worktree_path/CLAUDE.md"
         ln -s "$bare_root/CLAUDE.md" "$worktree_path/CLAUDE.md"
     end
 
