@@ -50,16 +50,16 @@ function wl -d "List worktrees for bare repo (interactive: enter=cd, ctrl-d=dele
     end
 
     set --local legend (printf "%-24s %-15s %s" "WORKTREE" "LAST COMMIT" "ORIGIN")
-    set --local header (basename "$bare_root")" (bare) | enter=cd, c=create, o=open PR, d=delete, r=refresh, q=quit
+    set --local header (basename "$bare_root")" (bare) | enter=cd, c=create, o=open PR, d=delete (multi), r=refresh, q=quit
 $legend"
-    set --local result (printf '%s\n' $entries | fzf --height=~50% --header="$header" --expect=c,o,d,r --bind=q:abort --delimiter='\t' --with-nth=1)
+    set --local result (printf '%s\n' $entries | fzf --height=~50% --header="$header" --expect=c,o,d,r --bind=q:abort --delimiter='\t' --with-nth=1 --multi)
 
     test (count $result) -eq 0 && return 0
 
     set --local key $result[1]
-    set --local selection $result[2]
-    set --local wt_path (string split \t $selection)[2]
-    set --local wt_name (string split ' ' $selection)[1]
+    set --local selections $result[2..-1]
+    set --local wt_path (string split \t $selections[1])[2]
+    set --local wt_name (string split ' ' $selections[1])[1]
 
     if test "$key" = c
         read -P "Branch name: " branch_name
@@ -75,13 +75,30 @@ $legend"
         git -C "$bare_root" fetch upstream --quiet 2>/dev/null
         wl
     else if test "$key" = d
-        echo "Removing worktree '$wt_name'..."
-        git -C "$bare_root" worktree remove "$wt_path"
-        git -C "$bare_root" branch -d "$wt_name" 2>/dev/null
         cd "$bare_root"
+        for selection in $selections
+            set --local path (string split \t $selection)[2]
+            set --local name (string split ' ' $selection)[1]
+            _wl_remove_worktree "$bare_root" "$path" "$name" &
+        end
         wl
     else
         cd "$wt_path"
+    end
+end
+
+function _wl_remove_worktree -a bare_root wt_path wt_name
+    set --local start_time (date +%s.%N)
+    echo "Removing worktree '$wt_name'..."
+    if git -C "$bare_root" worktree remove "$wt_path" 2>&1
+        git -C "$bare_root" branch -d "$wt_name" 2>/dev/null
+        set --local end_time (date +%s.%N)
+        set --local elapsed (math "$end_time - $start_time")
+        printf "Deleted branch %s (%.2fs)\n" "$wt_name" "$elapsed"
+    else
+        set --local end_time (date +%s.%N)
+        set --local elapsed (math "$end_time - $start_time")
+        printf "Failed to remove %s (%.2fs)\n" "$wt_name" "$elapsed"
     end
 end
 
