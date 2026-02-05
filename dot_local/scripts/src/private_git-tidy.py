@@ -225,9 +225,12 @@ def get_github_repo(console: Console, opts: Options) -> Repository | None:
         if not remote_url:
             remote_url = run_git(["git", "remote", "get-url", "origin"], opts, capture=True).strip()
 
+        # Check for GitHub Enterprise instance (set via GITHUB_ENTERPRISE_HOST env var)
+        enterprise_host = os.environ.get("GITHUB_ENTERPRISE_HOST", "")
+
         # Extract repo path from URL
         # Handle formats like: git@github.com:owner/repo.git or https://github.com/owner/repo.git
-        if "github.com" not in remote_url and "GITHUB_ENTERPRISE_HOST" not in remote_url:
+        if "github.com" not in remote_url and enterprise_host not in remote_url:
             console.print("[yellow]Warning: Not a GitHub repository, skipping PR merge check[/yellow]")
             return None
 
@@ -238,12 +241,12 @@ def get_github_repo(console: Console, opts: Options) -> Repository | None:
             repo_path = "/".join(remote_url.split("/")[-2:]).removesuffix(".git")
 
         # Determine which GitHub instance to use
-        if "GITHUB_ENTERPRISE_HOST" in remote_url:
+        if enterprise_host and enterprise_host in remote_url:
             token = os.environ.get("GITHUB_ENTERPRISE_TOKEN")
             if not token:
                 console.print("[yellow]Warning: GITHUB_ENTERPRISE_TOKEN not set, skipping PR merge check[/yellow]")
                 return None
-            github = Github(base_url="https://GITHUB_ENTERPRISE_HOST/api/v3", auth=Token(token))
+            github = Github(base_url=f"https://{enterprise_host}/api/v3", auth=Token(token))
         else:
             token = os.environ.get("GITHUB_TOKEN")
             if not token:
