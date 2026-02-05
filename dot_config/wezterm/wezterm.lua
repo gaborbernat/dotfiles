@@ -30,9 +30,15 @@ config.mouse_bindings = {
         mods = 'NONE',
         action = act.CompleteSelectionOrOpenLinkAtMouseCursor 'ClipboardAndPrimarySelection',
     },
+    {
+        event = { Up = { streak = 1, button = 'Left' } },
+        mods = 'SUPER',
+        action = act.OpenLinkAtMouseCursor,
+    },
 }
 config.harfbuzz_features = { "calt=1", "clig=1", "liga=1" }
 config.tab_bar_at_bottom = true
+config.show_close_tab_button_in_tabs = false
 
 config.disable_default_key_bindings = true
 config.keys = {
@@ -68,6 +74,8 @@ config.keys = {
     { key = "8", mods = "SUPER", action = act.ActivateTab(7) },
     { key = "9", mods = "SUPER", action = act.ActivateTab(8) },
     { key = "0", mods = "SUPER", action = act.ActivateTab(9) },
+    { key = "LeftArrow", mods = "CTRL|SUPER", action = act.MoveTabRelative(-1) },
+    { key = "RightArrow", mods = "CTRL|SUPER", action = act.MoveTabRelative(1) },
     { key = "=", mods = "SUPER", action = act.IncreaseFontSize },
     { key = "-", mods = "SUPER", action = act.DecreaseFontSize },
     { key = "0", mods = "SUPER", action = act.ResetFontSize },
