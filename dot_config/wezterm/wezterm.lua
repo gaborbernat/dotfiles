@@ -63,6 +63,11 @@ config.keys = {
     { key = "3", mods = "SUPER", action = act.ActivateTab(2) },
     { key = "4", mods = "SUPER", action = act.ActivateTab(3) },
     { key = "5", mods = "SUPER", action = act.ActivateTab(4) },
+    { key = "6", mods = "SUPER", action = act.ActivateTab(5) },
+    { key = "7", mods = "SUPER", action = act.ActivateTab(6) },
+    { key = "8", mods = "SUPER", action = act.ActivateTab(7) },
+    { key = "9", mods = "SUPER", action = act.ActivateTab(8) },
+    { key = "0", mods = "SUPER", action = act.ActivateTab(9) },
     { key = "=", mods = "SUPER", action = act.IncreaseFontSize },
     { key = "-", mods = "SUPER", action = act.DecreaseFontSize },
     { key = "0", mods = "SUPER", action = act.ResetFontSize },
@@ -73,6 +78,52 @@ config.keys = {
     { key = "DownArrow", mods = "CTRL|SHIFT", action = act.ScrollToPrompt(1) },
     { key = "x", mods = "SUPER|SHIFT", action = act.SelectTextAtMouseCursor("SemanticZone") },
 }
+
+local function is_dir(path)
+    local f = io.open(path .. "/.")
+    if f then
+        f:close()
+        return true
+    end
+    return false
+end
+
+local function get_git_project(cwd)
+    if not cwd then
+        return nil
+    end
+    local path = cwd
+    while path and path ~= "/" do
+        local git_path = path .. "/.git"
+        local f = io.open(git_path, "r")
+        if f then
+            if is_dir(git_path) then
+                f:close()
+                return path:match("([^/]+)$")
+            end
+            local content = f:read("*a")
+            f:close()
+            if content and content:match("^gitdir:") then
+                path = path:match("(.+)/[^/]*$")
+            else
+                return path:match("([^/]+)$")
+            end
+        else
+            local head = io.open(path .. "/HEAD", "r")
+            if head then
+                local objects = io.open(path .. "/objects/.")
+                if objects then
+                    objects:close()
+                    head:close()
+                    return path:match("([^/]+)$")
+                end
+                head:close()
+            end
+            path = path:match("(.+)/[^/]*$")
+        end
+    end
+    return nil
+end
 
 wezterm.on("format-tab-title", function(tab, tabs, panes, cfg, hover, max_width)
     local pane = tab.active_pane
@@ -87,8 +138,13 @@ wezterm.on("format-tab-title", function(tab, tabs, panes, cfg, hover, max_width)
         end
     end
 
-    if pane.current_working_dir then
-        title = pane.current_working_dir.file_path:gsub(".*/", "")
+    local cwd = pane.current_working_dir and pane.current_working_dir.file_path
+    local dir_name = cwd and cwd:gsub(".*/", "")
+    local project = get_git_project(cwd)
+    if project and project ~= dir_name then
+        title = project .. "/" .. dir_name
+    elseif dir_name then
+        title = dir_name
     end
     if process ~= "" and process ~= "fish" then
         title = process .. ": " .. title
