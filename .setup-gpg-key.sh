@@ -1,6 +1,15 @@
 #!/bin/bash
 set -euo pipefail
 
+if ! command -v gpg &>/dev/null; then
+    echo "gpg not found, installing via brew..." >&2
+    if ! command -v brew &>/dev/null; then
+        echo "Error: brew not installed. Install Homebrew first." >&2
+        exit 1
+    fi
+    brew install gnupg >&2
+fi
+
 if gpg --list-secret-keys --keyid-format short 2>/dev/null | grep -q "^sec"; then
     gpg --list-secret-keys --keyid-format short
     exit 0
