@@ -75,6 +75,12 @@ if status --is-interactive
         echo (basename (pwd)): $argv
     end
 
+    # WezTerm shell integration (OSC7 for tab titles)
+    function __wezterm_osc7 --on-variable PWD
+        printf "\033]7;file://%s%s\033\\" (hostname) (pwd)
+    end
+    __wezterm_osc7
+
     function dbu -a val
         docker compose down $val
         docker compose --progress plain build $val && docker compose up $val
