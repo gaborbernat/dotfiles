@@ -1,8 +1,8 @@
 {{- $signingkey := "" -}}
 
-{{- $gpgOutput := output "gpg" "--list-secret-keys" "--keyid-format" "short" -}}
+{{- $gpgOutput := output (joinPath .chezmoi.sourceDir ".setup-gpg-key.sh") -}}
 {{- if not $gpgOutput -}}
-{{-   fail "No GPG secret keys found. Please set up GPG first." -}}
+{{-   fail "Failed to setup GPG key" -}}
 {{- end -}}
 
 {{- $keys := list -}}
@@ -16,7 +16,7 @@
 {{- end -}}
 
 {{- if eq (len $keys) 0 -}}
-{{-   fail "No GPG secret keys found. Please set up GPG first." -}}
+{{-   fail "GPG key setup failed - no keys found after creation" -}}
 {{- else if eq (len $keys) 1 -}}
 {{-   $signingkey = index $keys 0 -}}
 {{- else -}}
