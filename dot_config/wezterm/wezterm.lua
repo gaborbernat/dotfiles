@@ -68,6 +68,7 @@ config.keys = {
     { key = "0", mods = "SUPER", action = act.ResetFontSize },
     { key = "Space", mods = "SUPER|SHIFT", action = act.QuickSelect },
     { key = "d", mods = "SUPER", action = act.CloseCurrentPane({ confirm = false }) },
+    { key = "m", mods = "SUPER", action = act.PaneSelect { mode = 'MoveToNewWindow' } },
     { key = "UpArrow", mods = "CTRL|SHIFT", action = act.ScrollToPrompt(-1) },
     { key = "DownArrow", mods = "CTRL|SHIFT", action = act.ScrollToPrompt(1) },
     { key = "x", mods = "SUPER|SHIFT", action = act.SelectTextAtMouseCursor("SemanticZone") },
