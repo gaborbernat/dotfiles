@@ -1,5 +1,6 @@
 #!/bin/bash
 # sdkman packages hash: {{ include "dot_sdkman_packages.txt" | sha256sum }}
+# Note: -u disabled because SDKMAN scripts have unbound variables
 set -eo pipefail
 
 export SDKMAN_DIR="$(brew --prefix sdkman-cli 2>/dev/null)/libexec" || true
@@ -10,9 +11,7 @@ if [[ ! -f "$SDKMAN_INIT" ]]; then
     exit 0
 fi
 
-set +u
 source "$SDKMAN_INIT"
-set -u
 
 echo "Installing SDKMAN packages..."
 while read -r candidate version; do
