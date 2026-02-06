@@ -18,9 +18,22 @@ fi
 EMAIL=$(git config --global user.email 2>/dev/null || echo "")
 NAME=$(git config --global user.name 2>/dev/null || echo "")
 
-if [[ -z "$EMAIL" || -z "$NAME" ]]; then
-    echo "Error: git user.email and user.name must be configured" >&2
-    exit 1
+if [[ -z "$NAME" ]]; then
+    read -rp "Enter your full name for git commits: " NAME </dev/tty
+    if [[ -z "$NAME" ]]; then
+        echo "Error: Name is required" >&2
+        exit 1
+    fi
+    git config --global user.name "$NAME"
+fi
+
+if [[ -z "$EMAIL" ]]; then
+    read -rp "Enter your email for git commits: " EMAIL </dev/tty
+    if [[ -z "$EMAIL" ]]; then
+        echo "Error: Email is required" >&2
+        exit 1
+    fi
+    git config --global user.email "$EMAIL"
 fi
 
 gpg --batch --passphrase '' --quick-gen-key "$NAME <$EMAIL>" ed25519 sign never >&2
