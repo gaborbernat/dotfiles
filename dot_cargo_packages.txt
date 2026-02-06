@@ -1,6 +1,10 @@
 # Cargo packages to install
+# cargo-edit: manage dependencies from CLI
+cargo-edit
 # cargo-insta: snapshot testing
 cargo-insta
+# cargo-llvm-cov: code coverage with LLVM
+cargo-llvm-cov
 # cargo-nextest: faster test runner
 cargo-nextest
 # cargo-update: update installed crates
