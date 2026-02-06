@@ -28,7 +28,7 @@ config.mouse_bindings = {
     {
         event = { Up = { streak = 1, button = 'Left' } },
         mods = 'NONE',
-        action = act.CompleteSelectionOrOpenLinkAtMouseCursor 'ClipboardAndPrimarySelection',
+        action = act.CompleteSelection 'ClipboardAndPrimarySelection',
     },
     {
         event = { Up = { streak = 1, button = 'Left' } },
@@ -37,7 +37,7 @@ config.mouse_bindings = {
     },
 }
 config.harfbuzz_features = { "calt=1", "clig=1", "liga=1" }
-config.tab_bar_at_bottom = true
+config.tab_bar_at_bottom = false
 config.show_close_tab_button_in_tabs = false
 
 local function spawn_tab_next_to_current(window, pane)
