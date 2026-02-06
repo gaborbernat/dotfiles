@@ -39,9 +39,6 @@ set -gx CPPFLAGS "-I/opt/homebrew/opt/ncurses/include -I/opt/homebrew/opt/sqlite
 # GO
 set -gx GOPATH $HOME/go
 
-# SDKMAN (brew install location)
-set -gx SDKMAN_DIR (brew --prefix sdkman-cli 2>/dev/null)/libexec
-
 set -gx DIFF_AGAINST upstream/main
 set -gx PY_PYTHON 3.14
 
