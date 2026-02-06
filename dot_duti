@@ -10,7 +10,6 @@ com.microsoft.VSCode  public.xml  editor
 com.microsoft.VSCode  public.yaml  editor
 com.microsoft.VSCode  com.netscape.javascript-source  editor
 com.microsoft.VSCode  public.css  editor
-com.microsoft.VSCode  public.html  editor
 com.microsoft.VSCode  txt  editor
 com.microsoft.VSCode  json  editor
 com.microsoft.VSCode  md  editor
@@ -36,7 +35,6 @@ com.jetbrains.pycharm  pyi  editor
 com.colliderli.iina  public.movie  viewer
 com.colliderli.iina  public.mpeg-4  viewer
 com.colliderli.iina  public.avi  viewer
-com.colliderli.iina  org.matroska.mkv  viewer
 com.colliderli.iina  com.apple.quicktime-movie  viewer
 com.colliderli.iina  mp4  viewer
 com.colliderli.iina  mkv  viewer

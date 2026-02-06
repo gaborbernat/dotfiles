@@ -139,7 +139,7 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
         if git remote get-url origin >/dev/null 2>&1
             if git show-ref --verify --quiet refs/remotes/origin/$branch
                 echo "Branch exists on origin: $branch"
-                git worktree add $branch $branch
+                git worktree add $branch origin/$branch
             else
                 echo "Creating new branch from upstream/$default_branch: $branch"
                 git worktree add -b $branch $branch upstream/$default_branch
