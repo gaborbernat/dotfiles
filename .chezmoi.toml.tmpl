@@ -27,5 +27,10 @@
 {{-   end -}}
 {{- end -}}
 
+# Suppress warning since we use --init which handles template changes
+# (chezmoi bug: --init doesn't update the hash in persistent state)
+[warnings]
+    configFileTemplateHasChanged = false
+
 [data]
     signingkey = {{ $signingkey | quote }}
