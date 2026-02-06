@@ -1,2 +1,4 @@
 gradle 9.3.0
+groovy 4.0.26
 java 21.0.9-jbr
+maven 3.9.9
