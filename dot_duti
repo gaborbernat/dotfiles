@@ -1,0 +1,48 @@
+# File associations managed by duti
+# Format: app_bundle_id  UTI_or_extension  role
+
+# Text files → VS Code
+com.microsoft.VSCode  public.plain-text  editor
+com.microsoft.VSCode  public.json  editor
+com.microsoft.VSCode  net.daringfireball.markdown  editor
+com.microsoft.VSCode  public.shell-script  editor
+com.microsoft.VSCode  public.xml  editor
+com.microsoft.VSCode  public.yaml  editor
+com.microsoft.VSCode  com.netscape.javascript-source  editor
+com.microsoft.VSCode  public.css  editor
+com.microsoft.VSCode  public.html  editor
+com.microsoft.VSCode  txt  editor
+com.microsoft.VSCode  json  editor
+com.microsoft.VSCode  md  editor
+com.microsoft.VSCode  yaml  editor
+com.microsoft.VSCode  yml  editor
+com.microsoft.VSCode  xml  editor
+com.microsoft.VSCode  css  editor
+com.microsoft.VSCode  html  editor
+com.microsoft.VSCode  js  editor
+com.microsoft.VSCode  ts  editor
+com.microsoft.VSCode  toml  editor
+com.microsoft.VSCode  cfg  editor
+com.microsoft.VSCode  ini  editor
+com.microsoft.VSCode  conf  editor
+com.microsoft.VSCode  log  editor
+
+# Python → PyCharm
+com.jetbrains.pycharm  public.python-script  editor
+com.jetbrains.pycharm  py  editor
+com.jetbrains.pycharm  pyi  editor
+
+# Video → IINA
+com.colliderli.iina  public.movie  viewer
+com.colliderli.iina  public.mpeg-4  viewer
+com.colliderli.iina  public.avi  viewer
+com.colliderli.iina  org.matroska.mkv  viewer
+com.colliderli.iina  com.apple.quicktime-movie  viewer
+com.colliderli.iina  mp4  viewer
+com.colliderli.iina  mkv  viewer
+com.colliderli.iina  avi  viewer
+com.colliderli.iina  mov  viewer
+com.colliderli.iina  webm  viewer
+com.colliderli.iina  m4v  viewer
+com.colliderli.iina  wmv  viewer
+com.colliderli.iina  flv  viewer
