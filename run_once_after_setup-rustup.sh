@@ -2,8 +2,12 @@
 set -euo pipefail
 
 if ! command -v rustup &>/dev/null; then
-    echo "rustup not found, skipping"
-    exit 0
+    echo "Installing rustup..."
+    if command -v brew &>/dev/null; then
+        brew install rustup
+    else
+        curl https://sh.rustup.rs -sSf | sh -s -- -y --no-modify-path
+    fi
 fi
 
 echo "Installing Rust stable toolchain..."
