@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+set -eo pipefail
 
 SDKMAN_BREW_DIR="$(brew --prefix sdkman-cli 2>/dev/null)/libexec" || true
 
@@ -10,7 +10,9 @@ fi
 
 export SDKMAN_DIR="$SDKMAN_BREW_DIR"
 if [[ -s "${SDKMAN_DIR}/bin/sdkman-init.sh" ]]; then
+    set +u
     source "${SDKMAN_DIR}/bin/sdkman-init.sh"
+    set -u
     echo "SDKMAN initialized from brew: $(sdk version)"
 else
     echo "SDKMAN init script not found"
