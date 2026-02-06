@@ -40,10 +40,27 @@ config.harfbuzz_features = { "calt=1", "clig=1", "liga=1" }
 config.tab_bar_at_bottom = true
 config.show_close_tab_button_in_tabs = false
 
+local function spawn_tab_next_to_current(window, pane)
+    local mux_win = window:mux_window()
+    local current_tab = mux_win:active_tab()
+    local tabs = mux_win:tabs()
+    local current_idx = 0
+    for i, tab in ipairs(tabs) do
+        if tab:tab_id() == current_tab:tab_id() then
+            current_idx = i - 1
+            break
+        end
+    end
+    local new_tab = mux_win:spawn_tab({})
+    if new_tab then
+        window:perform_action(act.MoveTab(current_idx + 1), pane)
+    end
+end
+
 config.disable_default_key_bindings = true
 config.keys = {
     { key = "p", mods = "SUPER", action = act.ActivateCommandPalette },
-    { key = "t", mods = "SUPER", action = act.SpawnTab("CurrentPaneDomain") },
+    { key = "t", mods = "SUPER", action = wezterm.action_callback(spawn_tab_next_to_current) },
     { key = "w", mods = "SUPER", action = act.CloseCurrentTab({ confirm = false }) },
     { key = "n", mods = "SUPER", action = act.SpawnWindow },
     { key = "PageUp", mods = "SUPER", action = act.ActivateTabRelative(-1) },
