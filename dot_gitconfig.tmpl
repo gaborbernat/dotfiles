@@ -114,5 +114,8 @@
 [credential]
     helper = osxkeychain
 
+[credential "https://github.com"]
+    helper = !gh auth git-credential
+
 [includeIf "gitdir:~/"]
     path = ~/.local/share/chezmoi-private/gitconfig_work
