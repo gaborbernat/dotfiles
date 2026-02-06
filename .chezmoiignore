@@ -5,3 +5,5 @@ pyproject.toml
 **/.venv
 **/__pycache__
 **/.ruff_cache
+# Binary plists - apps rewrite these constantly
+Library/Preferences/*.plist
