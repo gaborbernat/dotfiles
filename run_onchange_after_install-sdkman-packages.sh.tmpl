@@ -1,0 +1,22 @@
+#!/bin/bash
+# sdkman packages hash: {{ include "dot_sdkman_packages.txt" | sha256sum }}
+set -euo pipefail
+
+SDKMAN_INIT="$HOME/.sdkman/bin/sdkman-init.sh"
+
+if [[ ! -f "$SDKMAN_INIT" ]]; then
+    echo "SDKMAN not initialized, skipping"
+    exit 0
+fi
+
+source "$SDKMAN_INIT"
+
+echo "Installing SDKMAN packages..."
+while read -r candidate version; do
+    [[ -z "$candidate" || "$candidate" == \#* ]] && continue
+    if [[ ! -d "$HOME/.sdkman/candidates/$candidate/$version" ]]; then
+        echo "Installing $candidate $version..."
+        sdk install "$candidate" "$version" < /dev/null || true
+    fi
+done < "$HOME/.sdkman_packages.txt"
+echo "SDKMAN packages installed"

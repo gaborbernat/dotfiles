@@ -1,0 +1,4 @@
+gradle 9.3.0
+java 17.0.17-amzn
+java 21.0.9-amzn
+java 21.0.9-jbr
