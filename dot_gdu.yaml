@@ -1,0 +1,4 @@
+style:
+  selected-row:
+    text-color: black
+    background-color: "#E6F2FF"
