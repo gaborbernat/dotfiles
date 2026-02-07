@@ -21,6 +21,7 @@ config.default_prog = { "/opt/homebrew/bin/fish" }
 config.window_close_confirmation = "AlwaysPrompt"
 
 config.hyperlink_rules = wezterm.default_hyperlink_rules()
+table.insert(config.hyperlink_rules, { regex = "\\bfile://[^\\s]+", format = "$0" })
 config.inactive_pane_hsb = { saturation = 0.8, brightness = 0.7 }
 config.audible_bell = "Disabled"
 config.selection_word_boundary = " \t\n{}[]()\"'`,;:@"
