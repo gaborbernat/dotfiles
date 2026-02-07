@@ -181,6 +181,21 @@ wezterm.on("format-tab-title", function(tab, tabs, panes, cfg, hover, max_width)
     return { { Text = " " .. index .. ": " .. title .. " " } }
 end)
 
+wezterm.on("open-uri", function(window, pane, uri)
+    if uri:sub(1, 7) == "file://" then
+        local path = uri:sub(8):gsub("%%(%x%x)", function(hex)
+            return string.char(tonumber(hex, 16))
+        end)
+        local f = io.open(path, "r")
+        if f then
+            f:close()
+        else
+            window:toast_notification("wezterm", "File not found: " .. path, nil, 4000)
+            return false
+        end
+    end
+end)
+
 wezterm.on("update-right-status", function(window, pane)
     window:set_right_status(wezterm.format({
         { Attribute = { Italic = true } },
