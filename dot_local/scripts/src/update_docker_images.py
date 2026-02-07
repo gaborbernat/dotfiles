@@ -35,10 +35,19 @@ def main() -> None:
                 progress.update(task, advance=1)
     # Sort results by image name
     results.sort(key=lambda row: row[0])
-    for i, row in enumerate(results, 1):
-        table.add_row(str(i), *row)
+    sha_len = find_unique_sha_length([r[2] for r in results] + [r[3] for r in results])
+    for i, (image, status, old_sha, new_sha, size) in enumerate(results, 1):
+        table.add_row(str(i), image, status, old_sha[:sha_len], new_sha[:sha_len], size)
     console.print()
     console.print(table)
+
+
+def find_unique_sha_length(shas: list[str], min_len: int = 10) -> int:
+    shas = [s for s in shas if s]
+    for length in range(min_len, 65):
+        if len({s[:length] for s in shas}) == len(shas):
+            return length
+    return 64
 
 
 def get_images() -> list[str]:
