@@ -35,8 +35,8 @@ def main() -> None:
                 progress.update(task, advance=1)
     # Sort results by image name
     results.sort(key=lambda row: row[0])
-    for row in results:
-        table.add_row(*row)
+    for i, row in enumerate(results, 1):
+        table.add_row(str(i), *row)
     console.print()
     console.print(table)
 
@@ -94,6 +94,7 @@ def exists_in_remote_registry(image: str) -> bool:
 
 def create_table() -> Table:
     table: Table = Table(title="Docker Image Update Summary", box=box.SIMPLE_HEAVY)
+    table.add_column("#", justify="right")
     table.add_column("Image", style="bold")
     table.add_column("Status")
     table.add_column("Old SHA", overflow="fold")
