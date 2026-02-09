@@ -153,22 +153,6 @@ local function get_git_project(cwd)
     return nil
 end
 
-local function get_claude_status_priority(status)
-    if not status or #status == 0 then
-        return 0
-    end
-    if status:find("❓") then
-        return 4
-    end
-    if status:find("❗") then
-        return 3
-    end
-    if status:find("🏃") then
-        return 2
-    end
-    return 1
-end
-
 local function get_pane_cwd(p)
     local cwd_var = p.user_vars and p.user_vars.cwd
     if cwd_var and #cwd_var > 0 then
@@ -183,11 +167,10 @@ local function get_pane_cwd(p)
     return dir_name or ""
 end
 
-local function get_pane_title(p)
-    local cwd = get_pane_cwd(p)
+local function get_pane_status(p)
     local claude_status = p.user_vars and p.user_vars.claude_status
     if claude_status and #claude_status > 0 then
-        return claude_status .. " " .. cwd, get_claude_status_priority(claude_status)
+        return claude_status
     end
     local proc = p.foreground_process_name:gsub(".*/", "")
     if p.user_vars and p.user_vars.prog then
@@ -196,13 +179,13 @@ local function get_pane_title(p)
     if proc == "ssh" or proc == "tsh" then
         local host = p.title:match("[%w%-]+%-%w+%-%d+") or p.title:match("@([%w%-%.]+)") or p.title:match("([%w%-%.]+)$")
         if host then
-            return proc .. ": " .. host, 0
+            return proc .. "@" .. host
         end
     end
     if proc ~= "" and proc ~= "fish" then
-        return proc .. ": " .. cwd, 0
+        return proc
     end
-    return cwd, 0
+    return nil
 end
 
 wezterm.on("format-tab-title", function(tab, tabs, panes, cfg, hover, max_width)
@@ -212,25 +195,15 @@ wezterm.on("format-tab-title", function(tab, tabs, panes, cfg, hover, max_width)
         return { { Text = " " .. index .. ": " .. tab.tab_title .. " " } }
     end
 
-    local pane_infos = {}
-    for _, p in ipairs(tab.panes or {}) do
-        local title, priority = get_pane_title(p)
-        table.insert(pane_infos, { title = title, priority = priority, is_active = p.pane_id == tab.active_pane.pane_id })
-    end
-
-    table.sort(pane_infos, function(a, b)
-        if a.priority ~= b.priority then
-            return a.priority > b.priority
-        end
-        if a.is_active ~= b.is_active then
-            return a.is_active
-        end
-        return false
-    end)
-
     local parts = {}
-    for _, info in ipairs(pane_infos) do
-        table.insert(parts, info.title)
+    for _, p in ipairs(tab.panes or {}) do
+        local status = get_pane_status(p)
+        local cwd = get_pane_cwd(p)
+        if status then
+            table.insert(parts, status .. ": " .. cwd)
+        else
+            table.insert(parts, cwd)
+        end
     end
     local title = table.concat(parts, " | ")
     return { { Text = " " .. index .. ": " .. title .. " " } }
