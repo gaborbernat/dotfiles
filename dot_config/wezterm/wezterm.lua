@@ -183,50 +183,56 @@ local function get_pane_cwd(p)
     return dir_name or ""
 end
 
+local function get_pane_title(p)
+    local cwd = get_pane_cwd(p)
+    local claude_status = p.user_vars and p.user_vars.claude_status
+    if claude_status and #claude_status > 0 then
+        return claude_status .. " " .. cwd, get_claude_status_priority(claude_status)
+    end
+    local proc = p.foreground_process_name:gsub(".*/", "")
+    if p.user_vars and p.user_vars.prog then
+        proc = p.user_vars.prog
+    end
+    if proc == "ssh" or proc == "tsh" then
+        local host = p.title:match("[%w%-]+%-%w+%-%d+") or p.title:match("@([%w%-%.]+)") or p.title:match("([%w%-%.]+)$")
+        if host then
+            return proc .. ": " .. host, 0
+        end
+    end
+    if proc ~= "" and proc ~= "fish" then
+        return proc .. ": " .. cwd, 0
+    end
+    return cwd, 0
+end
+
 wezterm.on("format-tab-title", function(tab, tabs, panes, cfg, hover, max_width)
-    local pane = tab.active_pane
-    local process = pane.foreground_process_name:gsub(".*/", "")
-    local title = pane.title
     local index = tab.tab_index + 1
 
     if tab.tab_title and #tab.tab_title > 0 then
         return { { Text = " " .. index .. ": " .. tab.tab_title .. " " } }
     end
 
-    if pane.user_vars.prog then
-        process = pane.user_vars.prog
-    end
-
-    if process == "ssh" or process == "tsh" then
-        local host = title:match("[%w%-]+%-%w+%-%d+") or title:match("@([%w%-%.]+)") or title:match("([%w%-%.]+)$")
-        if host then
-            return { { Text = " " .. index .. ": " .. host .. " " } }
-        end
-    end
-
-    local claude_panes = {}
+    local pane_infos = {}
     for _, p in ipairs(tab.panes or {}) do
-        local status = p.user_vars and p.user_vars.claude_status
-        if status and #status > 0 then
-            table.insert(claude_panes, { pane = p, status = status, priority = get_claude_status_priority(status) })
-        end
+        local title, priority = get_pane_title(p)
+        table.insert(pane_infos, { title = title, priority = priority, is_active = p.pane_id == tab.active_pane.pane_id })
     end
 
-    if #claude_panes > 0 then
-        table.sort(claude_panes, function(a, b)
+    table.sort(pane_infos, function(a, b)
+        if a.priority ~= b.priority then
             return a.priority > b.priority
-        end)
-        local parts = {}
-        for _, cp in ipairs(claude_panes) do
-            table.insert(parts, cp.status .. " " .. get_pane_cwd(cp.pane))
         end
-        title = table.concat(parts, " | ")
-    else
-        title = get_pane_cwd(pane)
-        if process ~= "" and process ~= "fish" then
-            title = process .. ": " .. title
+        if a.is_active ~= b.is_active then
+            return a.is_active
         end
+        return false
+    end)
+
+    local parts = {}
+    for _, info in ipairs(pane_infos) do
+        table.insert(parts, info.title)
     end
+    local title = table.concat(parts, " | ")
     return { { Text = " " .. index .. ": " .. title .. " " } }
 end)
 
