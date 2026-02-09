@@ -159,6 +159,16 @@ function _wl_open_pr -a bare_root pr_number
         end
 
         if test -z "$remote_name"
+            set current_repo (gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null)
+            set fork_parent (gh api "repos/$owner/$repo_name" --jq '.parent.full_name' 2>/dev/null)
+            if test -z "$fork_parent"
+                echo "error: $owner/$repo_name is not a fork"
+                return 2
+            end
+            if test "$fork_parent" != "$current_repo"
+                echo "error: $owner/$repo_name is a fork of $fork_parent, not $current_repo"
+                return 2
+            end
             set remote_name $owner
             echo "Adding remote: $remote_name"
             set existing_url (git remote get-url upstream 2>/dev/null; or git remote get-url origin 2>/dev/null)
