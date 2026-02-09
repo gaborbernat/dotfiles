@@ -176,6 +176,7 @@ wezterm.on("format-tab-title", function(tab, tabs, panes, cfg, hover, max_width)
     local index = tab.tab_index + 1
 
     local claude_status = nil
+    local claude_pane = nil
     local highest_priority = 0
     for _, p in ipairs(tab.panes or {}) do
         local status = p.user_vars and p.user_vars.claude_status
@@ -183,6 +184,7 @@ wezterm.on("format-tab-title", function(tab, tabs, panes, cfg, hover, max_width)
         if priority > highest_priority then
             highest_priority = priority
             claude_status = status
+            claude_pane = p
         end
     end
 
@@ -201,16 +203,22 @@ wezterm.on("format-tab-title", function(tab, tabs, panes, cfg, hover, max_width)
         end
     end
 
-    local cwd = pane.current_working_dir and pane.current_working_dir.file_path
-    local dir_name = cwd and cwd:gsub(".*/", "")
-    local project = get_git_project(cwd)
-    if project and project ~= dir_name then
-        title = project .. "/" .. dir_name
-    elseif dir_name then
-        title = dir_name
+    local cwd_pane = claude_pane or pane
+    local cwd_var = cwd_pane.user_vars and cwd_pane.user_vars.cwd
+    if cwd_var and #cwd_var > 0 then
+        title = cwd_var
+    else
+        local cwd = cwd_pane.current_working_dir and cwd_pane.current_working_dir.file_path
+        local dir_name = cwd and cwd:gsub(".*/", "")
+        local project = get_git_project(cwd)
+        if project and project ~= dir_name then
+            title = project .. "/" .. dir_name
+        elseif dir_name then
+            title = dir_name
+        end
     end
     if claude_status and #claude_status > 0 then
-        title = claude_status .. " " .. title
+        title = claude_status .. " Claude: " .. title
     elseif process ~= "" and process ~= "fish" then
         title = process .. ": " .. title
     end
