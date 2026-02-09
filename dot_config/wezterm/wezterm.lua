@@ -196,13 +196,27 @@ wezterm.on("format-tab-title", function(tab, tabs, panes, cfg, hover, max_width)
     end
 
     local parts = {}
+    local first_cwd = nil
     for _, p in ipairs(tab.panes or {}) do
         local status = get_pane_status(p)
         local cwd = get_pane_cwd(p)
-        if status then
-            table.insert(parts, status .. ": " .. cwd)
+        if first_cwd == nil then
+            first_cwd = cwd
+            if status then
+                table.insert(parts, cwd .. " " .. status)
+            else
+                table.insert(parts, cwd)
+            end
+        elseif cwd == first_cwd then
+            if status then
+                table.insert(parts, status)
+            end
         else
-            table.insert(parts, cwd)
+            if status then
+                table.insert(parts, cwd .. " " .. status)
+            else
+                table.insert(parts, cwd)
+            end
         end
     end
     local title = table.concat(parts, " | ")
