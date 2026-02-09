@@ -75,11 +75,37 @@ if status --is-interactive
         echo (basename (pwd)): $argv
     end
 
-    # WezTerm shell integration (OSC7 for tab titles)
+    # WezTerm shell integration
+    # OSC 7: current working directory
     function __wezterm_osc7 --on-variable PWD
         printf "\033]7;file://%s%s\033\\" (hostname) (pwd)
     end
     __wezterm_osc7
+
+    # OSC 133: semantic zones (prompt/input/output markers)
+    set -g __wezterm_last_status 0
+    function __wezterm_mark_output_start --on-event fish_preexec
+        printf "\e]133;C\a"
+    end
+    function __wezterm_mark_output_end --on-event fish_postexec
+        set -g __wezterm_last_status $status
+        printf "\e]133;D;%s\a" $__wezterm_last_status
+    end
+
+    # Ring bell for long-running commands (>10s) to trigger wezterm notification
+    set -g __cmd_start 0
+    function __record_cmd_start --on-event fish_preexec
+        set -g __cmd_start (date +%s)
+    end
+    function __notify_long_cmd --on-event fish_postexec
+        if test $__cmd_start -gt 0
+            set -l duration (math (date +%s) - $__cmd_start)
+            if test $duration -ge 10
+                printf "\a"
+            end
+        end
+        set -g __cmd_start 0
+    end
 
     function dbu -a val
         docker compose down $val

@@ -1,6 +1,12 @@
 function fish_prompt
+    # OSC 133;A - mark fresh line / start of prompt
+    printf "\e]133;A\a"
+
     # Check for transient mode first
-    _bgp_transient_prompt && return
+    if _bgp_transient_prompt
+        printf "\e]133;B\a"
+        return
+    end
 
     # Build prompt parts
     set --local prompt "$_bgp_color_pwd$_bgp_pwd$bgp_color_normal"
@@ -19,4 +25,7 @@ function fish_prompt
     set prompt "$prompt$_bgp_status$bgp_color_normal "
 
     echo -e -n "$prompt"
+
+    # OSC 133;B - end of prompt, start of user input
+    printf "\e]133;B\a"
 end
