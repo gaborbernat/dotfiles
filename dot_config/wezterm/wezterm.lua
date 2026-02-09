@@ -169,24 +169,25 @@ local function get_claude_status_priority(status)
     return 1
 end
 
+local function get_pane_cwd(p)
+    local cwd_var = p.user_vars and p.user_vars.cwd
+    if cwd_var and #cwd_var > 0 then
+        return cwd_var
+    end
+    local cwd = p.current_working_dir and p.current_working_dir.file_path
+    local dir_name = cwd and cwd:gsub(".*/", "")
+    local project = get_git_project(cwd)
+    if project and project ~= dir_name then
+        return project .. "/" .. dir_name
+    end
+    return dir_name or ""
+end
+
 wezterm.on("format-tab-title", function(tab, tabs, panes, cfg, hover, max_width)
     local pane = tab.active_pane
     local process = pane.foreground_process_name:gsub(".*/", "")
     local title = pane.title
     local index = tab.tab_index + 1
-
-    local claude_status = nil
-    local claude_pane = nil
-    local highest_priority = 0
-    for _, p in ipairs(tab.panes or {}) do
-        local status = p.user_vars and p.user_vars.claude_status
-        local priority = get_claude_status_priority(status)
-        if priority > highest_priority then
-            highest_priority = priority
-            claude_status = status
-            claude_pane = p
-        end
-    end
 
     if tab.tab_title and #tab.tab_title > 0 then
         return { { Text = " " .. index .. ": " .. tab.tab_title .. " " } }
@@ -203,24 +204,28 @@ wezterm.on("format-tab-title", function(tab, tabs, panes, cfg, hover, max_width)
         end
     end
 
-    local cwd_pane = claude_pane or pane
-    local cwd_var = cwd_pane.user_vars and cwd_pane.user_vars.cwd
-    if cwd_var and #cwd_var > 0 then
-        title = cwd_var
-    else
-        local cwd = cwd_pane.current_working_dir and cwd_pane.current_working_dir.file_path
-        local dir_name = cwd and cwd:gsub(".*/", "")
-        local project = get_git_project(cwd)
-        if project and project ~= dir_name then
-            title = project .. "/" .. dir_name
-        elseif dir_name then
-            title = dir_name
+    local claude_panes = {}
+    for _, p in ipairs(tab.panes or {}) do
+        local status = p.user_vars and p.user_vars.claude_status
+        if status and #status > 0 then
+            table.insert(claude_panes, { pane = p, status = status, priority = get_claude_status_priority(status) })
         end
     end
-    if claude_status and #claude_status > 0 then
-        title = claude_status .. " Claude: " .. title
-    elseif process ~= "" and process ~= "fish" then
-        title = process .. ": " .. title
+
+    if #claude_panes > 0 then
+        table.sort(claude_panes, function(a, b)
+            return a.priority > b.priority
+        end)
+        local parts = {}
+        for _, cp in ipairs(claude_panes) do
+            table.insert(parts, cp.status .. " " .. get_pane_cwd(cp.pane))
+        end
+        title = table.concat(parts, " | ")
+    else
+        title = get_pane_cwd(pane)
+        if process ~= "" and process ~= "fish" then
+            title = process .. ": " .. title
+        end
     end
     return { { Text = " " .. index .. ": " .. title .. " " } }
 end)
