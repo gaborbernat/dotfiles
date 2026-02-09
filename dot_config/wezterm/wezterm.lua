@@ -153,12 +153,38 @@ local function get_git_project(cwd)
     return nil
 end
 
+local function get_claude_status_priority(status)
+    if not status or #status == 0 then
+        return 0
+    end
+    if status:find("❓") then
+        return 4
+    end
+    if status:find("❗") then
+        return 3
+    end
+    if status:find("🏃") then
+        return 2
+    end
+    return 1
+end
+
 wezterm.on("format-tab-title", function(tab, tabs, panes, cfg, hover, max_width)
     local pane = tab.active_pane
     local process = pane.foreground_process_name:gsub(".*/", "")
     local title = pane.title
     local index = tab.tab_index + 1
-    local claude_status = pane.user_vars.claude_status
+
+    local claude_status = nil
+    local highest_priority = 0
+    for _, p in ipairs(tab.panes or {}) do
+        local status = p.user_vars and p.user_vars.claude_status
+        local priority = get_claude_status_priority(status)
+        if priority > highest_priority then
+            highest_priority = priority
+            claude_status = status
+        end
+    end
 
     if tab.tab_title and #tab.tab_title > 0 then
         return { { Text = " " .. index .. ": " .. tab.tab_title .. " " } }
