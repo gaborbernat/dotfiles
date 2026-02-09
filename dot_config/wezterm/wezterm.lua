@@ -20,6 +20,9 @@ config.use_ime = false
 config.default_prog = { "/opt/homebrew/bin/fish" }
 config.window_close_confirmation = "AlwaysPrompt"
 
+config.unix_domains = { { name = "unix" } }
+config.default_gui_startup_args = { "connect", "unix" }
+
 config.hyperlink_rules = wezterm.default_hyperlink_rules()
 config.inactive_pane_hsb = { saturation = 0.8, brightness = 0.7 }
 config.audible_bell = "Disabled"
@@ -193,6 +196,16 @@ wezterm.on("open-uri", function(window, pane, uri)
             window:toast_notification("wezterm", "File not found: " .. path, nil, 4000)
             return false
         end
+    end
+end)
+
+wezterm.on("bell", function(window, pane)
+    local tab = pane:tab()
+    if tab and tab:active_pane():pane_id() ~= pane:pane_id() then
+        window:toast_notification("wezterm", "Command finished in background pane", nil, 3000)
+    elseif not window:is_focused() then
+        local title = pane:get_title()
+        window:toast_notification("wezterm", "Command finished: " .. title, nil, 3000)
     end
 end)
 
