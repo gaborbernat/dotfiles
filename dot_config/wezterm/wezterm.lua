@@ -164,6 +164,10 @@ wezterm.on("format-tab-title", function(tab, tabs, panes, cfg, hover, max_width)
         return { { Text = " " .. index .. ": " .. tab.tab_title .. " " } }
     end
 
+    if pane.user_vars.prog then
+        process = pane.user_vars.prog
+    end
+
     if process == "ssh" or process == "tsh" then
         local host = title:match("[%w%-]+%-%w+%-%d+") or title:match("@([%w%-%.]+)") or title:match("([%w%-%.]+)$")
         if host then
