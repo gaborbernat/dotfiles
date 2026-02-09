@@ -61,6 +61,8 @@ if status --is-interactive
     abbr --add do 'docker compose down'
     abbr --add de 'docker compose exec app'
 
+    abbr --add c claude
+    abbr --add cl 'claude --continue'
     abbr --add pcu 'prek autoupdate -j 12'
     abbr --add pcr 'prek run --all-files'
     abbr --add u 'brew upgrade; brew cleanup; uv self update; update_python; uv tool upgrade --all; begin; set tmp (mktemp -d); npm update -g --cache $tmp; rm -rf $tmp; end; rustup update; cargo install-update (cargo install-update -l 2>/dev/null | string match -rv cargo-nextest | awk "NR>1 && NF {print \$1}"); cargo install --locked cargo-nextest; fisher update; update_docker_images; docker system prune -f --volumes | grep "Total reclaimed space"'
