@@ -2,7 +2,7 @@ local wezterm = require 'wezterm'
 local act = wezterm.action
 local config = wezterm.config_builder()
 
-config.window_decorations = "RESIZE"
+config.window_decorations = "INTEGRATED_BUTTONS|RESIZE"
 config.color_scheme = "Monokai Remastered"
 config.font = wezterm.font_with_fallback({
     "JetBrainsMono Nerd Font",
