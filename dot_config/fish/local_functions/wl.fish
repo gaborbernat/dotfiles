@@ -91,6 +91,7 @@ function _wl_remove_worktree -a bare_root wt_path wt_name
     set --local start_time (date +%s.%N)
     echo "Removing worktree '$wt_name'..."
     if git -C "$bare_root" worktree remove "$wt_path" 2>&1
+        or git -C "$bare_root" worktree remove --force "$wt_path" 2>&1
         git -C "$bare_root" branch -d "$wt_name" 2>/dev/null
         set --local end_time (date +%s.%N)
         set --local elapsed (math "$end_time - $start_time")
