@@ -170,7 +170,7 @@ end
 local function get_pane_status(p)
     local claude_status = p.user_vars and p.user_vars.claude_status
     if claude_status and #claude_status > 0 then
-        return claude_status
+        return "Claude " .. claude_status
     end
     local proc = p.foreground_process_name:gsub(".*/", "")
     if p.user_vars and p.user_vars.prog then
@@ -182,7 +182,7 @@ local function get_pane_status(p)
             return proc .. "@" .. host
         end
     end
-    if proc ~= "" and proc ~= "fish" then
+    if proc ~= "" and proc ~= "fish" and proc ~= "claude" then
         return proc
     end
     return nil
@@ -203,7 +203,7 @@ wezterm.on("format-tab-title", function(tab, tabs, panes, cfg, hover, max_width)
         if first_cwd == nil then
             first_cwd = cwd
             if status then
-                table.insert(parts, cwd .. " " .. status)
+                table.insert(parts, cwd .. ": " .. status)
             else
                 table.insert(parts, cwd)
             end
@@ -213,7 +213,7 @@ wezterm.on("format-tab-title", function(tab, tabs, panes, cfg, hover, max_width)
             end
         else
             if status then
-                table.insert(parts, cwd .. " " .. status)
+                table.insert(parts, status .. " (" .. cwd .. ")")
             else
                 table.insert(parts, cwd)
             end
