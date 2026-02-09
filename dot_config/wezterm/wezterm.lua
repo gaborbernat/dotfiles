@@ -158,6 +158,11 @@ wezterm.on("format-tab-title", function(tab, tabs, panes, cfg, hover, max_width)
     local process = pane.foreground_process_name:gsub(".*/", "")
     local title = pane.title
     local index = tab.tab_index + 1
+    local claude_status = pane.user_vars.claude_status
+
+    if tab.tab_title and #tab.tab_title > 0 then
+        return { { Text = " " .. index .. ": " .. tab.tab_title .. " " } }
+    end
 
     if pane.user_vars.prog then
         process = pane.user_vars.prog
@@ -178,8 +183,11 @@ wezterm.on("format-tab-title", function(tab, tabs, panes, cfg, hover, max_width)
     elseif dir_name then
         title = dir_name
     end
-    if process ~= "" and process ~= "fish" then
+    if process ~= "" and process ~= "fish" and not claude_status then
         title = process .. ": " .. title
+    end
+    if claude_status and #claude_status > 0 then
+        title = claude_status
     end
     return { { Text = " " .. index .. ": " .. title .. " " } }
 end)
