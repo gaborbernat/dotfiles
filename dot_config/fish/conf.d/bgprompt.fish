@@ -59,8 +59,9 @@ function _bgp_pwd --on-variable PWD
         set --local root_count (count $root_parts)
         set --local pwd_count (count $pwd_parts)
 
-        # Build result
-        set --local result_parts
+        # Build result (plain text for wezterm, colored for prompt)
+        set --local plain_parts
+        set --local colored_parts
 
         for i in (seq 1 $pwd_count)
             set --local part $pwd_parts[$i]
@@ -68,46 +69,61 @@ function _bgp_pwd --on-variable PWD
             if test $i -lt $root_count
                 # Before git root - truncate (but keep ~ as is)
                 if test "$part" = "~" -o "$part" = ""
-                    set --append result_parts $part
+                    set --append plain_parts $part
+                    set --append colored_parts $part
                 else
-                    set --append result_parts (string sub -l 1 $part)
+                    set --append plain_parts (string sub -l 1 $part)
+                    set --append colored_parts (string sub -l 1 $part)
                 end
             else if test $i -eq $root_count
-                # Git root itself - keep full, make bold
-                set --append result_parts (set_color --bold)"$part"(set_color normal; set_color $bgp_color_pwd)
+                # Git root itself - keep full
+                set --append plain_parts $part
+                set --append colored_parts (set_color --bold)"$part"(set_color normal; set_color $bgp_color_pwd)
             else if test $i -eq $pwd_count
-                # Last component (basename) - keep full, make bold
-                set --append result_parts (set_color --bold)"$part"(set_color normal; set_color $bgp_color_pwd)
+                # Last component (basename) - keep full
+                set --append plain_parts $part
+                set --append colored_parts (set_color --bold)"$part"(set_color normal; set_color $bgp_color_pwd)
             else
                 # Inside repo but not basename - truncate
-                set --append result_parts (string sub -l 1 $part)
+                set --append plain_parts (string sub -l 1 $part)
+                set --append colored_parts (string sub -l 1 $part)
             end
         end
 
-        set --local result (string join "/" $result_parts)
-        # Dim the slashes, reset to pwd color after
-        set --global _bgp_pwd (string replace --regex --all -- '/' (set_color brblack)"/"(set_color normal; set_color $bgp_color_pwd) $result)
+        set --local plain_result (string join "/" $plain_parts)
+        set --local colored_result (string join "/" $colored_parts)
+        # Dim the slashes for prompt
+        set --global _bgp_pwd (string replace --regex --all -- '/' (set_color brblack)"/"(set_color normal; set_color $bgp_color_pwd) $colored_result)
+        # Set wezterm user var with plain text path
+        printf "\033]1337;SetUserVar=%s=%s\007" cwd (printf %s $plain_result | base64)
     else
         # Not in a git repo - truncate all but basename
         set --local parts (string split / $pwd_display)
         set --local num_parts (count $parts)
-        set --local result_parts
+        set --local plain_parts
+        set --local colored_parts
 
         for i in (seq 1 $num_parts)
             set --local part $parts[$i]
             if test $i -eq $num_parts
-                # Basename - keep full, bold
-                set --append result_parts (set_color --bold)"$part"(set_color normal; set_color $bgp_color_pwd)
+                # Basename - keep full
+                set --append plain_parts $part
+                set --append colored_parts (set_color --bold)"$part"(set_color normal; set_color $bgp_color_pwd)
             else if test "$part" = "~" -o "$part" = ""
-                set --append result_parts $part
+                set --append plain_parts $part
+                set --append colored_parts $part
             else
-                set --append result_parts (string sub -l 1 $part)
+                set --append plain_parts (string sub -l 1 $part)
+                set --append colored_parts (string sub -l 1 $part)
             end
         end
 
-        set --local result (string join "/" $result_parts)
-        # Dim the slashes, reset to pwd color after
-        set --global _bgp_pwd (string replace --regex --all -- '/' (set_color brblack)"/"(set_color normal; set_color $bgp_color_pwd) $result)
+        set --local plain_result (string join "/" $plain_parts)
+        set --local colored_result (string join "/" $colored_parts)
+        # Dim the slashes for prompt
+        set --global _bgp_pwd (string replace --regex --all -- '/' (set_color brblack)"/"(set_color normal; set_color $bgp_color_pwd) $colored_result)
+        # Set wezterm user var with plain text path
+        printf "\033]1337;SetUserVar=%s=%s\007" cwd (printf %s $plain_result | base64)
     end
 end
 
