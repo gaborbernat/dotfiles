@@ -93,6 +93,10 @@ function _wl_remove_worktree -a bare_root wt_path wt_name
     if git -C "$bare_root" worktree remove "$wt_path" 2>&1
         or git -C "$bare_root" worktree remove --force "$wt_path" 2>&1
         git -C "$bare_root" branch -d "$wt_name" 2>/dev/null
+        if git -C "$bare_root" rev-parse --verify "origin/$wt_name" &>/dev/null
+            git -C "$bare_root" push origin --delete "$wt_name" 2>/dev/null
+            and echo "Deleted remote branch origin/$wt_name"
+        end
         set --local end_time (date +%s.%N)
         set --local elapsed (math "$end_time - $start_time")
         printf "Deleted branch %s (%.2fs)\n" "$wt_name" "$elapsed"
