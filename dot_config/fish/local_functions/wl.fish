@@ -110,15 +110,16 @@ end
 function _wl_open_pr -a bare_root pr_number
     cd "$bare_root"
 
-    set pr_info (gh pr view $pr_number --json headRefName,headRepository,headRepositoryOwner --jq '[.headRefName, .headRepository.name, .headRepositoryOwner.login] | @tsv')
+    set pr_info (gh pr view $pr_number --json headRefName,headRepository --jq '[.headRefName, .headRepository.url, .headRepository.sshUrl, .headRepository.owner.login] | @tsv')
     or begin
         echo "error: could not fetch PR #$pr_number"
         return 2
     end
 
     set branch (echo $pr_info | cut -f1)
-    set repo_name (echo $pr_info | cut -f2)
-    set owner (echo $pr_info | cut -f3)
+    set repo_url (echo $pr_info | cut -f2)
+    set repo_ssh (echo $pr_info | cut -f3)
+    set owner (echo $pr_info | cut -f4)
 
     if test -z "$branch"
         echo "error: could not determine branch for PR #$pr_number"
@@ -133,7 +134,6 @@ function _wl_open_pr -a bare_root pr_number
         return 0
     end
 
-    # First check if any existing remote already has the branch (after fetching)
     echo "Fetching remotes..."
     git fetch --all --quiet
 
@@ -146,46 +146,30 @@ function _wl_open_pr -a bare_root pr_number
         end
     end
 
-    # If branch not found, check if PR author's repo is available and add if needed
     if test -z "$remote_name"
-        set target_repo (string lower "$owner/$repo_name")
+        set existing_url (git remote get-url upstream 2>/dev/null; or git remote get-url origin 2>/dev/null)
+        if string match -q 'git@*' "$existing_url"
+            set remote_url $repo_ssh
+        else
+            set remote_url $repo_url
+        end
+
         for remote in (git remote)
-            set remote_url (git remote get-url $remote 2>/dev/null)
-            set remote_repo (string replace -r '^.*[:/]([^/]+/[^/]+?)(?:\.git)?$' '$1' "$remote_url" | string lower)
-            if test "$remote_repo" = "$target_repo"
+            set url (git remote get-url $remote 2>/dev/null)
+            if test "$url" = "$remote_url" -o "$url" = "$repo_ssh" -o "$url" = "$repo_url"
                 set remote_name $remote
                 break
             end
         end
 
         if test -z "$remote_name"
-            set current_repo (gh repo view --json nameWithOwner --jq '.nameWithOwner' 2>/dev/null)
-            set fork_parent (gh api "repos/$owner/$repo_name" --jq '.parent.full_name' 2>/dev/null)
-            if test -z "$fork_parent"
-                echo "error: $owner/$repo_name is not a fork"
-                return 2
-            end
-            if test "$fork_parent" != "$current_repo"
-                echo "error: $owner/$repo_name is a fork of $fork_parent, not $current_repo"
-                return 2
-            end
             set remote_name $owner
-            echo "Adding remote: $remote_name"
-            set existing_url (git remote get-url upstream 2>/dev/null; or git remote get-url origin 2>/dev/null)
-            if string match -q 'git@*' "$existing_url"
-                set remote_url (gh repo view "$owner/$repo_name" --json sshUrl --jq '.sshUrl' 2>/dev/null)
-            else
-                set remote_url (gh repo view "$owner/$repo_name" --json url --jq '.url' 2>/dev/null)
-            end
-            if test -z "$remote_url"
-                echo "error: could not resolve remote URL for $owner/$repo_name"
-                return 2
-            end
+            echo "Adding remote: $remote_name ($remote_url)"
             git remote add $remote_name $remote_url
             git config remote.$remote_name.fetch "+refs/heads/*:refs/remotes/$remote_name/*"
         end
 
-        echo "Fetching $remote_name"
+        echo "Fetching $remote_name..."
         git fetch $remote_name
 
         if not git show-ref --verify --quiet refs/remotes/$remote_name/$branch
