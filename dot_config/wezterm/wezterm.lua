@@ -209,11 +209,10 @@ wezterm.on("format-tab-title", function(tab, tabs, panes, cfg, hover, max_width)
     elseif dir_name then
         title = dir_name
     end
-    if process ~= "" and process ~= "fish" and not claude_status then
-        title = process .. ": " .. title
-    end
     if claude_status and #claude_status > 0 then
-        title = claude_status
+        title = claude_status .. " " .. title
+    elseif process ~= "" and process ~= "fish" then
+        title = process .. ": " .. title
     end
     return { { Text = " " .. index .. ": " .. title .. " " } }
 end)
