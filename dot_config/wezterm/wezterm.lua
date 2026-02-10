@@ -42,7 +42,6 @@ config.mouse_bindings = {
 config.harfbuzz_features = { "calt=1", "clig=1", "liga=1" }
 config.tab_bar_at_bottom = false
 config.show_close_tab_button_in_tabs = false
-config.tab_max_width = 32
 
 local function spawn_tab_next_to_current(window, pane)
     local mux_win = window:mux_window()
