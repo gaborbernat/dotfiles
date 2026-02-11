@@ -1,8 +1,26 @@
 function dcr -d "Run a docker compose service then tear down"
-    argparse b v -- $argv
+    argparse h/help b v no-rm -- $argv
     or return 1
+    if set -q _flag_help
+        echo "Usage: dcr [-b] [-v] [--no-rm] <service> [-- args...]"
+        echo
+        echo "Run a docker compose service and tear down after exit"
+        echo
+        echo "Options:"
+        echo "  -b, --build  Rebuild image before running"
+        echo "  -v           Remove volumes on teardown"
+        echo "  --no-rm      Skip teardown (for debugging)"
+        echo "  -h, --help   Show this help"
+        echo
+        echo "Examples:"
+        echo "  dcr myservice"
+        echo "  dcr -b myservice"
+        echo "  dcr --no-rm myservice"
+        echo "  dcr myservice -- --verbose"
+        return 0
+    end
     if not set -q argv[1]
-        echo "Usage: dcr [-b] [-v] <service> [-- args...]" >&2
+        echo "Usage: dcr [-b] [-v] [--no-rm] <service> [-- args...]" >&2
         return 1
     end
     set -l flags --force-recreate --abort-on-container-exit --exit-code-from $argv[1]
@@ -11,10 +29,12 @@ function dcr -d "Run a docker compose service then tear down"
     end
     docker compose up $flags $argv
     set -l rc $status
-    set -l down_flags --remove-orphans
-    if set -q _flag_v
-        set -a down_flags --volumes
+    if not set -q _flag_no_rm
+        set -l down_flags --remove-orphans
+        if set -q _flag_v
+            set -a down_flags --volumes
+        end
+        docker compose down $down_flags
     end
-    docker compose down $down_flags
     exit $rc
 end
