@@ -111,7 +111,7 @@ def find_latest_version(
     }
     if not candidates:
         return None
-    latest = sorted(candidates, key=lambda i: Version(i))[-1]
+    latest = sorted(candidates, key=Version)[-1]
     return f"{latest}{'t' if variant == 'freethreaded' else ''}"
 
 
