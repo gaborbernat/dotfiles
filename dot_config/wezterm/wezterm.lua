@@ -179,7 +179,7 @@ local function get_pane_status(p)
     if proc == "ssh" or proc == "tsh" then
         local host = p.title:match("[%w%-]+%-%w+%-%d+") or p.title:match("@([%w%-%.]+)") or p.title:match("([%w%-%.]+)$")
         if host then
-            return proc .. "@" .. host
+            return proc .. "@" .. host, true
         end
     end
     if proc ~= "" and proc ~= "fish" and proc ~= "claude" then
@@ -198,11 +198,13 @@ wezterm.on("format-tab-title", function(tab, tabs, panes, cfg, hover, max_width)
     local parts = {}
     local first_cwd = nil
     for _, p in ipairs(tab.panes or {}) do
-        local status = get_pane_status(p)
+        local status, skip_cwd = get_pane_status(p)
         local cwd = get_pane_cwd(p)
         if first_cwd == nil then
             first_cwd = cwd
-            if status then
+            if skip_cwd then
+                table.insert(parts, status)
+            elseif status then
                 table.insert(parts, cwd .. ": " .. status)
             else
                 table.insert(parts, cwd)
@@ -212,7 +214,9 @@ wezterm.on("format-tab-title", function(tab, tabs, panes, cfg, hover, max_width)
                 table.insert(parts, status)
             end
         else
-            if status then
+            if skip_cwd then
+                table.insert(parts, status)
+            elseif status then
                 table.insert(parts, status .. " (" .. cwd .. ")")
             else
                 table.insert(parts, cwd)
