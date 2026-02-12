@@ -67,7 +67,7 @@ def ndjson_table(  # noqa: C901, PLR0912, PLR0915
 
     flat_first_obj = flatten(first_obj)
     all_headers: list[str] = list(flat_first_obj.keys())
-    headers: list[str] = selected_columns if selected_columns else all_headers
+    headers: list[str] = selected_columns or all_headers
     type_map: dict[str, type] = {key: type(flat_first_obj[key]) for key in headers}
 
     # Collect all flattened rows
