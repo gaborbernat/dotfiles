@@ -21,3 +21,4 @@ jfrog-licenses-latest.json.gz
 .coverage
 coverage.xml
 CLAUDE.md
+tasks/*.md
