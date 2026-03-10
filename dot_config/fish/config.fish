@@ -74,39 +74,19 @@ if status --is-interactive
     # fish interactive changes
     set fish_greeting
     function fish_title
-        echo (basename (pwd)): $argv
-    end
-
-    # WezTerm shell integration
-    # OSC 7: current working directory
-    function __wezterm_osc7 --on-variable PWD
-        printf "\033]7;file://%s%s\033\\" (hostname) (pwd)
-    end
-    __wezterm_osc7
-
-    # OSC 133: semantic zones (prompt/input/output markers)
-    set -g __wezterm_last_status 0
-    function __wezterm_mark_output_start --on-event fish_preexec
-        printf "\e]133;C\a"
-    end
-    function __wezterm_mark_output_end --on-event fish_postexec
-        set -g __wezterm_last_status $status
-        printf "\e]133;D;%s\a" $__wezterm_last_status
-    end
-
-    # Ring bell for long-running commands (>10s) to trigger wezterm notification
-    set -g __cmd_start 0
-    function __record_cmd_start --on-event fish_preexec
-        set -g __cmd_start (date +%s)
-    end
-    function __notify_long_cmd --on-event fish_postexec
-        if test $__cmd_start -gt 0
-            set -l duration (math (date +%s) - $__cmd_start)
-            if test $duration -ge 10
-                printf "\a"
-            end
+        set -l cmd $argv[1]
+        set -l cwd (basename $PWD)
+        if set -l git_root (git rev-parse --show-toplevel 2>/dev/null)
+            set -l project (basename $git_root)
+            test "$project" != "$cwd" && set cwd "$project/$cwd"
         end
-        set -g __cmd_start 0
+        if test "$cmd" = ssh -o "$cmd" = tsh
+            echo "$cmd: $cwd"
+        else if test -n "$cmd" -a "$cmd" != fish
+            echo "$cwd: $cmd"
+        else
+            echo "$cwd"
+        end
     end
 
     function dbu -a val

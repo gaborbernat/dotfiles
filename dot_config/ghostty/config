@@ -1,15 +1,63 @@
-adjust-cursor-thickness = 2
-command = /opt/homebrew/bin//fish
-cursor-click-to-move = true
-cursor-color = #FFFF00
-cursor-opacity = 1
+command = /opt/homebrew/bin/fish
+shell-integration = detect
+
+theme = Monokai Remastered
+font-family = JetBrainsMono Nerd Font
+font-family = Symbols Nerd Font Mono
+font-size = 13
+font-feature = calt
+font-feature = clig
+font-feature = liga
+font-thicken = true
+window-padding-x = 4
+window-padding-y = 4
+window-padding-color = extend
+macos-titlebar-style = tabs
+
 cursor-style = bar
 cursor-style-blink = true
-font-family = "JetBrainsMono Nerd Font"
-font-size = 13
-link-url = true
+cursor-click-to-move = true
+
+scrollback-limit = 200000
 mouse-hide-while-typing = true
-mouse-scroll-multiplier = 1
-scrollback-limit = 20000000
-theme = Detuned
+focus-follows-mouse = true
+confirm-close-surface = true
+copy-on-select = clipboard
+clipboard-trim-trailing-spaces = true
+clipboard-paste-protection = false
+link-url = true
+link-previews = true
+unfocused-split-opacity = 0.7
+split-preserve-zoom = navigation
+
+window-new-tab-position = current
+window-inherit-working-directory = true
+window-inherit-font-size = true
+window-save-state = always
+
+notify-on-command-finish = unfocused
+notify-on-command-finish-action = notify
+notify-on-command-finish-after = 5s
+scroll-to-bottom = output
+selection-word-chars = \t\n{}[]()\"'`,;:@
+macos-applescript = true
+
+keybind = global:super+grave=toggle_quick_terminal
 keybind = shift+enter=text:\x1b\r
+keybind = super+h=new_split:right
+keybind = super+j=new_split:down
+keybind = super+d=close_surface
+keybind = super+left=goto_split:left
+keybind = super+right=goto_split:right
+keybind = super+up=goto_split:up
+keybind = super+down=goto_split:down
+keybind = super+shift+f=toggle_split_zoom
+keybind = super+page_up=previous_tab
+keybind = super+page_down=next_tab
+keybind = shift+page_up=scroll_page_up
+keybind = shift+page_down=scroll_page_down
+keybind = shift+up=scroll_page_lines:-1
+keybind = shift+down=scroll_page_lines:1
+keybind = ctrl+shift+up=jump_to_prompt:-1
+keybind = ctrl+shift+down=jump_to_prompt:1
+keybind = super+shift+o=toggle_background_opacity
