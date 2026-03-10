@@ -40,7 +40,7 @@ notify-on-command-finish-action = notify
 notify-on-command-finish-after = 5s
 scroll-to-bottom = output
 selection-word-chars = \t\n{}[]()\"'`,;:@
-macos-applescript = true
+macos-applescript = false
 
 keybind = global:super+grave=toggle_quick_terminal
 keybind = shift+enter=text:\x1b\r
