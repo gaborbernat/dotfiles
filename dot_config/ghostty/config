@@ -42,7 +42,7 @@ scroll-to-bottom = output
 selection-word-chars = \t\n{}[]()\"'`,;:@
 macos-applescript = false
 
-keybind = global:super+grave=toggle_quick_terminal
+keybind = global:super+grave_accent=toggle_quick_terminal
 keybind = shift+enter=text:\x1b\r
 keybind = super+h=new_split:right
 keybind = super+j=new_split:down
