@@ -36,5 +36,5 @@ function dcr -d "Run a docker compose service then tear down"
         end
         docker compose down $down_flags
     end
-    exit $rc
+    return $rc
 end
