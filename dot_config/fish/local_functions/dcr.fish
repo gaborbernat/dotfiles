@@ -26,6 +26,20 @@ function dcr -d "Run a docker compose service then tear down"
     set -l flags --force-recreate --abort-on-container-exit --exit-code-from $argv[1]
     if set -q _flag_b
         set -a flags --build
+    else if test -f Dockerfile
+        # Auto-rebuild if Dockerfile changed since image was built
+        set -l image_name (docker compose config --format json 2>/dev/null | jq -r ".services.$argv[1].image // empty")
+        if test -n "$image_name"
+            set -l image_created (docker inspect --format='{{.Created}}' "$image_name" 2>/dev/null)
+            if test -n "$image_created"
+                set -l dockerfile_mtime (stat -f %m Dockerfile 2>/dev/null)
+                set -l image_mtime (date -j -f '%Y-%m-%dT%H:%M:%SZ' $image_created +%s 2>/dev/null)
+                if test -n "$dockerfile_mtime" -a -n "$image_mtime" -a $dockerfile_mtime -gt $image_mtime
+                    echo "Dockerfile changed, rebuilding..."
+                    set -a flags --build
+                end
+            end
+        end
     end
     docker compose up $flags $argv
     set -l rc $status
