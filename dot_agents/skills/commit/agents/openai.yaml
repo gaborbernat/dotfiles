@@ -1,0 +1,4 @@
+interface:
+  display_name: "Commit"
+  short_description: "Create Commitizen-style git commits"
+  default_prompt: "Use $commit to create a git commit for the staged changes."

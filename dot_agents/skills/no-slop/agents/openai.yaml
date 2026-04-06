@@ -1,0 +1,4 @@
+interface:
+  display_name: "No Slop"
+  short_description: "Remove AI writing patterns from prose"
+  default_prompt: "Use $no-slop to review and clean up this text."

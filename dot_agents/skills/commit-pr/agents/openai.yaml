@@ -1,0 +1,4 @@
+interface:
+  display_name: "Commit & PR"
+  short_description: "Create a commit then open a pull request"
+  default_prompt: "Use $commit-pr to commit changes and create a pull request."

@@ -1,0 +1,125 @@
+{
+  "cleanupPeriodDays": 14,
+  "attribution": {
+    "commit": ""
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "npx -y ccstatusline@latest",
+    "padding": 0
+  },
+  "permissions": {
+    "allow": [
+      "Bash(awk *)",
+      "Bash(docker build *)",
+      "Bash(docker run *)",
+      "Bash(docker ps *)",
+      "Bash(docker logs *)",
+      "Bash(docker exec *)",
+      "Bash(docker stop *)",
+      "Bash(docker rm *)",
+      "Bash(find *)",
+      "Bash(gh *)",
+      "Bash(git *)",
+      "Bash(grep *)",
+      "Bash(jq *)",
+      "Bash(ls *)",
+      "Bash(mdformat *)",
+      "Bash(mkdir *)",
+      "Bash(mv *)",
+      "Bash(rm *)",
+      "Bash(ruff *)",
+      "Bash(sed *)",
+      "Bash(sort *)",
+      "Bash(tar *)",
+      "Bash(tox *)",
+      "Bash(tree *)",
+      "Bash(uniq *)",
+      "Bash(unzip *)",
+      "Bash(wc *)",
+      "Bash(which *)",
+      "Bash(xargs *)",
+      "Bash(yq *)",
+      "Bash(brew *)",
+      "Bash(chezmoi *)",
+      "Bash(chmod *)",
+      "Bash(fish_indent *)",
+      "Bash(pre-commit *)",
+      "Bash(prek *)"
+    ],
+    "defaultMode": "acceptEdits"
+  },
+  "model": "opus[1m]",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$(date '+%H:%M:%S.%N') SessionStart\" >> /tmp/claude-hooks.log && printf '\\033]2;✨ %s Claude\\007' \"$(basename \"$PWD\")\" > /dev/tty"
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$(date '+%H:%M:%S.%N') SessionEnd\" >> /tmp/claude-hooks.log && printf '\\033]2;👋 %s Claude\\007' \"$(basename \"$PWD\")\" > /dev/tty"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$(date '+%H:%M:%S.%N') UserPromptSubmit\" >> /tmp/claude-hooks.log && printf '\\033]2;🏃 %s Claude\\007' \"$(basename \"$PWD\")\" > /dev/tty"
+          }
+        ]
+      }
+    ],
+    "PermissionRequest": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$(date '+%H:%M:%S.%N') PermissionRequest\" >> /tmp/claude-hooks.log && printf '\\033]2;❓ %s Claude\\007' \"$(basename \"$PWD\")\" > /dev/tty && afplay ~/.claude/sounds/permission.aiff"
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$(date '+%H:%M:%S.%N') PreToolUse\" >> /tmp/claude-hooks.log && printf '\\033]2;🏃 %s Claude\\007' \"$(basename \"$PWD\")\" > /dev/tty"
+          }
+        ]
+      }
+    ],
+    "Notification": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$(date '+%H:%M:%S.%N') Notification\" >> /tmp/claude-hooks.log && printf '\\033]2;❗ %s Claude\\007' \"$(basename \"$PWD\")\" > /dev/tty && afplay ~/.claude/sounds/waiting.aiff"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo \"$(date '+%H:%M:%S.%N') Stop\" >> /tmp/claude-hooks.log && printf '\\033]2;💤 %s Claude\\007' \"$(basename \"$PWD\")\" > /dev/tty && afplay ~/.claude/sounds/complete.aiff"
+          }
+        ]
+      }
+    ]
+  }
+}
