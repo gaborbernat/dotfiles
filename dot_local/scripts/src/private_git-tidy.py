@@ -709,9 +709,6 @@ def show_remaining_branches_summary(
 
 
 def run_git(cmd: list[str], opts: Options, *, capture: bool = False, check: bool = True) -> str:
-    if opts.verbose and not capture:
-        pass
-
     if (
         opts.dry_run
         and not capture
@@ -724,9 +721,6 @@ def run_git(cmd: list[str], opts: Options, *, capture: bool = False, check: bool
 
     if capture:
         return result.stdout
-
-    if result.stdout and opts.verbose:
-        pass
 
     return ""
 

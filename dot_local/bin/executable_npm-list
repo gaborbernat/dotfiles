@@ -1,4 +1,5 @@
 #!/bin/bash
+set -euo pipefail
 
 # ANSI color codes
 YELLOW='\033[1;33m'

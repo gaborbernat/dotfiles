@@ -15,10 +15,14 @@ function p -d "Open PyCharm with worktree-aware project name and auto-config" -a
     set --local dir_tilde (string replace "$HOME" "~" "$dir")
     if test -d "$dir/.tox/dev"
         set sdk_path "$dir_tilde/.tox/dev"
-        set python_sdk "Python 3.14 $sdk_path"
     else if test -d "$dir/.venv"
         set sdk_path "$dir_tilde/.venv"
-        set python_sdk "Python 3.14 $sdk_path"
+    end
+    if test -n "$sdk_path"
+        set --local real_path (string replace "~" "$HOME" "$sdk_path")
+        set --local py_ver ($real_path/bin/python --version 2>/dev/null | string replace "Python " "")
+        test -z "$py_ver" && set py_ver "3"
+        set python_sdk "Python $py_ver $sdk_path"
     end
 
     set --local py_versions "3.14"

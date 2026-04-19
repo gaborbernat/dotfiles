@@ -17,7 +17,6 @@ lint.ignore = [
   "PLR2004", # magic numbers are fine
 ]
 lint.isort = { known-first-party = [
-  "arhinfosvc",
   "tests",
 ], required-imports = [
   "from __future__ import annotations",

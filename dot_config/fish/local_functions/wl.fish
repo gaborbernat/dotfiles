@@ -17,7 +17,7 @@ function wl -d "List worktrees for bare repo (interactive: enter=cd, ctrl-d=dele
 
     # Build worktree list
     set --local entries
-    for wt in (git -C "$bare_root" worktree list | string match -v "*bare*")
+    for wt in (git -C "$bare_root" worktree list | string match -v '*(bare)')
         set --local wt_path (echo $wt | awk '{print $1}')
         set --local wt_name (basename "$wt_path")
         set --local branch (git -C "$wt_path" symbolic-ref --short HEAD 2>/dev/null)
@@ -79,7 +79,7 @@ $legend"
         for selection in $selections
             set --local path (string split \t $selection)[2]
             set --local name (string split ' ' $selection)[1]
-            _wl_remove_worktree "$bare_root" "$path" "$name" &
+            _wl_remove_worktree "$bare_root" "$path" "$name"
         end
         wl
     else
@@ -179,7 +179,11 @@ function _wl_open_pr -a bare_root pr_number
     end
 
     echo "Creating worktree: $worktree_name"
-    git worktree add -b $branch $worktree_name $remote_name/$branch
+    if git -C "$bare_root" show-ref --verify --quiet "refs/heads/$branch"
+        git worktree add $worktree_name $branch
+    else
+        git worktree add -b $branch $worktree_name $remote_name/$branch
+    end
 
     cd $worktree_name
     git branch --set-upstream-to=$remote_name/$branch

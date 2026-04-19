@@ -22,9 +22,7 @@ function u -d "Update all development tools"
 end
 
 function npm_update
-    set -l tmp (mktemp -d)
-    npm update -g --cache $tmp
-    rm -rf $tmp
+    npm outdated -g --parseable 2>/dev/null | awk -F: '{print $4}' | xargs npm install -g
 end
 
 function cargo_update

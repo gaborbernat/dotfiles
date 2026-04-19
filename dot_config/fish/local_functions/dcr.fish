@@ -33,7 +33,8 @@ function dcr -d "Run a docker compose service then tear down"
             set -l image_created (docker inspect --format='{{.Created}}' "$image_name" 2>/dev/null)
             if test -n "$image_created"
                 set -l dockerfile_mtime (stat -f %m Dockerfile 2>/dev/null)
-                set -l image_mtime (date -j -f '%Y-%m-%dT%H:%M:%SZ' $image_created +%s 2>/dev/null)
+                set -l image_ts (string replace -r '[.+].*' '' $image_created)
+                set -l image_mtime (date -j -f '%Y-%m-%dT%H:%M:%S' $image_ts +%s 2>/dev/null)
                 if test -n "$dockerfile_mtime" -a -n "$image_mtime" -a $dockerfile_mtime -gt $image_mtime
                     echo "Dockerfile changed, rebuilding..."
                     set -a flags --build

@@ -45,7 +45,11 @@ function gcw -d "Create or update a worktree from upstream default branch" -a br
             git -C "$bare_root" worktree add "$worktree_path" "$branch"
         else
             echo "Rebasing '$branch' against $base_ref..."
-            git -C "$worktree_path" rebase $base_ref
+            if not git -C "$worktree_path" rebase $base_ref
+                echo "Rebase has conflicts — resolve them in $worktree_path"
+                cd "$worktree_path"
+                return 1
+            end
         end
         # Ensure tracking is set to origin
         git -C "$worktree_path" branch --set-upstream-to=origin/"$branch" 2>/dev/null

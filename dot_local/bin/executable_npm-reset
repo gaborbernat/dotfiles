@@ -1,7 +1,5 @@
 #!/bin/bash
-
-# Exit immediately if a command exits with a non-zero status
-set -e
+set -euo pipefail
 
 echo "Removing node_modules and package-lock.json..."
 rm -rf node_modules package-lock.json
