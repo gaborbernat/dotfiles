@@ -88,7 +88,7 @@ $legend"
 end
 
 function _wl_remove_worktree -a bare_root wt_path wt_name
-    set --local start_time (date +%s.%N)
+    set --local start_time (gdate +%s.%N 2>/dev/null; or date +%s)
     echo "Removing worktree '$wt_name'..."
     if git -C "$bare_root" worktree remove "$wt_path" 2>&1
         or git -C "$bare_root" worktree remove --force "$wt_path" 2>&1
@@ -97,11 +97,11 @@ function _wl_remove_worktree -a bare_root wt_path wt_name
             git -C "$bare_root" push origin --delete "$wt_name" 2>/dev/null
             and echo "Deleted remote branch origin/$wt_name"
         end
-        set --local end_time (date +%s.%N)
+        set --local end_time (gdate +%s.%N 2>/dev/null; or date +%s)
         set --local elapsed (math "$end_time - $start_time")
         printf "Deleted branch %s (%.2fs)\n" "$wt_name" "$elapsed"
     else
-        set --local end_time (date +%s.%N)
+        set --local end_time (gdate +%s.%N 2>/dev/null; or date +%s)
         set --local elapsed (math "$end_time - $start_time")
         printf "Failed to remove %s (%.2fs)\n" "$wt_name" "$elapsed"
     end

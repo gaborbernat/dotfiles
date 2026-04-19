@@ -62,7 +62,7 @@ function gcw -d "Create or update a worktree from upstream default branch" -a br
         touch "$bare_root/CLAUDE.md"
     end
     if not test -e "$worktree_path/CLAUDE.md"
-        ln -s "$bare_root/CLAUDE.md" "$worktree_path/CLAUDE.md"
+        ln -s ../CLAUDE.md "$worktree_path/CLAUDE.md"
     end
 
     cd "$worktree_path"
