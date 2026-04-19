@@ -47,6 +47,9 @@
       "Bash(pre-commit *)",
       "Bash(prek *)",
       "Bash(curl *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(cat *)",
       "Bash(.tox/*/bin/python -m pytest *)",
       "Bash(.tox/*/bin/python -m pytest)",
       "WebSearch"
