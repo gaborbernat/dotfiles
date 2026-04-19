@@ -1,4 +1,4 @@
-function gcw -d "Create or update a worktree from upstream/main" -a branch
+function gcw -d "Create or update a worktree from upstream default branch" -a branch
     test -z "$branch" && echo "Usage: gcw <branch-name>" && return 1
 
     set --local git_dir (git rev-parse --git-dir 2>/dev/null)
@@ -21,25 +21,39 @@ function gcw -d "Create or update a worktree from upstream/main" -a branch
     # Clean up stale worktree references
     git -C "$bare_root" worktree prune
 
-    echo "Fetching upstream..."
-    git -C "$bare_root" fetch upstream --quiet
+    # Determine the base remote and default branch
+    set --local base_remote upstream
+    if not git -C "$bare_root" remote | string match -q upstream
+        set base_remote origin
+    end
+    echo "Fetching $base_remote..."
+    git -C "$bare_root" fetch $base_remote --quiet
+
+    set --local default_branch (git -C "$bare_root" symbolic-ref "refs/remotes/$base_remote/HEAD" 2>/dev/null | sed "s|refs/remotes/$base_remote/||")
+    if test -z "$default_branch"
+        # Fallback: query remote HEAD
+        git -C "$bare_root" remote set-head $base_remote --auto 2>/dev/null
+        set default_branch (git -C "$bare_root" symbolic-ref "refs/remotes/$base_remote/HEAD" 2>/dev/null | sed "s|refs/remotes/$base_remote/||")
+    end
+    test -z "$default_branch" && echo "Cannot determine default branch for $base_remote" && return 1
+    set --local base_ref "$base_remote/$default_branch"
 
     if git -C "$bare_root" show-ref --verify --quiet "refs/heads/$branch"
-        # Branch exists - rebase against upstream/main
+        # Branch exists - rebase against base ref
         if not test -d "$worktree_path"
             echo "Branch '$branch' exists, recreating worktree..."
             git -C "$bare_root" worktree add "$worktree_path" "$branch"
         else
-            echo "Rebasing '$branch' against upstream/main..."
-            git -C "$worktree_path" rebase upstream/main
+            echo "Rebasing '$branch' against $base_ref..."
+            git -C "$worktree_path" rebase $base_ref
         end
         # Ensure tracking is set to origin
         git -C "$worktree_path" branch --set-upstream-to=origin/"$branch" 2>/dev/null
         or git -C "$worktree_path" push -u origin "$branch"
     else
-        # New branch - create worktree from upstream/main, track origin
-        echo "Creating new worktree '$branch' from upstream/main..."
-        git -C "$bare_root" worktree add --no-track -b "$branch" "$worktree_path" upstream/main
+        # New branch - create worktree from base ref, track origin
+        echo "Creating new worktree '$branch' from $base_ref..."
+        git -C "$bare_root" worktree add --no-track -b "$branch" "$worktree_path" $base_ref
         echo "Pushing to origin and setting upstream..."
         git -C "$worktree_path" push -u origin "$branch"
     end
