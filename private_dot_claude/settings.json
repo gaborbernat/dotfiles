@@ -47,6 +47,8 @@
       "Bash(pre-commit *)",
       "Bash(prek *)",
       "Bash(curl *)",
+      "Bash(.tox/*/bin/python -m pytest *)",
+      "Bash(.tox/*/bin/python -m pytest)",
       "WebSearch"
     ],
     "defaultMode": "acceptEdits"
