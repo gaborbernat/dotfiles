@@ -45,7 +45,9 @@
       "Bash(chmod *)",
       "Bash(fish_indent *)",
       "Bash(pre-commit *)",
-      "Bash(prek *)"
+      "Bash(prek *)",
+      "Bash(curl *)",
+      "WebSearch"
     ],
     "defaultMode": "acceptEdits"
   },
