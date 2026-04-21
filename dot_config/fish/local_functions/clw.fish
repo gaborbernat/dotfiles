@@ -33,9 +33,7 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
     end
 
     # Set GH_HOST for enterprise GitHub instances
-    if test -n "$gh_host"
-        set -lx GH_HOST $gh_host
-    end
+    test -n "$gh_host"; and set -lx GH_HOST $gh_host
 
     # Extract owner/repo from URL
     set repo_path ""
