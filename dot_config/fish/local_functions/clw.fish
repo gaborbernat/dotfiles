@@ -72,18 +72,31 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
 
     # Ensure fork exists (idempotent)
     echo "Ensuring fork exists..."
-    gh repo fork $repo --fork-name $name --remote=false >/dev/null 2>&1
-
-    # Determine fork URL
     set me (gh api user --jq .login)
     set fork "$me/$name"
-    if test "$use_https" = true
-        set fork_url (gh repo view $fork --json url --jq '.url' 2>/dev/null)
-    else
-        set fork_url (gh repo view $fork --json sshUrl --jq '.sshUrl' 2>/dev/null)
+    if not gh repo fork $repo --fork-name $name --remote=false 2>/dev/null
+        # Fork may already exist under a different name; check before failing
+        if not gh repo view $fork --json nameWithOwner >/dev/null 2>&1
+            echo "error: failed to fork $repo and no existing fork found as $fork"
+            return 2
+        end
+    end
+
+    # Determine fork URL — fork creation is async, retry a few times
+    set fork_url ""
+    for i in 1 2 3 4 5
+        if test "$use_https" = true
+            set fork_url (gh repo view $fork --json url --jq '.url' 2>/dev/null)
+        else
+            set fork_url (gh repo view $fork --json sshUrl --jq '.sshUrl' 2>/dev/null)
+        end
+        test -n "$fork_url"; and break
+        echo "Waiting for fork to be available... ($i/5)"
+        sleep 2
     end
     if test -z "$fork_url"
-        echo "warning: could not resolve fork repo $fork; origin remote may need manual setup"
+        echo "error: could not resolve fork repo $fork after retries"
+        return 2
     end
 
     # Clone upstream as bare (skip if exists)
@@ -102,10 +115,10 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
     end
     git config remote.upstream.fetch "+refs/heads/*:refs/remotes/upstream/*"
 
-    if test -n "$fork_url"; and not git remote get-url origin >/dev/null 2>&1
+    if not git remote get-url origin >/dev/null 2>&1
         git remote add origin $fork_url
     end
-    test -n "$fork_url"; and git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
+    git config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*"
 
     echo "Fetching upstream"
     git fetch upstream
@@ -134,20 +147,15 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
 
     # Create branch worktree (skip if exists)
     if not test -d $branch
-        if git remote get-url origin >/dev/null 2>&1
-            if git show-ref --verify --quiet refs/remotes/origin/$branch
-                echo "Branch exists on origin: $branch"
-                git worktree add $branch origin/$branch
-            else
-                echo "Creating new branch from upstream/$default_branch: $branch"
-                git worktree add -b $branch $branch upstream/$default_branch
-                cd $branch
-                git push -u origin $branch
-                cd ..
-            end
+        if git show-ref --verify --quiet refs/remotes/origin/$branch
+            echo "Branch exists on origin: $branch"
+            git worktree add $branch origin/$branch
         else
-            echo "note: no origin remote configured; creating branch locally from upstream/$default_branch"
+            echo "Creating new branch from upstream/$default_branch: $branch"
             git worktree add -b $branch $branch upstream/$default_branch
+            cd $branch
+            git push -u origin $branch
+            cd ..
         end
     else
         echo "Branch worktree already exists: $branch"
