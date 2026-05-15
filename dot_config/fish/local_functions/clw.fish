@@ -70,11 +70,11 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
     echo "Upstream repo : $repo"
     echo "Default branch: $default_branch"
 
-    # Ensure fork exists (idempotent — exit code is unreliable across gh versions)
+    # Ensure fork exists (idempotent)
     echo "Ensuring fork exists..."
     set me (gh api user --jq .login)
     set fork "$me/$name"
-    gh repo fork $repo --fork-name $name --remote=false 2>/dev/null
+    gh repo fork $repo --fork-name $name 2>/dev/null
 
     # Determine fork URL — fork creation is async, retry a few times
     set fork_url ""
