@@ -73,8 +73,20 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
     # Ensure fork exists (idempotent)
     echo "Ensuring fork exists..."
     set me (gh api user --jq .login)
+    or begin
+        echo "error: failed to get current user (gh auth status?)"
+        return 2
+    end
     set fork "$me/$name"
-    gh repo fork $repo --fork-name $name 2>/dev/null
+
+    set fork_err (gh repo fork $repo --fork-name $name 2>&1)
+    set fork_status $status
+    if test $fork_status -ne 0
+        if not string match -q "*already exists*" $fork_err
+            echo "error: failed to fork $repo: $fork_err"
+            return 2
+        end
+    end
 
     # Determine fork URL — fork creation is async, retry a few times
     set fork_url ""
@@ -89,7 +101,7 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
         sleep 2
     end
     if test -z "$fork_url"
-        echo "error: could not resolve fork repo $fork after retries"
+        echo "error: could not resolve fork $fork after retries"
         return 2
     end
 
