@@ -63,7 +63,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo \"$(date '+%H:%M:%S.%N') SessionStart\" >> /tmp/claude-hooks.log && printf '\\033]2;✨ %s Claude\\007' \"$(basename \"$PWD\")\" > /dev/tty"
+            "command": "~/.claude/hooks/notify.sh SessionStart '✨'"
           }
         ]
       }
@@ -73,7 +73,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo \"$(date '+%H:%M:%S.%N') SessionEnd\" >> /tmp/claude-hooks.log && printf '\\033]2;👋 %s Claude\\007' \"$(basename \"$PWD\")\" > /dev/tty"
+            "command": "~/.claude/hooks/notify.sh SessionEnd '👋'"
           }
         ]
       }
@@ -83,7 +83,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo \"$(date '+%H:%M:%S.%N') UserPromptSubmit\" >> /tmp/claude-hooks.log && printf '\\033]2;🏃 %s Claude\\007' \"$(basename \"$PWD\")\" > /dev/tty"
+            "command": "~/.claude/hooks/notify.sh UserPromptSubmit '🏃'"
           }
         ]
       }
@@ -93,7 +93,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo \"$(date '+%H:%M:%S.%N') PermissionRequest\" >> /tmp/claude-hooks.log && printf '\\033]2;❓ %s Claude\\007' \"$(basename \"$PWD\")\" > /dev/tty && afplay ~/.claude/sounds/permission.aiff"
+            "command": "~/.claude/hooks/notify.sh PermissionRequest '❓' permission.aiff"
           }
         ]
       }
@@ -103,7 +103,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo \"$(date '+%H:%M:%S.%N') PreToolUse\" >> /tmp/claude-hooks.log && printf '\\033]2;🏃 %s Claude\\007' \"$(basename \"$PWD\")\" > /dev/tty"
+            "command": "~/.claude/hooks/notify.sh PreToolUse '🏃'"
           }
         ]
       }
@@ -113,7 +113,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo \"$(date '+%H:%M:%S.%N') Notification\" >> /tmp/claude-hooks.log && printf '\\033]2;❗ %s Claude\\007' \"$(basename \"$PWD\")\" > /dev/tty && afplay ~/.claude/sounds/waiting.aiff"
+            "command": "~/.claude/hooks/notify.sh Notification '❗' waiting.aiff"
           }
         ]
       }
@@ -123,7 +123,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo \"$(date '+%H:%M:%S.%N') Stop\" >> /tmp/claude-hooks.log && printf '\\033]2;💤 %s Claude\\007' \"$(basename \"$PWD\")\" > /dev/tty && afplay ~/.claude/sounds/complete.aiff"
+            "command": "~/.claude/hooks/notify.sh Stop '💤' complete.aiff"
           }
         ]
       }
