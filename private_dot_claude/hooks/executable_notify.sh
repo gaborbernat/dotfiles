@@ -11,19 +11,18 @@ sound=$3
 
 printf '%s %s\n' "$(date '+%H:%M:%S.%N')" "$event" >> /tmp/claude-hooks.log
 
-tty_path=""
-pid=$PPID
-while [ -n "$pid" ] && [ "$pid" != "1" ]; do
-    t=$(ps -o tty= -p "$pid" 2>/dev/null | tr -d ' ')
-    if [ -n "$t" ] && [ "$t" != "??" ]; then
-        tty_path="/dev/$t"
-        break
-    fi
-    pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')
-done
+title=$(printf '\033]2;%s %s Claude\007' "$emoji" "$(basename "$PWD")")
 
-if [ -n "$tty_path" ] && [ -w "$tty_path" ]; then
-    printf '\033]2;%s %s Claude\007' "$emoji" "$(basename "$PWD")" > "$tty_path"
+if ! { printf '%s' "$title" > /dev/tty; } 2>/dev/null; then
+    pid=$PPID
+    while [ -n "$pid" ] && [ "$pid" != "1" ]; do
+        t=$(ps -o tty= -p "$pid" 2>/dev/null | tr -d ' ')
+        if [ -n "$t" ] && [ "$t" != "??" ]; then
+            { printf '%s' "$title" > "/dev/$t"; } 2>/dev/null
+            break
+        fi
+        pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')
+    done
 fi
 
 if [ -n "$sound" ] && [ -f "$HOME/.claude/sounds/$sound" ]; then
