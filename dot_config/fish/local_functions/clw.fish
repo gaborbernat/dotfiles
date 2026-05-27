@@ -66,6 +66,8 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
     set name (string split / $repo)[2]
 
     set target_dir $name
+    set default_branch_dir $name-$default_branch
+    set branch_dir $name-$branch
 
     echo "Upstream repo : $repo"
     echo "Default branch: $default_branch"
@@ -137,29 +139,29 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
     end
 
     # Create worktree for default branch (skip if exists)
-    if not test -d $default_branch
-        git worktree add $default_branch $default_branch
+    if not test -d $default_branch_dir
+        git worktree add $default_branch_dir $default_branch
     end
 
     # Symlink CLAUDE.md to default branch worktree
-    if not test -e $default_branch/CLAUDE.md
-        ln -s ../CLAUDE.md $default_branch/CLAUDE.md
+    if not test -e $default_branch_dir/CLAUDE.md
+        ln -s ../CLAUDE.md $default_branch_dir/CLAUDE.md
     end
 
     # Set gh default to upstream (run inside a worktree)
-    cd $default_branch
+    cd $default_branch_dir
     gh repo set-default $repo >/dev/null 2>&1
     cd ..
 
     # Create branch worktree (skip if exists)
-    if not test -d $branch
+    if not test -d $branch_dir
         if git show-ref --verify --quiet refs/remotes/origin/$branch
             echo "Branch exists on origin: $branch"
-            git worktree add $branch origin/$branch
+            git worktree add $branch_dir origin/$branch
         else
             echo "Creating new branch from upstream/$default_branch: $branch"
-            git worktree add -b $branch $branch upstream/$default_branch
-            cd $branch
+            git worktree add -b $branch $branch_dir upstream/$default_branch
+            cd $branch_dir
             git push -u origin $branch
             cd ..
         end
@@ -168,11 +170,11 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
     end
 
     # Symlink CLAUDE.md to branch worktree
-    if not test -e $branch/CLAUDE.md
-        ln -s ../CLAUDE.md $branch/CLAUDE.md
+    if not test -e $branch_dir/CLAUDE.md
+        ln -s ../CLAUDE.md $branch_dir/CLAUDE.md
     end
 
-    cd $branch
+    cd $branch_dir
 
     echo ""
     echo "✅ Ready:"
