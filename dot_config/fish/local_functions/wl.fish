@@ -22,6 +22,8 @@ function wl -d "List worktrees for bare repo (interactive: enter=cd, ctrl-d=dele
         set --local wt_name (basename "$wt_path")
         set --local branch (git -C "$wt_path" symbolic-ref --short HEAD 2>/dev/null)
         set --local last_commit (git -C "$wt_path" log -1 --format="%cr" 2>/dev/null)
+        set --local last_ts (git -C "$wt_path" log -1 --format="%ct" 2>/dev/null)
+        test -z "$last_ts"; and set last_ts 0
         set --local upstream_info ""
 
         set --local remote_ref ""
@@ -46,7 +48,12 @@ function wl -d "List worktrees for bare repo (interactive: enter=cd, ctrl-d=dele
             set upstream_info local
         end
 
-        set --append entries (printf "%-24s %-15s %s\t%s" "$wt_name" "$last_commit" "$upstream_info" "$wt_path")
+        set --append entries (printf "%s\t%-24s %-15s %s\t%s\t%s" "$last_ts" "$wt_name" "$last_commit" "$upstream_info" "$wt_path" "$branch")
+    end
+
+    # Sort by last commit (most recent first), then drop the sort-key column
+    if test (count $entries) -gt 0
+        set entries (printf '%s\n' $entries | sort -t (printf '\t') -k1,1 -rn | cut -f2-)
     end
 
     set --local legend (printf "%-24s %-15s %s" "WORKTREE" "LAST COMMIT" "ORIGIN")
@@ -79,7 +86,8 @@ $legend"
         for selection in $selections
             set --local path (string split \t $selection)[2]
             set --local name (string split ' ' $selection)[1]
-            _wl_remove_worktree "$bare_root" "$path" "$name"
+            set --local sel_branch (string split \t $selection)[3]
+            _wl_remove_worktree "$bare_root" "$path" "$name" "$sel_branch"
         end
         wl
     else
@@ -87,19 +95,20 @@ $legend"
     end
 end
 
-function _wl_remove_worktree -a bare_root wt_path wt_name
+function _wl_remove_worktree -a bare_root wt_path wt_name branch
+    test -z "$branch" && set branch $wt_name
     set --local start_time (gdate +%s.%N 2>/dev/null; or date +%s)
     echo "Removing worktree '$wt_name'..."
     if git -C "$bare_root" worktree remove "$wt_path" 2>&1
         or git -C "$bare_root" worktree remove --force "$wt_path" 2>&1
-        git -C "$bare_root" branch -d "$wt_name" 2>/dev/null
-        if git -C "$bare_root" rev-parse --verify "origin/$wt_name" &>/dev/null
-            git -C "$bare_root" push origin --delete "$wt_name" 2>/dev/null
-            and echo "Deleted remote branch origin/$wt_name"
+        git -C "$bare_root" branch -d "$branch" 2>/dev/null
+        if git -C "$bare_root" rev-parse --verify "origin/$branch" &>/dev/null
+            git -C "$bare_root" push origin --delete "$branch" 2>/dev/null
+            and echo "Deleted remote branch origin/$branch"
         end
         set --local end_time (gdate +%s.%N 2>/dev/null; or date +%s)
         set --local elapsed (math "$end_time - $start_time")
-        printf "Deleted branch %s (%.2fs)\n" "$wt_name" "$elapsed"
+        printf "Deleted branch %s (%.2fs)\n" "$branch" "$elapsed"
     else
         set --local end_time (gdate +%s.%N 2>/dev/null; or date +%s)
         set --local elapsed (math "$end_time - $start_time")
@@ -126,7 +135,7 @@ function _wl_open_pr -a bare_root pr_number
         return 2
     end
 
-    set worktree_name "pr-$pr_number"
+    set worktree_name (path basename (path resolve "$bare_root"))"-pr-$pr_number"
 
     if test -d $worktree_name
         echo "Worktree already exists: $worktree_name"

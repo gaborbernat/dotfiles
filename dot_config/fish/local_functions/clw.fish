@@ -72,39 +72,48 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
     echo "Upstream repo : $repo"
     echo "Default branch: $default_branch"
 
-    # Ensure fork exists (idempotent)
-    echo "Ensuring fork exists..."
     set me (gh api user --jq .login)
     or begin
         echo "error: failed to get current user (gh auth status?)"
         return 2
     end
-    set fork "$me/$name"
 
-    set fork_err (gh repo fork $repo --fork-name $name 2>&1)
-    set fork_status $status
-    if test $fork_status -ne 0
-        if not string match -q "*already exists*" $fork_err
-            echo "error: failed to fork $repo: $fork_err"
+    # A user account cannot own both a parent and its fork — when we own the repo,
+    # skip forking and push directly to upstream. Org repos still fork to our account.
+    if test "$owner" = "$me"
+        echo "You own $repo; using it directly, no fork"
+        set fork $repo
+        set fork_url $upstream_url
+    else
+        # Ensure fork exists (idempotent)
+        echo "Ensuring fork exists..."
+        set fork "$me/$name"
+
+        set fork_err (gh repo fork $repo --fork-name $name 2>&1)
+        set fork_status $status
+        if test $fork_status -ne 0
+            if not string match -q "*already exists*" $fork_err
+                echo "error: failed to fork $repo: $fork_err"
+                return 2
+            end
+        end
+
+        # Determine fork URL — fork creation is async, retry a few times
+        set fork_url ""
+        for i in 1 2 3 4 5
+            if test "$use_https" = true
+                set fork_url (gh repo view $fork --json url --jq '.url' 2>/dev/null)
+            else
+                set fork_url (gh repo view $fork --json sshUrl --jq '.sshUrl' 2>/dev/null)
+            end
+            test -n "$fork_url"; and break
+            echo "Waiting for fork to be available... ($i/5)"
+            sleep 2
+        end
+        if test -z "$fork_url"
+            echo "error: could not resolve fork $fork after retries"
             return 2
         end
-    end
-
-    # Determine fork URL — fork creation is async, retry a few times
-    set fork_url ""
-    for i in 1 2 3 4 5
-        if test "$use_https" = true
-            set fork_url (gh repo view $fork --json url --jq '.url' 2>/dev/null)
-        else
-            set fork_url (gh repo view $fork --json sshUrl --jq '.sshUrl' 2>/dev/null)
-        end
-        test -n "$fork_url"; and break
-        echo "Waiting for fork to be available... ($i/5)"
-        sleep 2
-    end
-    if test -z "$fork_url"
-        echo "error: could not resolve fork $fork after retries"
-        return 2
     end
 
     # Clone upstream as bare (skip if exists)

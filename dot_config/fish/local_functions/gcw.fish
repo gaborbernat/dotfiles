@@ -16,7 +16,8 @@ function gcw -d "Create or update a worktree from upstream default branch" -a br
         end
     end
 
-    set --local worktree_path "$bare_root/$branch"
+    set --local project (path basename (path resolve "$bare_root"))
+    set --local worktree_path "$bare_root/$project-$branch"
 
     # Clean up stale worktree references
     git -C "$bare_root" worktree prune
