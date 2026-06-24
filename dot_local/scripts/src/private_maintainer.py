@@ -28,35 +28,48 @@ from truststore import inject_into_ssl
 if TYPE_CHECKING:
     from github.PullRequest import PullRequest
 
-# Repository list
+# Mirrors the primary and maintenance projects in bernat-tech/data/projects.yaml (presentations excluded);
+# keep both in sync. Monorepo components are covered by their parent repo (tox-dev/toml-fmt).
 REPOSITORIES = [
     "tox-dev/platformdirs",
     "tox-dev/filelock",
     "pypa/virtualenv",
+    "pypa/get-virtualenv",
     "tox-dev/tox",
     "tox-dev/pyproject-api",
     "pytest-dev/pytest-env",
+    "koxudaxi/datamodel-code-generator",
     "tox-dev/pipdeptree",
     "tox-dev/sphinx-autodoc-typehints",
+    "tox-dev/pre-commit-uv",
+    "tox-dev/action-pre-commit-uv",
     "tox-dev/tox-uv",
-    "pytest-dev/pytest-print",
-    "tox-dev/pyproject-fmt",
     "tox-dev/toml-fmt",
+    "tox-dev/pyproject-fmt",
     "tox-dev/tox-toml-fmt",
-    "tox-dev/xml-fmt",
-    "tox-dev/toml-fmt-common",
+    "pytest-dev/pytest-print",
     "tox-dev/tox-gh",
     "tox-dev/sphinx-argparse-cli",
+    "tox-dev/python-discovery",
     "tox-dev/devpi-process",
     "tox-dev/tox-ini-fmt",
-    "tox-dev/pre-commit-uv",
     "gaborbernat/bump-deps-index",
-    "tox-dev/PyVenvManage",
     "gaborbernat/pypi-changes",
+    "gaborbernat/mdformat-hugo",
+    "tox-dev/xml-fmt",
+    "tox-dev/turbohtml",
+    "tox-dev/PyVenvManage",
+    "tox-dev/jetbrains-fish",
+    "pypa/build",
+    "pypa/pipx",
+    "bloomberg/pytest-memray",
+    "bloomberg/attrs-strict",
+    "gaborbernat/all-repos-self",
     "gaborbernat/bernat-tech",
     "gaborbernat/cv",
+    "gaborbernat/ropi_jegyzet_latex",
+    "gaborbernat/dotfiles",
     "gaborbernat/gaborbernat",
-    "gaborbernat/all-repos-self",
 ]
 
 
