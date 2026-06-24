@@ -7,3 +7,14 @@ pyproject.toml
 **/.ruff_cache
 # Binary plists - apps rewrite these constantly
 Library/Preferences/*.plist
+{{ if ne .chezmoi.os "darwin" }}
+# macOS-only configs and tooling (no Linux equivalent)
+run_once_setup-ghostty-symlink.sh
+run_onchange_after_apply-duti.sh
+run_onchange_after_brew-bundle.sh
+.duti
+.Brewfile
+.config/ghostty
+.config/wezterm
+Library
+{{ end }}

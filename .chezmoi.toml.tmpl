@@ -1,4 +1,5 @@
 {{- $signingkey := "" -}}
+{{- if eq .chezmoi.os "darwin" -}}
 
 {{- $gpgOutput := output (joinPath .chezmoi.sourceDir ".setup-gpg-key.sh") -}}
 {{- if not $gpgOutput -}}
@@ -25,6 +26,7 @@
 {{-   else -}}
 {{-     $signingkey = index $keys 0 -}}
 {{-   end -}}
+{{- end -}}
 {{- end -}}
 
 [data]

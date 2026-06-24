@@ -1,11 +1,18 @@
 # Core
+{{- if eq .chezmoi.os "darwin" }}
 set -gx EDITOR code
 set -gx VISUAL code
-set -gx TERM screen-256color
 set -gx SHELL /opt/homebrew/bin/fish
+{{- else }}
+set -gx EDITOR vi
+set -gx VISUAL vi
+set -gx SHELL (command -v fish)
+{{- end }}
+set -gx TERM screen-256color
 set -gx DEBUG_PRINT_LIMIT 1000000
 
 # Path
+{{- if eq .chezmoi.os "darwin" }}
 set -gx PATH \
     $HOME/.local/sbin \
     $HOME/.local/bin \
@@ -36,11 +43,20 @@ set -gx LDFLAGS "-L/opt/homebrew/opt/ncurses/lib -L/opt/homebrew/opt/sqlite/lib 
 set -e CFLAGS
 set -gx CPPFLAGS "-I/opt/homebrew/opt/ncurses/include -I/opt/homebrew/opt/sqlite/include -I/opt/homebrew/opt/librdkafka/include"
 
+set -gx PY_PYTHON 3.14
+{{- else }}
+set -gx PATH \
+    $HOME/.local/bin \
+    $HOME/go/bin \
+    /opt/bb/bin \
+    /usr/share/vscode-server-linux-x64-web/bin/remote-cli \
+    $PATH
+{{- end }}
+
 # GO
 set -gx GOPATH $HOME/go
 
 set -gx DIFF_AGAINST upstream/main
-set -gx PY_PYTHON 3.14
 
 if status --is-interactive
     # Add local functions directory
@@ -52,10 +68,15 @@ if status --is-interactive
     abbr --add gpv "gh pr view -w"
     abbr --add prs "gh pr create -f; gh pr view -w"
     abbr --add prsd "gh pr create -f -d; gh pr view -w"
+    abbr --add gca "git aa; git can; git pu -f"
     abbr --add l lsd
     abbr --add v nvim
     abbr --add t tig
+{{- if eq .chezmoi.os "darwin" }}
     abbr --add b bat
+{{- else }}
+    abbr --add b "env TERM=xterm-256color bat"
+{{- end }}
     abbr --add d docker compose
     abbr --add du 'docker compose up -d --wait'
     abbr --add do 'docker compose down'
@@ -67,8 +88,8 @@ if status --is-interactive
     abbr --add pcr 'prek run --all-files'
 
     # load tools
-    zoxide init fish | source
-    atuin init fish | source
+    command -q zoxide && zoxide init fish | source
+    command -q atuin && atuin init fish | source
 
     # fish interactive changes
     set fish_greeting
@@ -90,13 +111,18 @@ if status --is-interactive
 
     function dbu -a val
         docker compose down $val
-        docker compose --progress plain build $val && docker compose up $val
+        docker compose --progress plain build $val && docker compose up $val --abort-on-container-exit --abort-on-container-failure
+    end
+
+    function dbud -a val
+        docker compose down $val
+        docker compose --progress plain build $val && docker compose up $val --detach --yes
     end
 
     function dbr -a val
         docker compose build $val && docker compose run --rm $val
     end
-    eval (direnv hook fish)
+    command -q direnv && eval (direnv hook fish)
 
     # Source work-specific config if exists
     if test -f "$HOME/.local/share/chezmoi-private/fish_work.fish"
@@ -111,5 +137,7 @@ if status --is-interactive
 end
 
 # bun
-set --export BUN_INSTALL "$HOME/.bun"
-set --export PATH $BUN_INSTALL/bin $PATH
+if test -d "$HOME/.bun"
+    set --export BUN_INSTALL "$HOME/.bun"
+    set --export PATH $BUN_INSTALL/bin $PATH
+end

@@ -3,11 +3,6 @@
   "attribution": {
     "commit": ""
   },
-  "statusLine": {
-    "type": "command",
-    "command": "npx -y ccstatusline@latest",
-    "padding": 0
-  },
   "permissions": {
     "allow": [
       "Bash(awk *)",
@@ -56,14 +51,14 @@
     ],
     "defaultMode": "acceptEdits"
   },
-  "model": "opus[1m]",
+  "model": "claude-opus-4-8[1m]",
   "hooks": {
     "SessionStart": [
       {
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/notify.sh SessionStart '✨'"
+            "command": "~/.claude/hooks/notify.sh SessionStart '\u2728'"
           }
         ]
       }
@@ -73,7 +68,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/notify.sh SessionEnd '👋'"
+            "command": "~/.claude/hooks/notify.sh SessionEnd '\ud83d\udc4b'"
           }
         ]
       }
@@ -83,7 +78,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/notify.sh UserPromptSubmit '🏃'"
+            "command": "~/.claude/hooks/notify.sh UserPromptSubmit '\ud83c\udfc3'"
+          }
+        ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ccstatusline --hook"
           }
         ]
       }
@@ -93,7 +96,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/notify.sh PermissionRequest '❓' permission.aiff"
+            "command": "~/.claude/hooks/notify.sh PermissionRequest '\u2753' permission.aiff"
           }
         ]
       }
@@ -103,7 +106,16 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/notify.sh PreToolUse '🏃'"
+            "command": "~/.claude/hooks/notify.sh PreToolUse '\ud83c\udfc3'"
+          }
+        ]
+      },
+      {
+        "matcher": "Skill",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "ccstatusline --hook"
           }
         ]
       }
@@ -113,7 +125,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/notify.sh Notification '❗' waiting.aiff"
+            "command": "~/.claude/hooks/notify.sh Notification '\u2757' waiting.aiff"
           }
         ]
       }
@@ -123,10 +135,15 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/notify.sh Stop '💤' complete.aiff"
+            "command": "~/.claude/hooks/notify.sh Stop '\ud83d\udca4' complete.aiff"
           }
         ]
       }
     ]
-  }
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "ccstatusline"
+  },
+  "skipWorkflowUsageWarning": true
 }

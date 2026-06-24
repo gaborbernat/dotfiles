@@ -1,10 +1,16 @@
 [user]
     name = Bernát Gábor
     email = gaborjbernat@gmail.com
+{{- if eq .chezmoi.os "darwin" }}
     signingkey = {{ .signingkey }}
+{{- end }}
 
 [core]
+{{- if eq .chezmoi.os "darwin" }}
     editor = vim
+{{- else }}
+    editor = vi
+{{- end }}
     excludesfile = ~/.gitignore_global
     commitGraph = true
 
@@ -22,8 +28,11 @@
     autoSetupRemote = true
     followTags = true
 
+{{- if eq .chezmoi.os "darwin" }}
+
 [commit]
     gpgsign = true
+{{- end }}
 
 [rerere]
     enabled = true
@@ -42,6 +51,9 @@
 [diff]
     algorithm = histogram
     renames = true
+
+[log]
+    date = iso
 
 [status]
     branch = true
@@ -112,7 +124,11 @@
     }; f"
 
 [credential]
+{{- if eq .chezmoi.os "darwin" }}
     helper = osxkeychain
+{{- else }}
+    helper = cache --timeout=21600
+{{- end }}
 
 [credential "https://github.com"]
     helper = !gh auth git-credential
