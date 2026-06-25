@@ -1,10 +1,14 @@
 function fish_prompt
-    # OSC 133;A - mark fresh line / start of prompt
-    printf "\e]133;A\a"
+    # OSC 133 shell integration (skip when VS Code injects its own OSC 633)
+    if not set --query VSCODE_SHELL_INTEGRATION
+        printf "\e]133;A\a"
+    end
 
     # Check for transient mode first
     if _bgp_transient_prompt
-        printf "\e]133;B\a"
+        if not set --query VSCODE_SHELL_INTEGRATION
+            printf "\e]133;B\a"
+        end
         return
     end
 
@@ -24,8 +28,9 @@ function fish_prompt
     # Add prompt symbol (no leading space)
     set prompt "$prompt$_bgp_status$bgp_color_normal "
 
-    echo -e -n "$prompt"
+    printf '%s' "$prompt"
 
-    # OSC 133;B - end of prompt, start of user input
-    printf "\e]133;B\a"
+    if not set --query VSCODE_SHELL_INTEGRATION
+        printf "\e]133;B\a"
+    end
 end

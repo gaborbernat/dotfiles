@@ -3,7 +3,6 @@
 set -euo pipefail
 
 if ! command -v cargo >/dev/null 2>&1; then
-    echo "⚠️  cargo not found, skipping cargo packages"
     exit 0
 fi
 
@@ -12,7 +11,7 @@ echo "📦 Installing cargo packages..."
 while IFS= read -r pkg; do
     [[ -z "$pkg" || "$pkg" =~ ^# ]] && continue
     echo "  Installing $pkg..."
-    cargo install "$pkg" || echo "  ⚠️  Failed to install $pkg"
+    cargo install "$pkg"
 done < "$HOME/.cargo_packages.txt"
 
 echo "✅ cargo packages installed"

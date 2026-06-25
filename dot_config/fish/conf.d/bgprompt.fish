@@ -343,7 +343,7 @@ end
 
 function _bgp_transient_prompt
     if set --query _bgp_transient_pending
-        echo -e -n "$_bgp_color_prompt$bgp_symbol_prompt$bgp_color_normal "
+        printf '%s' "$_bgp_color_prompt$bgp_symbol_prompt$bgp_color_normal "
         return 0
     end
     return 1
