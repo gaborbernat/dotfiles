@@ -13,7 +13,7 @@ echo "📦 Installing cargo packages..."
 while IFS= read -r pkg; do
     [[ -z "$pkg" || "$pkg" =~ ^# ]] && continue
     echo "  Installing $pkg..."
-    cargo install "$pkg"
+    cargo install --locked "$pkg"
 done < "$HOME/.cargo_packages.txt"
 
 echo "✅ cargo packages installed"
