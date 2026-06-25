@@ -4,6 +4,10 @@ set -euo pipefail
 
 export PATH="$HOME/.cargo/bin:$PATH"
 
+if [ -d /opt/bb/lib/pkgconfig ]; then
+    export PKG_CONFIG_PATH="/opt/bb/lib64/pkgconfig:/opt/bb/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+fi
+
 if ! command -v cargo >/dev/null 2>&1; then
     exit 0
 fi
