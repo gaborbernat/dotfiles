@@ -15,6 +15,5 @@ brew-bundle.sh
 .duti
 .Brewfile
 .config/ghostty
-.config/wezterm
 Library
 {{ end }}

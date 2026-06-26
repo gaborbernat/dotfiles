@@ -26,105 +26,21 @@ function _bgp_pwd --on-variable PWD
         set --global _bgp_skip_git_prompt
     end
 
-    # Replace $HOME with ~ for display
-    set --local pwd_display (string replace -- $HOME "~" $PWD)
+    set --local plain_result (_bgp_pwd_plain $PWD)
 
-    if test -n "$git_root"
-        # For worktrees, use git-common-dir to find the actual repo location
-        set --local git_common (command git --no-optional-locks rev-parse --git-common-dir 2>/dev/null)
-        # If git_common is a .git file/folder inside git_root, use git_root; otherwise use git_common's parent
-        if test "$git_common" != ".git" -a -d "$git_common"
-            # Worktree case: git_common points to bare repo
-            set git_root $git_common
+    # Bold the components kept full (git root, basename); they are the only
+    # multi-char segments since parents are truncated to one char.
+    set --local colored_parts
+    for part in (string split / $plain_result)
+        if test (string length -- "$part") -gt 1 -a "$part" != "~"
+            set --append colored_parts (set_color --bold)"$part"(set_color normal; set_color $bgp_color_pwd)
+        else
+            set --append colored_parts $part
         end
-
-        # Handle symlinks: git returns real paths but PWD may use symlinks
-        if not string match -q "$git_root*" $PWD
-            set --local pwd_real (realpath $PWD 2>/dev/null)
-            if test -n "$pwd_real" && string match -q "$git_root*" $pwd_real
-                set --local rel_path (string replace "$git_root/" "" $pwd_real)
-                test -n "$rel_path" && set git_root (string replace "/$rel_path" "" $PWD) || set git_root $PWD
-            end
-        end
-
-        # Inside a git repo
-        set --local git_root_display (string replace -- $HOME "~" $git_root)
-        set --local git_base (basename $git_root)
-
-        # Split paths into components
-        set --local root_parts (string split / $git_root_display)
-        set --local pwd_parts (string split / $pwd_display)
-
-        # Find how many parts are in the git root
-        set --local root_count (count $root_parts)
-        set --local pwd_count (count $pwd_parts)
-
-        # Build result (plain text for wezterm, colored for prompt)
-        set --local plain_parts
-        set --local colored_parts
-
-        for i in (seq 1 $pwd_count)
-            set --local part $pwd_parts[$i]
-
-            if test $i -lt $root_count
-                # Before git root - truncate (but keep ~ as is)
-                if test "$part" = "~" -o "$part" = ""
-                    set --append plain_parts $part
-                    set --append colored_parts $part
-                else
-                    set --append plain_parts (string sub -l 1 $part)
-                    set --append colored_parts (string sub -l 1 $part)
-                end
-            else if test $i -eq $root_count
-                # Git root itself - keep full
-                set --append plain_parts $part
-                set --append colored_parts (set_color --bold)"$part"(set_color normal; set_color $bgp_color_pwd)
-            else if test $i -eq $pwd_count
-                # Last component (basename) - keep full
-                set --append plain_parts $part
-                set --append colored_parts (set_color --bold)"$part"(set_color normal; set_color $bgp_color_pwd)
-            else
-                # Inside repo but not basename - truncate
-                set --append plain_parts (string sub -l 1 $part)
-                set --append colored_parts (string sub -l 1 $part)
-            end
-        end
-
-        set --local plain_result (string join "/" $plain_parts)
-        set --local colored_result (string join "/" $colored_parts)
-        # Dim the slashes for prompt
-        set --global _bgp_pwd (string replace --regex --all -- '/' (set_color brblack)"/"(set_color normal; set_color $bgp_color_pwd) $colored_result)
-        # Set wezterm user var with plain text path
-        printf "\033]1337;SetUserVar=%s=%s\007" cwd (printf %s $plain_result | base64)
-    else
-        # Not in a git repo - truncate all but basename
-        set --local parts (string split / $pwd_display)
-        set --local num_parts (count $parts)
-        set --local plain_parts
-        set --local colored_parts
-
-        for i in (seq 1 $num_parts)
-            set --local part $parts[$i]
-            if test $i -eq $num_parts
-                # Basename - keep full
-                set --append plain_parts $part
-                set --append colored_parts (set_color --bold)"$part"(set_color normal; set_color $bgp_color_pwd)
-            else if test "$part" = "~" -o "$part" = ""
-                set --append plain_parts $part
-                set --append colored_parts $part
-            else
-                set --append plain_parts (string sub -l 1 $part)
-                set --append colored_parts (string sub -l 1 $part)
-            end
-        end
-
-        set --local plain_result (string join "/" $plain_parts)
-        set --local colored_result (string join "/" $colored_parts)
-        # Dim the slashes for prompt
-        set --global _bgp_pwd (string replace --regex --all -- '/' (set_color brblack)"/"(set_color normal; set_color $bgp_color_pwd) $colored_result)
-        # Set wezterm user var with plain text path
-        printf "\033]1337;SetUserVar=%s=%s\007" cwd (printf %s $plain_result | base64)
     end
+    set --local colored_result (string join "/" $colored_parts)
+    # Dim the slashes for prompt
+    set --global _bgp_pwd (string replace --regex --all -- '/' (set_color brblack)"/"(set_color normal; set_color $bgp_color_pwd) $colored_result)
 end
 
 # Post-exec: capture status and duration

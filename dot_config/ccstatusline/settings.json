@@ -1,0 +1,43 @@
+{
+  "version": 3,
+  "lines": [
+    [
+      {"id":"m","type":"model","color":"cyan","rawValue":true},
+      {"id":"s1","type":"custom-text","customText":" · ","color":"brightBlack"},
+      {"id":"te","type":"thinking-effort","color":"magenta","rawValue":true},
+      {"id":"s2","type":"custom-text","customText":" · ","color":"brightBlack"},
+      {"id":"lc","type":"custom-text","customText":"ctx ","color":"brightBlack"},
+      {"id":"cp","type":"context-percentage","color":"blue","rawValue":true},
+      {"id":"sp1","type":"custom-text","customText":" ","color":"brightBlack"},
+      {"id":"cl","type":"context-length","color":"brightBlack","rawValue":true},
+      {"id":"s3","type":"custom-text","customText":" · ","color":"brightBlack"},
+      {"id":"sp","type":"total-speed","color":"cyan","rawValue":true},
+      {"id":"s4","type":"custom-text","customText":" · ","color":"brightBlack"},
+      {"id":"gb","type":"git-branch","color":"magenta","rawValue":true},
+      {"id":"sp2","type":"custom-text","customText":" ","color":"brightBlack"},
+      {"id":"gc","type":"git-changes","color":"yellow","rawValue":true},
+      {"id":"s7","type":"custom-text","customText":" · ","color":"brightBlack"},
+      {"id":"cwd","type":"custom-command","commandPath":"fish -c _bgp_pwd_statusline","color":"green","timeout":2000,"maxWidth":40}
+    ],
+    [
+      {"id":"l1","type":"custom-text","customText":"Sess ","color":"green"},
+      {"id":"su","type":"session-usage","color":"green","rawValue":true},
+      {"id":"sp3","type":"custom-text","customText":" ","color":"brightBlack"},
+      {"id":"rt","type":"reset-timer","color":"brightBlack","rawValue":true},
+      {"id":"s5","type":"custom-text","customText":" · ","color":"brightBlack"},
+      {"id":"l2","type":"custom-text","customText":"Week ","color":"blue"},
+      {"id":"wu","type":"weekly-usage","color":"blue","rawValue":true},
+      {"id":"l2o","type":"custom-text","customText":" Opus ","color":"cyan"},
+      {"id":"wo","type":"weekly-opus-usage","color":"cyan","rawValue":true},
+      {"id":"l2s","type":"custom-text","customText":" Sonnet ","color":"magenta"},
+      {"id":"ws","type":"weekly-sonnet-usage","color":"magenta","rawValue":true},
+      {"id":"s6","type":"custom-text","customText":" · ","color":"brightBlack"},
+      {"id":"eu","type":"extra-usage-used","color":"yellow","rawValue":true},
+      {"id":"l4","type":"custom-text","customText":" / ","color":"brightBlack"},
+      {"id":"er","type":"extra-usage-remaining","color":"green","rawValue":true}
+    ]
+  ],
+  "flexMode":"full-until-compact","compactThreshold":60,"colorLevel":3,
+  "inheritSeparatorColors":false,"globalBold":false,"gitCacheTtlSeconds":5,
+  "minimalistMode":false,"defaultPadding":""
+}
