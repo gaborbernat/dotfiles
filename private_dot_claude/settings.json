@@ -58,7 +58,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/notify.sh SessionStart '\u2728'"
+            "command": "~/.claude/hooks/notify.sh SessionStart '✨'"
           }
         ]
       }
@@ -68,7 +68,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/notify.sh SessionEnd '\ud83d\udc4b'"
+            "command": "~/.claude/hooks/notify.sh SessionEnd '👋'"
           }
         ]
       }
@@ -78,7 +78,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/notify.sh UserPromptSubmit '\ud83c\udfc3'"
+            "command": "~/.claude/hooks/notify.sh UserPromptSubmit '🏃'"
           }
         ]
       },
@@ -96,7 +96,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/notify.sh PermissionRequest '\u2753' permission.aiff"
+            "command": "~/.claude/hooks/notify.sh PermissionRequest '❓' permission.aiff"
           }
         ]
       }
@@ -106,7 +106,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/notify.sh PreToolUse '\ud83c\udfc3'"
+            "command": "~/.claude/hooks/notify.sh PreToolUse '🏃'"
           }
         ]
       },
@@ -125,7 +125,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/notify.sh Notification '\u2757' waiting.aiff"
+            "command": "~/.claude/hooks/notify.sh Notification '❗' waiting.aiff"
           }
         ]
       }
@@ -135,7 +135,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/notify.sh Stop '\ud83d\udca4' complete.aiff"
+            "command": "~/.claude/hooks/notify.sh Stop '💤' complete.aiff"
           }
         ]
       }
