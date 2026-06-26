@@ -8,8 +8,8 @@ set -gx EDITOR vi
 set -gx VISUAL vi
 set -gx SHELL (command -v fish)
 {{- end }}
-set -gx TERM screen-256color
 set -gx DEBUG_PRINT_LIMIT 1000000
+set -gx MANPAGER "sh -c 'col -bx | bat -l man -p'"
 
 # Path
 {{- if eq .chezmoi.os "darwin" }}
@@ -44,6 +44,7 @@ set -e CFLAGS
 set -gx CPPFLAGS "-I/opt/homebrew/opt/ncurses/include -I/opt/homebrew/opt/sqlite/include -I/opt/homebrew/opt/librdkafka/include"
 
 set -gx PY_PYTHON 3.14
+set -gx HOMEBREW_NO_ANALYTICS 1
 {{- else }}
 set -gx PATH \
     $HOME/.local/bin \
