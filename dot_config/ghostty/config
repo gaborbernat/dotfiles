@@ -39,9 +39,8 @@ scroll-to-bottom = keystroke,output
 selection-word-chars = \t\n{}[]()\"'`,;:@
 macos-applescript = false
 
-# background-opacity is required for the super+shift+o toggle below to do anything
-background-opacity = 0.9
-background-blur = 20
+# near-opaque: dark background barely see-through; also powers the super+shift+o toggle
+background-opacity = 0.98
 macos-window-shadow = false
 font-thicken = true
 mouse-scroll-multiplier = 2
