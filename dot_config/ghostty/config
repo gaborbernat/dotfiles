@@ -39,6 +39,17 @@ scroll-to-bottom = keystroke,output
 selection-word-chars = \t\n{}[]()\"'`,;:@
 macos-applescript = false
 
+# background-opacity is required for the super+shift+o toggle below to do anything
+background-opacity = 0.9
+background-blur = 20
+macos-window-shadow = false
+font-thicken = true
+mouse-scroll-multiplier = 2
+resize-overlay = never
+macos-option-as-alt = true
+quit-after-last-window-closed = true
+confirm-close-surface = false
+
 keybind = global:super+grave_accent=toggle_quick_terminal
 keybind = shift+enter=text:\x1b\r
 keybind = super+h=new_split:right
