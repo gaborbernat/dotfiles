@@ -1,6 +1,6 @@
 function u -d "Update all development tools"
     set -l steps \
-        "brew upgrade" \
+        "brew upgrade --yes" \
         "brew cleanup" \
         "uv self update" \
         update_python \
