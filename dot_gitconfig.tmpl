@@ -24,7 +24,6 @@
     defaultBranch = main
 
 [push]
-    default = simple
     autoSetupRemote = true
     followTags = true
 
@@ -41,6 +40,7 @@
 [rebase]
     autoStash = true
     updateRefs = true
+    autosquash = true
 
 [apply]
     whitespace = fix
@@ -50,7 +50,8 @@
 
 [diff]
     algorithm = histogram
-    renames = true
+    colorMoved = zebra
+    colorMovedWS = allow-indentation-change
 
 [log]
     date = iso
@@ -62,6 +63,22 @@
 [fetch]
     prune = true
     pruneTags = true
+    writeCommitGraph = true
+
+[branch]
+    sort = -committerdate
+
+[tag]
+    sort = version:refname
+
+[column]
+    ui = auto
+
+[commit]
+    verbose = true
+
+[help]
+    autocorrect = prompt
 
 [alias]
     co = checkout
