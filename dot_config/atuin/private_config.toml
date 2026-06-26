@@ -1,10 +1,4 @@
-# Use fuzzy search everywhere
-search_mode = "fuzzy"
-
-# Keep history globally, but rank by context
-filter_mode = "global"
-
-# Don't be prefix-only (this is the magic)
+# Taller inline UI (default is 40)
 inline_height = 30
 
 # Do not record trivial noise
@@ -15,14 +9,14 @@ history_filter = [
   "^clear$"
 ]
 
-# Extra safety for tokens / secrets
-secrets_filter = true
-
-# Compact, fast UI
-show_preview = true
-show_help = true
-
-style = "compact"
-
 # Prevent accidental mass deletion
 delete_confirm = true
+
+# Run the selected history entry immediately on Enter
+enter_accept = true
+
+# Up arrow = this session's history; Ctrl-R stays global
+filter_mode_shell_up_key_binding = "session"
+
+# Scope history to the current git project
+workspaces = true
