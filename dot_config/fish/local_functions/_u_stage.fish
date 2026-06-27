@@ -2,8 +2,10 @@ function _u_stage -a name -d "Run one upgrade stage for u (one mprocs tab)"
     set -l t0 (date +%s)
     switch $name
         case brew
-            _u_run brew upgrade --yes
+            _u_run brew upgrade --greedy --yes
             and _u_run brew cleanup
+        case mas
+            _u_run mas upgrade
         case uv
             _u_run uv self update
             and _u_run update_python
