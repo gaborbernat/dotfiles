@@ -1,0 +1,29 @@
+#!/bin/sh
+# Give codex access to every claude skill by symlinking them into ~/.codex/skills.
+# Re-runs whenever the set of claude skills changes:
+# skills: {{ output "sh" "-c" "ls -1 \"$HOME/.claude/skills\" 2>/dev/null | sort | tr '\\n' ',' || true" }}
+set -eu
+
+claude_skills="$HOME/.claude/skills"
+codex_skills="$HOME/.codex/skills"
+
+[ -d "$claude_skills" ] || exit 0
+mkdir -p "$codex_skills"
+
+# Link every claude skill into codex; never clobber a real dir (e.g. codex's .system).
+for dir in "$claude_skills"/*/; do
+    [ -d "$dir" ] || continue
+    name=$(basename "$dir")
+    target="$codex_skills/$name"
+    if [ -L "$target" ] || [ ! -e "$target" ]; then
+        ln -sfn "$claude_skills/$name" "$target"
+    fi
+done
+
+# Drop stale symlinks for claude skills that no longer exist.
+for link in "$codex_skills"/*; do
+    [ -L "$link" ] || continue
+    case "$(readlink "$link")" in
+        "$claude_skills"/*) [ -e "$link" ] || rm -f "$link" ;;
+    esac
+done
