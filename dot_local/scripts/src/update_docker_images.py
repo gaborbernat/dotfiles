@@ -55,13 +55,15 @@ def main() -> None:
         console.print("No registry-backed images to check.")
         return
     lock = threading.Lock()
-    with Live(render(images, lock), console=console, refresh_per_second=12) as live:
-        with ThreadPoolExecutor() as executor:
-            futures = [executor.submit(process_image, status, lock) for status in images]
-            while any(not future.done() for future in futures):
-                live.update(render(images, lock))
-                time.sleep(0.1)
-        live.update(render(images, lock))
+    with (
+        Live(render(images, lock), console=console, refresh_per_second=12, transient=True) as live,
+        ThreadPoolExecutor() as executor,
+    ):
+        futures = [executor.submit(process_image, status, lock) for status in images]
+        while any(not future.done() for future in futures):
+            live.update(render(images, lock))
+            time.sleep(0.1)
+    console.print(render(images, lock))
 
 
 def get_images() -> list[ImageStatus]:
