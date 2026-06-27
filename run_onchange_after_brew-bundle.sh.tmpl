@@ -1,15 +1,39 @@
 #!/bin/bash
 # Brewfile hash: {{ include "dot_Brewfile.tmpl" | sha256sum }}
+{{- $add := joinPath .chezmoi.homeDir ".local/share/chezmoi-private/Brewfile" }}
+{{- $skip := joinPath .chezmoi.homeDir ".local/share/chezmoi-private/Brewfile.skip" }}
+# Private add hash:  {{ if stat $add }}{{ output "cat" $add | sha256sum }}{{ else }}none{{ end }}
+# Private skip hash: {{ if stat $skip }}{{ output "cat" $skip | sha256sum }}{{ else }}none{{ end }}
 set -euo pipefail
 
-if command -v brew >/dev/null 2>&1; then
-    echo "🍺 Installing Homebrew packages..."
-    brew bundle --global
-    if [[ -f "$HOME/.local/share/chezmoi-private/Brewfile_work" ]]; then
-        echo "🍺 Installing work Homebrew packages..."
-        brew bundle --file="$HOME/.local/share/chezmoi-private/Brewfile_work"
-    fi
-    echo "✅ Homebrew packages installed"
-else
+if ! command -v brew >/dev/null 2>&1; then
     echo "⚠️  Homebrew not found, skipping brew bundle"
+    exit 0
 fi
+
+# Effective Brewfile = public ~/.Brewfile, plus a private overlay if the private
+# chezmoi source is applied. The overlay both ADDS (its own Brewfile) and
+# SUPPRESSES (Brewfile.skip lists public entries to drop on this machine).
+private_dir="$HOME/.local/share/chezmoi-private"
+combined="$(mktemp)"
+trap 'rm -f "$combined" "$combined.tmp"' EXIT
+
+cat "$HOME/.Brewfile" >"$combined"
+
+if [[ -f "$private_dir/Brewfile" ]]; then
+    printf '\n# --- private overlay additions ---\n' >>"$combined"
+    cat "$private_dir/Brewfile" >>"$combined"
+fi
+
+if [[ -f "$private_dir/Brewfile.skip" ]]; then
+    while IFS= read -r entry; do
+        entry="${entry%%#*}"
+        entry="$(echo "$entry" | xargs)"
+        [[ -z "$entry" ]] && continue
+        grep -vE "^(brew|cask|mas) \"${entry}\"" "$combined" >"$combined.tmp" && mv "$combined.tmp" "$combined"
+    done <"$private_dir/Brewfile.skip"
+fi
+
+echo "🍺 Installing Homebrew packages..."
+brew bundle --file="$combined"
+echo "✅ Homebrew packages installed"

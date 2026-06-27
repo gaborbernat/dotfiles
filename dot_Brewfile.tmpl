@@ -1,85 +1,126 @@
+# Public Brewfile — the baseline installed on every machine this source applies to.
+# A downstream private chezmoi source (chezmoi apply --source ~/.local/share/chezmoi-private)
+# may overlay it: ~/.local/share/chezmoi-private/Brewfile adds private-only entries, and
+# Brewfile.skip lists public entries to drop on that machine (e.g. legcord, opencode on work).
+# The brew-bundle runner merges the two and applies the skip-list. Only direct (leaf) packages
+# belong here — transitive dependencies are pulled in automatically.
+
 # Taps
+tap "anomalyco/tap"
 tap "sdkman/tap"
 
 # Core tools
-brew "atuin"       # shell history search
-brew "bat"         # cat with syntax highlighting
-brew "chezmoi"     # dotfiles manager
-brew "crane"       # daemon-free container image/registry tool
-brew "direnv"      # directory-specific env vars
-brew "duti"        # file association manager
-brew "fish"        # friendly interactive shell
-brew "fzf"         # fuzzy finder
-brew "gh"          # GitHub CLI
-brew "git"         # version control
-brew "gping"       # ping with graph
-brew "htop"        # process viewer
-brew "lsd"         # ls with icons
-brew "mas"         # Mac App Store CLI
-brew "mprocs"      # TUI multi-process runner
-brew "neovim"      # text editor
-brew "parallel"    # parallel command execution
-brew "prek"        # pre-commit in Rust
-brew "tig"         # git TUI
-brew "tree"        # directory tree viewer
-brew "watch"       # run command repeatedly
-brew "wget"        # download tool
-brew "yq"          # YAML processor
-brew "zoxide"      # smarter cd
+brew "atuin"            # shell history search
+brew "bat"              # cat with syntax highlighting
+brew "chezmoi"          # dotfiles manager
+brew "crane"            # daemon-free container image/registry tool
+brew "direnv"           # directory-specific env vars
+brew "duti"             # file association manager
+brew "fd"               # fast, user-friendly find
+brew "fish"             # friendly interactive shell
+brew "fzf"              # fuzzy finder
+brew "gh"               # GitHub CLI
+brew "git"              # version control
+brew "git-delta"        # syntax-highlighting git diff pager
+brew "git-lfs"          # git large file storage
+brew "glow"             # markdown renderer
+brew "gping"            # ping with graph
+brew "htop"             # process viewer
+brew "lsd"              # ls with icons
+brew "mas"              # Mac App Store CLI
+brew "mise"             # polyglot version/tool manager
+brew "mprocs"           # TUI multi-process runner
+brew "neovim"           # text editor
+brew "parallel"         # parallel command execution
+brew "prek"             # pre-commit in Rust
+brew "tig"              # git TUI
+brew "tmux"             # terminal multiplexer
+brew "tree"             # directory tree viewer
+brew "universal-ctags"  # source code tags
+brew "watch"            # run command repeatedly
+brew "wget"             # download tool
+brew "yq"               # YAML processor
+brew "zoxide"           # smarter cd
 
-# Languages
-brew "node"        # JavaScript runtime
-brew "openjdk"     # Java (latest)
-brew "openjdk@21"  # Java LTS
-brew "rustup"      # Rust toolchain manager
+# Languages & runtimes
+brew "bun"              # JavaScript runtime/bundler
+brew "go"               # Go toolchain
+brew "node"             # JavaScript runtime
+brew "nushell"          # structured-data shell
+brew "openjdk"          # Java (latest)
+brew "openjdk@21"       # Java LTS
+brew "powershell"       # PowerShell
+brew "rustup"           # Rust toolchain manager
 brew "sdkman/tap/sdkman-cli"  # SDK version manager
 
 # GNU tools
-brew "coreutils"   # GNU core utilities
-brew "findutils"   # GNU find/xargs
-brew "gawk"        # GNU awk
-brew "gnu-indent"  # GNU indent
-brew "gnu-sed"     # GNU sed
-brew "make"        # GNU make
-brew "zip"         # compression
+brew "coreutils"        # GNU core utilities
+brew "findutils"        # GNU find/xargs
+brew "gawk"             # GNU awk
+brew "gcc"              # GNU compiler collection
+brew "gnu-indent"       # GNU indent
+brew "gnu-sed"          # GNU sed
+brew "make"             # GNU make
+brew "zip"              # compression
 
-# Build tools
-brew "aria2"       # download accelerator
-brew "hyperfine"   # benchmarking
-brew "gdu"         # disk usage analyzer
-brew "hugo"        # static site generator
-brew "jq"          # JSON processor
-brew "llvm"        # compiler toolchain
-brew "ncdu"        # disk usage analyzer
-brew "ncurses"     # terminal library
-brew "pkg-config"  # compile helper
-brew "ripgrep"     # fast grep
-brew "shellcheck"  # shell linter
-brew "shfmt"       # shell formatter
-brew "sqlite"      # database
-brew "tokei"       # code statistics
-brew "yamlfmt"     # YAML formatter
-brew "yamllint"    # YAML linter
+# Build & document tools
+brew "aria2"            # download accelerator
+brew "cmake"            # build system
+brew "graphviz"         # graph visualization
+brew "hugo"             # static site generator
+brew "hyperfine"        # benchmarking
+brew "gdu"              # disk usage analyzer
+brew "jq"               # JSON processor
+brew "llvm"             # compiler toolchain
+brew "maven"            # Java build tool
+brew "meson"            # build system
+brew "ncdu"             # disk usage analyzer
+brew "ncurses"          # terminal library
+brew "pandoc"           # document converter
+brew "pinentry-mac"     # GPG pinentry for macOS
+brew "pkg-config"       # compile helper
+brew "poppler"          # PDF utilities
+brew "ripgrep"          # fast grep
+brew "shellcheck"       # shell linter
+brew "shfmt"            # shell formatter
+brew "sqlite"           # database
+brew "sshpass"          # non-interactive ssh password
+brew "texlive"          # TeX distribution
+brew "tokei"            # code statistics
+brew "yamlfmt"          # YAML formatter
+brew "yamllint"         # YAML linter
+brew "zbar"             # barcode/QR reader
+
+# CLI services
+brew "googleworkspace-cli"     # Google Workspace CLI
+brew "anomalyco/tap/opencode"  # AI coding agent (private may skip)
 
 # Applications
 cask "alt-tab"                   # window switcher
 cask "betterdisplay"             # display management
+cask "codex"                     # OpenAI Codex CLI
 cask "discord"                   # voice and text chat
+cask "docker-desktop"            # Docker
+cask "element"                   # Matrix client
 cask "elgato-stream-deck"        # stream deck control
+cask "gcloud-cli"                # Google Cloud SDK
 cask "ghostty"                   # terminal emulator
 cask "gifox"                     # GIF recorder
+cask "google-chrome"             # web browser
 cask "google-drive"              # Google Drive desktop app
 cask "iina"                      # video player
 cask "insta360-link-controller"  # webcam control
-cask "iterm2"                    # terminal emulator
 cask "jetbrains-toolbox"         # IDE manager
 cask "launchcontrol"             # launchd manager
+cask "legcord"                   # Discord client (private may skip)
 cask "logi-options+"             # Logitech mouse/keyboard settings
 cask "path-finder"               # file manager
+cask "rode-central"              # RODE audio device control
 cask "simple-comic"              # comic viewer/reader
 cask "visual-studio-code"        # code editor
 
 # Fonts
+cask "font-jetbrains-mono"            # JetBrains Mono
 cask "font-jetbrains-mono-nerd-font"  # JetBrains Mono with icons
 
 # Mac App Store

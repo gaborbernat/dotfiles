@@ -13,6 +13,7 @@
 {{- end }}
     excludesfile = ~/.gitignore_global
     commitGraph = true
+    pager = delta
 
 [maintenance]
     auto = true
@@ -27,11 +28,8 @@
     autoSetupRemote = true
     followTags = true
 
-{{- if eq .chezmoi.os "darwin" }}
-
-[commit]
-    gpgsign = true
-{{- end }}
+[pull]
+    rebase = true
 
 [rerere]
     enabled = true
@@ -41,6 +39,7 @@
     autoStash = true
     updateRefs = true
     autosquash = true
+    stat = true
 
 [apply]
     whitespace = fix
@@ -52,6 +51,13 @@
     algorithm = histogram
     colorMoved = zebra
     colorMovedWS = allow-indentation-change
+
+[interactive]
+    diffFilter = delta --color-only
+
+[delta]
+    navigate = true
+    line-numbers = true
 
 [log]
     date = iso
@@ -76,6 +82,9 @@
 
 [commit]
     verbose = true
+{{- if eq .chezmoi.os "darwin" }}
+    gpgsign = true
+{{- end }}
 
 [help]
     autocorrect = prompt
