@@ -2,22 +2,24 @@ function _u_stage -a name -d "Run one upgrade stage for u (one mprocs tab)"
     set -l t0 (date +%s)
     switch $name
         case brew
-            brew upgrade --yes
-            and brew cleanup
+            _u_run brew upgrade --yes
+            and _u_run brew cleanup
         case uv
-            uv self update; and update_python; and uv tool upgrade --all
+            _u_run uv self update
+            and _u_run update_python
+            and _u_run uv tool upgrade --all
             set -l ok $status
             _u_uv_inventory
             test $ok -eq 0
         case rust
-            rustup update
+            _u_run rustup update
         case cargo
-            cargo install-update (cargo install-update -l 2>/dev/null | string match -rv cargo-nextest | awk "NR>1 && NF {print \$1}")
-            and cargo install --locked cargo-nextest
+            _u_run cargo install-update (cargo install-update -l 2>/dev/null | string match -rv cargo-nextest | awk "NR>1 && NF {print \$1}")
+            and _u_run cargo install --locked cargo-nextest
         case npm
             set -l outdated (npm outdated -g --parseable 2>/dev/null | awk -F: '{print $4}')
             if set -q outdated[1]
-                npm install -g $outdated
+                _u_run npm install -g $outdated
             else
                 echo "all global packages already up to date"
             end
@@ -25,11 +27,11 @@ function _u_stage -a name -d "Run one upgrade stage for u (one mprocs tab)"
             _u_npm_inventory
             test $ok -eq 0
         case fisher
-            fisher update
+            _u_run fisher update
         case docker
             if not docker info >/dev/null 2>&1
                 echo "Docker is not running — starting Docker Desktop…"
-                open -a Docker
+                _u_run open -a Docker
                 set -l waited 0
                 while not docker info >/dev/null 2>&1
                     sleep 2
@@ -41,8 +43,8 @@ function _u_stage -a name -d "Run one upgrade stage for u (one mprocs tab)"
                 end
                 echo "Docker is ready (after "$waited"s)"
             end
-            update_docker_images
-            and docker system prune -f --volumes
+            _u_run update_docker_images
+            and _u_run docker system prune -f --volumes
         case '*'
             echo "unknown upgrade stage: $name" >&2
             return 2
@@ -56,6 +58,13 @@ function _u_stage -a name -d "Run one upgrade stage for u (one mprocs tab)"
         echo $dur >$_U_STATUS_DIR/$name.time
     end
     return $rc
+end
+
+function _u_run -d "Echo a command (▶ prefix), then run it"
+    set_color --bold cyan
+    echo "▶ $argv"
+    set_color normal
+    $argv
 end
 
 function _u_fmt_dur -a secs -d "Humanize a duration in seconds"
