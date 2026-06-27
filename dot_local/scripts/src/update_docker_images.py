@@ -62,17 +62,9 @@ def get_images() -> list[str]:
         line = raw_line.strip()
         if not line or "<none>" in line:
             continue
-        if has_remote_registry(line):
+        if has_repo_digests(line):
             images.append(line)
     return images
-
-
-def has_remote_registry(image: str) -> bool:
-    if not has_repo_digests(image):
-        return False
-    if is_private_registry(image):
-        return True
-    return exists_in_remote_registry(image)
 
 
 def has_repo_digests(image: str) -> bool:
@@ -83,22 +75,6 @@ def has_repo_digests(image: str) -> bool:
         text=True,
     )
     return result.returncode == 0 and result.stdout.strip() not in ("[]", "")
-
-
-def is_private_registry(image: str) -> bool:
-    repo = image.rsplit(":", 1)[0]
-    first_segment = repo.split("/", 1)[0]
-    return "/" in repo and ("." in first_segment or ":" in first_segment)
-
-
-def exists_in_remote_registry(image: str) -> bool:
-    result: subprocess.CompletedProcess[str] = subprocess.run(
-        ["docker", "manifest", "inspect", image],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    return result.returncode == 0
 
 
 def create_table() -> Table:
