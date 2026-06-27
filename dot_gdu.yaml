@@ -1,3 +1,6 @@
+no-cross: true
+show-item-count: true
+show-relative-size: true
 style:
   selected-row:
     text-color: black
