@@ -23,7 +23,6 @@ cursor-style-blink = true
 scrollback-limit = 100000000
 mouse-hide-while-typing = true
 focus-follows-mouse = true
-mouse-shift-capture = never
 copy-on-select = clipboard
 selection-clear-on-copy = true
 clipboard-paste-protection = false
