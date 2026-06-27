@@ -15,28 +15,31 @@ function u -d "Update all development tools (one mprocs tab per tool)"
 
     kill $watcher 2>/dev/null
 
-    set -l passed
-    set -l failed
+    set -l npass 0
+    set -l nfail 0
+    set_color --bold
+    printf '\nUpgrade summary:\n'
+    set_color normal
     for s in $stages
         set -l rc (cat $_U_STATUS_DIR/$s 2>/dev/null)
         test -z "$rc"; and set rc ?
+        set -l dur (cat $_U_STATUS_DIR/$s.time 2>/dev/null)
+        test -z "$dur"; and set dur -
         if test "$rc" = 0
-            set --append passed $s
+            set npass (math $npass + 1)
+            set_color green
+            printf '  ✓ %-8s %s\n' $s $dur
         else
-            set --append failed "$s (exit $rc)"
+            set nfail (math $nfail + 1)
+            set_color red
+            printf '  ✗ %-8s %s (exit %s)\n' $s $dur $rc
         end
+        set_color normal
     end
+    printf '%d passed, %d failed\n' $npass $nfail
+
     rm -rf $_U_STATUS_DIR
     set -e _U_STATUS_DIR
-
-    printf '\033]2;Upgrade ✓%d ✗%d\007' (count $passed) (count $failed)
-    set_color --bold
-    printf '\nUpgrade: %d passed, %d failed\n' (count $passed) (count $failed)
-    set_color normal
-    if set -q failed[1]
-        set_color red
-        printf '  ✗ %s\n' $failed
-        set_color normal
-        return 1
-    end
+    printf '\033]2;Upgrade ✓%d ✗%d\007' $npass $nfail
+    test $nfail -eq 0
 end

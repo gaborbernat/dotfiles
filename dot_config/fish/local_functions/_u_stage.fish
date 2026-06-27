@@ -1,4 +1,5 @@
 function _u_stage -a name -d "Run one upgrade stage for u (one mprocs tab)"
+    set -l t0 (date +%s)
     switch $name
         case brew
             brew upgrade --yes
@@ -48,8 +49,21 @@ function _u_stage -a name -d "Run one upgrade stage for u (one mprocs tab)"
     end
 
     set -l rc $status
-    test -n "$_U_STATUS_DIR"; and echo $rc >$_U_STATUS_DIR/$name
+    set -l dur (_u_fmt_dur (math (date +%s) - $t0))
+    printf '⏱  %s finished in %s (exit %d)\n' $name $dur $rc
+    if test -n "$_U_STATUS_DIR"
+        echo $rc >$_U_STATUS_DIR/$name
+        echo $dur >$_U_STATUS_DIR/$name.time
+    end
     return $rc
+end
+
+function _u_fmt_dur -a secs -d "Humanize a duration in seconds"
+    if test $secs -ge 60
+        echo (math --scale=0 $secs / 60)"m"(math $secs % 60)"s"
+    else
+        echo "$secs"s
+    end
 end
 
 function _u_npm_inventory -d "List global npm packages, newest-updated first, with version"
