@@ -12,3 +12,4 @@ lint.ignore = [
   "S",       # we trust ourselves
   "PLR2004", # magic numbers are fine
 ]
+lint.preview = true
