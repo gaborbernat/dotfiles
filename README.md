@@ -88,28 +88,39 @@ chezmoi apply --source ~/.local/share/chezmoi-private
 
 When present it augments the public config without forking it:
 
-| Private file | Effect | | ----------------------------------------------- |
---------------------------------------------------- | | `~/.local/share/chezmoi-private/Brewfile` | Adds private-only
-Homebrew installs | | `~/.local/share/chezmoi-private/Brewfile.skip` | Drops named public Brewfile entries on that
-machine | | `~/.local/share/chezmoi-private/fish_work.fish` | Sourced by fish for work-specific shell config | |
-`~/.local/share/chezmoi-private/gitconfig_work` | Included by git for work identity/settings |
+| Private file                                    | Effect                                              |
+| ----------------------------------------------- | --------------------------------------------------- |
+| `~/.local/share/chezmoi-private/Brewfile`       | Adds private-only Homebrew installs                 |
+| `~/.local/share/chezmoi-private/Brewfile.skip`  | Drops named public Brewfile entries on that machine |
+| `~/.local/share/chezmoi-private/fish_work.fish` | Sourced by fish for work-specific shell config      |
+| `~/.local/share/chezmoi-private/gitconfig_work` | Included by git for work identity/settings          |
 
 The brew-bundle runner merges the public Brewfile with the private additions and applies the skip-list.
 
 ## Structure
 
-| Path | Description | | ---------------------------- |
------------------------------------------------------------------------------------- | | `.chezmoitemplates/` | Shared
-template fragments (AI instructions) | | `dot_agents/` | Shared agent skill definitions (linked into Claude Code and
-Codex) | | `dot_codex/` | Codex CLI config, AGENTS.md, and rules | | `dot_config/atuin/` | Atuin shell history config |
-| `dot_config/ccstatusline/` | ccstatusline (Claude Code status line) config | | `dot_config/fish/` | Fish shell config,
-prompt, functions, and completions | | `dot_config/ghostty/` | Ghostty terminal config | | `dot_config/ruff/` | Global
-ruff (Python lint/format) config | | `dot_config/tig/` | Tig git interface config | | `dot_local/bin/` | Executable
-wrapper scripts for CLI tools | | `dot_local/scripts/` | Python source for CLI tools (uv-managed) | |
-`dot_Brewfile.tmpl` | Homebrew packages (public baseline) | | `dot_cargo_packages.txt` | Cargo packages | | `dot_duti` |
-Default application associations | | `dot_gdu.yaml` | gdu disk usage config | | `dot_gitconfig.tmpl` | Git configuration
-| | `dot_gitignore_global` | Global gitignore | | `dot_uv_tools.txt.tmpl` | uv Python tools | | `private_dot_claude/` |
-Claude Code settings, hooks, sounds, and skills | | `private_Library/` | Stream Deck profiles | |
-`create_private_dot_secrets` | Template creating `~/.secrets` (never committed) | | `run_once_*` | One-time setup (uv,
-rustup, Ghostty symlink) | | `run_onchange_*` | On-change scripts (brew, cargo, fisher, uv tools, duti, wrappers,
-agent-skill links) |
+| Path                         | Description                                                                           |
+| ---------------------------- | ------------------------------------------------------------------------------------ |
+| `.chezmoitemplates/`         | Shared template fragments (AI instructions)                                          |
+| `dot_agents/`                | Shared agent skill definitions (linked into Claude Code and Codex)                   |
+| `dot_codex/`                 | Codex CLI config, AGENTS.md, and rules                                               |
+| `dot_config/atuin/`          | Atuin shell history config                                                           |
+| `dot_config/ccstatusline/`   | ccstatusline (Claude Code status line) config                                        |
+| `dot_config/fish/`           | Fish shell config, prompt, functions, and completions                                |
+| `dot_config/ghostty/`        | Ghostty terminal config                                                              |
+| `dot_config/ruff/`           | Global ruff (Python lint/format) config                                              |
+| `dot_config/tig/`            | Tig git interface config                                                             |
+| `dot_local/bin/`             | Executable wrapper scripts for CLI tools                                             |
+| `dot_local/scripts/`         | Python source for CLI tools (uv-managed)                                             |
+| `dot_Brewfile.tmpl`          | Homebrew packages (public baseline)                                                  |
+| `dot_cargo_packages.txt`     | Cargo packages                                                                       |
+| `dot_duti`                   | Default application associations                                                     |
+| `dot_gdu.yaml`               | gdu disk usage config                                                                |
+| `dot_gitconfig.tmpl`         | Git configuration                                                                    |
+| `dot_gitignore_global`       | Global gitignore                                                                     |
+| `dot_uv_tools.txt.tmpl`      | uv Python tools                                                                      |
+| `private_dot_claude/`        | Claude Code settings, hooks, sounds, and skills                                      |
+| `private_Library/`           | Stream Deck profiles                                                                 |
+| `create_private_dot_secrets` | Template creating `~/.secrets` (never committed)                                     |
+| `run_once_*`                 | One-time setup (uv, rustup, Ghostty symlink)                                         |
+| `run_onchange_*`             | On-change scripts (brew, cargo, fisher, uv tools, duti, wrappers, agent-skill links) |
