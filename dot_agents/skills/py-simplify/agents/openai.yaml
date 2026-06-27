@@ -1,4 +1,0 @@
-interface:
-  display_name: "Py Simplify"
-  short_description: "Tighten Python code/tests to house style"
-  default_prompt: "Use $py-simplify to restyle this Python without changing behavior."

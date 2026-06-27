@@ -1,0 +1,4 @@
+interface:
+  display_name: "Simp"
+  short_description: "Tighten code/tests to house style"
+  default_prompt: "Use $simp to restyle this without changing behavior."

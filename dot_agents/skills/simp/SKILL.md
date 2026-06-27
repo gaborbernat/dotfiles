@@ -1,14 +1,18 @@
 ---
-name: py-simplify
-description: Simplify and tighten Python code and tests to a strict house style (comments and docstrings explain why not what and stay concise, parameterized tests, __all__ exports, Final typing, walrus, late/compact variable definitions). Use when asked to simplify, tidy, or refactor Python for style — not to find bugs.
+name: simp
+description: Simplify and tighten code and tests to a strict house style — concise why-not-what comments, parameterized tests, explicit exports, late/compact definitions, idiomatic typing. Python rules are defined; other languages follow the same spirit. Use when asked to simplify, tidy, or refactor for style — not to find bugs.
 ---
 
-Apply the rules below to the Python files in scope (the current diff, a named file, or the file under discussion). This
-is a quality pass: simplify and restyle without changing behavior. It does not hunt for bugs — use `/code-review` for
-that.
+Apply the rules below to the files in scope (the current diff, a named file, or the file under discussion). This is a
+quality pass: simplify and restyle without changing behavior. It does not hunt for bugs — use `/code-review` for that.
 
 Read each target file and its siblings first to match existing conventions, then apply every rule that fits. Report what
 changed and why. Run the project's tests if test files were touched.
+
+Rules are organized per language. Only **Python** is defined today. When working in another language, apply the *spirit*
+of the matching Python rule — its closest idiomatic equivalent — until a dedicated section for that language exists.
+
+## Python
 
 After editing, fix linting before the PR is opened. If the project has a `.lintrc.yaml` at its root, run
 `linterator check -l info --fix .` (linterator already runs ruff, so do not also run it separately). Otherwise, run
@@ -19,11 +23,13 @@ argument-count caps (`PLR0913`), `TYPE_CHECKING` import moves (`TC00x`), modern-
 exception-message/`raise ... from` hygiene (`EM`/`B904`), blind-except bans (`BLE001`/`E722`) — is handled by the lint
 step above and must not be restated here.
 
-## Rules
+### Code rules
 
 1. **Comments and docstrings explain why, not what — concisely.** Delete any comment or docstring that restates what the
-   code does. Keep only those giving rationale the code can't show, and keep them as short as possible. Code should be
-   self-documenting.
+   code does. Keep only those giving rationale the code can't show, and keep them as short as possible — code should be
+   self-documenting. Where the *why* is genuinely non-obvious (a workaround, a subtle constraint, a non-local decision),
+   a short comment is encouraged rather than omitted: it captures rationale the code cannot, and doubles as durable
+   context a coding agent will reliably read.
 
 1. **Wrap to the configured line length.** Use the project's ruff `line-length` (`pyproject.toml`/`ruff.toml`; 120 if
    unset) for everything. `ruff format` already wraps code; manually reflow long comments and docstrings to the same
@@ -66,21 +72,26 @@ step above and must not be restated here.
    class named in a `class` statement). Type annotations are not a use: `from __future__ import annotations` (Python
    ≤3.13) and PEP 649 lazy evaluation (3.14+) defer them, so never reorder to satisfy an annotation reference.
 
-## Test rules
+### Test rules
 
-12. **Parameterize.** Collapse near-duplicate test functions into a single `@pytest.mark.parametrize` using
-    `pytest.param(..., id="...")` for each case. Always give a readable `id`.
+1. **Parameterize.** Collapse near-duplicate test functions into a single `@pytest.mark.parametrize` using
+   `pytest.param(..., id="...")` for each case. Always give a readable `id`.
 
-01. **Fixtures over setup duplication.** Extract repeated setup/teardown into fixtures.
+1. **Fixtures over setup duplication.** Extract repeated setup/teardown into fixtures.
 
-01. **100% diff coverage.** Every line changed in the PR must be covered by tests, measured against the diff versus the
-    merge base (not whole-repo coverage). Add tests for any uncovered changed line before the PR is ready.
+1. **100% diff coverage.** Every line changed in the PR must be covered by tests, measured against the diff versus the
+   merge base (not whole-repo coverage). Add tests for any uncovered changed line before the PR is ready.
 
 1. **Test through public APIs only.** Exercise behavior via the module's public interface; never import, call, or assert
-    on private (underscore-prefixed) functions, methods, or attributes directly. If private logic needs coverage, drive
-    it through the public entry point that uses it. Never widen a symbol's visibility — dropping its underscore prefix
-    (`_is_machine_reachable` → `is_machine_reachable`) or adding it to `__all__` — just to make it testable; that is
-    cheating and not allowed. Cover it through the public caller instead.
+   on private (underscore-prefixed) functions, methods, or attributes directly. If private logic needs coverage, drive
+   it through the public entry point that uses it. Never widen a symbol's visibility — dropping its underscore prefix
+   (`_is_machine_reachable` → `is_machine_reachable`) or adding it to `__all__` — just to make it testable; that is
+   cheating and not allowed. Cover it through the public caller instead.
+
+1. **Assertions must verify behavior, not restate it.** Reject vacuous or tautological tests: `assert True`, asserting a
+   literal that was just passed in, or asserting only that a mock was called without checking the resulting return value
+   or state. Every test must fail if the production behavior regresses — if a test would still pass with the function
+   body replaced by `pass`/`raise`, it tests nothing; rewrite it to assert the real outcome.
 
 Keep all other house conventions (type annotations everywhere, one assertion-concept per test, multiple test files over
 test classes) intact while applying these.

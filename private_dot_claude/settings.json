@@ -47,6 +47,16 @@
       "Bash(cat *)",
       "Bash(.tox/*/bin/python -m pytest *)",
       "Bash(.tox/*/bin/python -m pytest)",
+      "Bash(command -v *)",
+      "Bash(dig:*)",
+      "Bash(scutil --get *)",
+      "Bash(bun --version)",
+      "Bash(npm --version)",
+      "Bash(ccstatusline --version)",
+      "Bash(python3 -m json.tool)",
+      "WebFetch(domain:github.com)",
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Skill(claude-in-chrome)",
       "WebSearch"
     ],
     "defaultMode": "acceptEdits"
