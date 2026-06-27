@@ -25,6 +25,10 @@ step above and must not be restated here.
    code does. Keep only those giving rationale the code can't show, and keep them as short as possible. Code should be
    self-documenting.
 
+1. **Wrap to the configured line length.** Use the project's ruff `line-length` (`pyproject.toml`/`ruff.toml`; 120 if
+   unset) for everything. `ruff format` already wraps code; manually reflow long comments and docstrings to the same
+   width — ruff does not touch prose. No line should exceed the limit.
+
 1. **Compact, late variable definitions.** Define each variable as late as possible, immediately before its first use —
    not at the top of a block.
 
