@@ -52,24 +52,24 @@ function _u_stage -a name -d "Run one upgrade stage for u (one mprocs tab)"
     return $rc
 end
 
-function _u_npm_inventory -d "List global npm packages with version and last-updated date"
+function _u_npm_inventory -d "List global npm packages, newest-updated first, with version"
     set -l root (npm root -g)
     echo
-    echo "Global npm packages (version · last updated):"
+    echo "Global npm packages (newest first · version · last updated):"
     for spec in (npm ls -g --depth=0 2>/dev/null | string match -r '@?\S+@\S+$')
         set -l pkg (string replace -r '@[^@]+$' '' $spec)
-        printf '  %-26s %-10s %s\n' $pkg (string replace -r '^.*@' '' $spec) \
-            (/usr/bin/stat -f '%Sm' -t '%Y-%m-%d %H:%M' "$root/$pkg" 2>/dev/null)
-    end
+        set -l info (string split '|' (/usr/bin/stat -f '%m|%Sm' -t '%Y-%m-%d %H:%M' "$root/$pkg" 2>/dev/null))
+        printf '%s\t  %-26s %-10s %s\n' $info[1] $pkg (string replace -r '^.*@' '' $spec) $info[2]
+    end | sort -rn -k1,1 | cut -f2-
 end
 
-function _u_uv_inventory -d "List uv tools with version and last-updated date"
+function _u_uv_inventory -d "List uv tools, newest-updated first, with version"
     set -l tdir (uv tool dir 2>/dev/null)
     echo
-    echo "uv tools (version · last updated):"
+    echo "uv tools (newest first · version · last updated):"
     for line in (uv tool list 2>/dev/null | string match -rv '^([- ]|$)')
         set -l parts (string split ' ' $line)
-        printf '  %-26s %-10s %s\n' $parts[1] (string replace -r '^v' '' $parts[2]) \
-            (/usr/bin/stat -f '%Sm' -t '%Y-%m-%d %H:%M' "$tdir/$parts[1]" 2>/dev/null)
-    end
+        set -l info (string split '|' (/usr/bin/stat -f '%m|%Sm' -t '%Y-%m-%d %H:%M' "$tdir/$parts[1]" 2>/dev/null))
+        printf '%s\t  %-26s %-10s %s\n' $info[1] $parts[1] (string replace -r '^v' '' $parts[2]) $info[2]
+    end | sort -rn -k1,1 | cut -f2-
 end

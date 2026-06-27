@@ -8,8 +8,12 @@ function u -d "Update all development tools (one mprocs tab per tool)"
         set --append cmds "fish -lc 'source $stagefile; _u_stage $s'"
     end
 
-    printf '\033]2;Upgrade packages\007'
+    _u_title_watch $stages &
+    set -l watcher $last_pid
+
     mprocs --proc-list-title "Upgrade packages" --names (string join , $stages) $cmds
+
+    kill $watcher 2>/dev/null
 
     set -l passed
     set -l failed
@@ -25,6 +29,7 @@ function u -d "Update all development tools (one mprocs tab per tool)"
     rm -rf $_U_STATUS_DIR
     set -e _U_STATUS_DIR
 
+    printf '\033]2;Upgrade ✓%d ✗%d\007' (count $passed) (count $failed)
     set_color --bold
     printf '\nUpgrade: %d passed, %d failed\n' (count $passed) (count $failed)
     set_color normal
