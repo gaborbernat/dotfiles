@@ -2,6 +2,11 @@
 # cargo packages hash: {{ include "dot_cargo_packages.txt" | sha256sum }}
 set -euo pipefail
 
+if [[ "${SKIP_CARGO_INSTALL:-}" == "1" ]]; then
+    echo "⏭️  Skipping cargo packages (SKIP_CARGO_INSTALL=1)"
+    exit 0
+fi
+
 export PATH="$HOME/.cargo/bin:$PATH"
 
 if [ -d /opt/bb/lib/pkgconfig ]; then

@@ -2,6 +2,8 @@
 # uv tools hash: {{ include "dot_uv_tools.txt.tmpl" | sha256sum }}
 set -euo pipefail
 
+export PATH="$HOME/.local/bin:$PATH"
+
 install_tools() {
     local file="$1"
     local default_python=""
