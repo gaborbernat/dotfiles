@@ -1,0 +1,3 @@
+{{- $work := joinPath .chezmoi.homeDir ".local/share/chezmoi-private/ai_instructions_work.md" -}}
+{{ template "ai-instructions.md" . -}}
+{{ if stat $work }}{{ output "cat" $work }}{{ end -}}
