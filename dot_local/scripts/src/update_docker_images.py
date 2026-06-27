@@ -6,17 +6,18 @@
 # ///
 """Update local Docker images to the latest digest published in their registry.
 
-Detection uses `crane digest`, which is daemon-free and reads the existing
-docker login credentials, so it works against Docker Hub, GHCR, and Artifactory
-OCI endpoints alike. Only images whose registry digest differs from the local
-one are pulled, so an already-current run does zero pulls. When crane cannot
-resolve an image (auth, network, non-OCI registry) it falls back to `docker
-pull`, which is authoritative. Progress renders live as each image resolves.
+The local image list, digest, and size come from a single `docker images
+--digests` call (robust: a follow-up `docker inspect` can intermittently report
+"no such object" for a tag that `docker images` lists). The remote digest comes
+from `crane digest`, which is daemon-free and reuses the existing docker login
+credentials, so it works against Docker Hub, GHCR, and Artifactory OCI. Only
+images whose registry digest differs are pulled, so an already-current run does
+zero pulls. When crane cannot resolve an image, it falls back to `docker pull`.
+Progress renders live as each image resolves.
 """
 
 from __future__ import annotations
 
-import json
 import subprocess
 import threading
 import time
@@ -42,14 +43,14 @@ _STATE_STYLE: dict[str, str] = {
 @dataclass
 class ImageStatus:
     image: str
+    local: str
+    size: str
     state: str = "checking"
-    local: str = ""
     remote: str = ""
-    size: str = ""
 
 
 def main() -> None:
-    images: list[ImageStatus] = sorted((ImageStatus(image) for image in get_images()), key=lambda s: s.image)
+    images: list[ImageStatus] = get_images()
     if not images:
         console.print("No registry-backed images to check.")
         return
@@ -63,70 +64,45 @@ def main() -> None:
         live.update(render(images, lock))
 
 
-def get_images() -> list[str]:
+def get_images() -> list[ImageStatus]:
     result: subprocess.CompletedProcess[str] = subprocess.run(
-        ["docker", "images", "--format", "{{.Repository}}:{{.Tag}}"],
+        ["docker", "images", "--digests", "--format", "{{.Repository}}:{{.Tag}}\t{{.Digest}}\t{{.Size}}"],
         check=False,
         capture_output=True,
         text=True,
     )
-    return [
-        line
-        for raw_line in result.stdout.splitlines()
-        if (line := raw_line.strip()) and "<none>" not in line and has_repo_digests(line)
-    ]
-
-
-def has_repo_digests(image: str) -> bool:
-    result: subprocess.CompletedProcess[str] = subprocess.run(
-        ["docker", "inspect", "--format", "{{.RepoDigests}}", image],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    return result.returncode == 0 and result.stdout.strip() not in ("[]", "")
+    images: list[ImageStatus] = []
+    for raw_line in result.stdout.splitlines():
+        parts: list[str] = raw_line.split("\t")
+        if len(parts) != 3:
+            continue
+        image, digest, size = parts
+        if "<none>" in image or not digest.startswith("sha256:"):
+            continue
+        images.append(ImageStatus(image=image, local=digest, size=size))
+    images.sort(key=lambda status: status.image)
+    return images
 
 
 def process_image(status: ImageStatus, lock: threading.Lock) -> None:
-    image: str = status.image
-    local_digests: set[str] = repo_digests(image)
-    remote: str | None = crane_digest(image)
+    remote: str | None = crane_digest(status.image)
     with lock:
-        status.size = get_image_size(image)
-        status.local = next(iter(local_digests), "").removeprefix("sha256:")
-        status.remote = (remote or "").removeprefix("sha256:")
-    if remote is not None and remote in local_digests:
+        status.remote = remote or ""
+    if remote is not None and remote == status.local:
         with lock:
             status.state = "up to date"
         return
     with lock:
         status.state = "pulling"
-    old_id: str = image_id(image)
-    if not docker_pull(image):
+    old: str = status.local
+    if not docker_pull(status.image):
         with lock:
             status.state = "failed"
         return
+    new: str = current_digest(status.image) or remote or old
     with lock:
-        status.local = next(iter(repo_digests(image)), "").removeprefix("sha256:") or status.local
-        status.state = "updated" if image_id(image) != old_id else "up to date"
-
-
-def repo_digests(image: str) -> set[str]:
-    repo: str = image.rsplit(":", 1)[0]
-    result: subprocess.CompletedProcess[str] = subprocess.run(
-        ["docker", "inspect", "--format", "{{json .RepoDigests}}", image],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode != 0:
-        return set()
-    digests: set[str] = set()
-    for entry in json.loads(result.stdout or "[]"):
-        name, _, digest = entry.partition("@")
-        if name == repo and digest:
-            digests.add(digest)
-    return digests
+        status.local = new
+        status.state = "updated" if new != old else "up to date"
 
 
 def crane_digest(image: str) -> str | None:
@@ -142,24 +118,15 @@ def crane_digest(image: str) -> str | None:
     return digest if result.returncode == 0 and (digest := result.stdout.strip()) else None
 
 
-def image_id(image: str) -> str:
+def current_digest(image: str) -> str:
     result: subprocess.CompletedProcess[str] = subprocess.run(
-        ["docker", "images", "--no-trunc", "--format", "{{.ID}}", image],
+        ["docker", "images", "--digests", "--format", "{{.Digest}}", image],
         check=False,
         capture_output=True,
         text=True,
     )
-    return result.stdout.strip()
-
-
-def get_image_size(image: str) -> str:
-    result: subprocess.CompletedProcess[str] = subprocess.run(
-        ["docker", "images", "--format", "{{.Size}}", image],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    return result.stdout.strip() or "-"
+    lines: list[str] = result.stdout.splitlines()
+    return lines[0].strip() if lines else ""
 
 
 def docker_pull(image: str) -> bool:
@@ -175,8 +142,11 @@ def render(images: list[ImageStatus], lock: threading.Lock) -> Table:
     table.add_column("Remote", overflow="fold")
     table.add_column("Size", justify="right")
     with lock:
-        rows: list[tuple[str, str, str, str, str]] = [(s.image, s.state, s.local, s.remote, s.size) for s in images]
-    sha_len: int = find_unique_sha_length([r[2] for r in rows] + [r[3] for r in rows])
+        rows: list[tuple[str, str, str, str, str]] = [
+            (s.image, s.state, s.local.removeprefix("sha256:"), s.remote.removeprefix("sha256:"), s.size)
+            for s in images
+        ]
+    sha_len: int = find_unique_sha_length([row[2] for row in rows] + [row[3] for row in rows])
     for index, (image, state, local, remote, size) in enumerate(rows, 1):
         style: str = _STATE_STYLE.get(state, "")
         table.add_row(str(index), image, f"[{style}]{state}[/{style}]", local[:sha_len], remote[:sha_len], size)
