@@ -15,20 +15,12 @@
       {"id":"cp","type":"context-percentage","color":"blue","rawValue":true},
       {"id":"scc","type":"custom-text","customText":" | ","color":"brightBlack"},
       {"id":"cc","type":"compaction-counter","color":"yellow","rawValue":true},
-      {"id":"s2","type":"custom-text","customText":" · ","color":"brightBlack"},
-      {"id":"gb","type":"git-branch","color":"magenta","rawValue":true},
-      {"id":"sgc","type":"custom-text","customText":" ","color":"brightBlack"},
-      {"id":"gc","type":"git-changes","color":"yellow","rawValue":true},
-      {"id":"sab","type":"custom-text","customText":" ","color":"brightBlack"},
-      {"id":"ab","type":"git-ahead-behind","color":"magenta","rawValue":true},
-      {"id":"spr","type":"custom-text","customText":" ","color":"brightBlack"},
-      {"id":"pr","type":"git-pr","color":"magenta","rawValue":true},
-      {"id":"s3","type":"custom-text","customText":" · ","color":"brightBlack"},
+      {"id":"sgq","type":"separator","character":" · ","color":"brightBlack"}
 {{- $q := joinPath .chezmoi.homeDir ".local/share/chezmoi-private/ccstatusline-quota.json" }}
 {{- if stat $q }}
-      {{ output "cat" $q }}
+      ,{{ output "cat" $q }}
 {{- else }}
-      {"id":"l1","type":"custom-text","customText":"Sess ","color":"green"},
+      ,{"id":"l1","type":"custom-text","customText":"Sess ","color":"green"},
       {"id":"su","type":"session-usage","color":"green","rawValue":true},
       {"id":"srt","type":"custom-text","customText":" ","color":"brightBlack"},
       {"id":"rt","type":"reset-timer","color":"brightBlack","rawValue":true},
@@ -42,6 +34,14 @@
       {"id":"l4","type":"custom-text","customText":" / ","color":"brightBlack"},
       {"id":"er","type":"extra-usage-remaining","color":"green","rawValue":true}
 {{- end }}
+      ,{"id":"sg0","type":"separator","character":" · ","color":"brightBlack"},
+      {"id":"gb","type":"git-branch","color":"magenta","rawValue":true,"metadata":{"hideNoGit":"true"}},
+      {"id":"sg1","type":"separator","character":" ","color":"brightBlack"},
+      {"id":"gc","type":"git-changes","color":"yellow","rawValue":true,"metadata":{"hideNoGit":"true"}},
+      {"id":"sg2","type":"separator","character":" ","color":"brightBlack"},
+      {"id":"ab","type":"git-ahead-behind","color":"magenta","metadata":{"hideNoGit":"true"}},
+      {"id":"sg3","type":"separator","character":" ","color":"brightBlack"},
+      {"id":"pr","type":"git-pr","color":"magenta","rawValue":true,"metadata":{"hideNoGit":"true","hideTitle":"true"}}
     ]
   ],
   "flexMode":"full-until-compact","compactThreshold":60,"colorLevel":3,
