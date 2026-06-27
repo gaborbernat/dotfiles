@@ -44,7 +44,6 @@ function _u_stage -a name -d "Run one upgrade stage for u (one mprocs tab)"
                 echo "Docker is ready (after "$waited"s)"
             end
             _u_run update_docker_images
-            and _u_run docker system prune -f --volumes
         case '*'
             echo "unknown upgrade stage: $name" >&2
             return 2

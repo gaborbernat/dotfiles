@@ -7,31 +7,35 @@
 """Update local Docker images that came from a registry to their latest digest.
 
 The image list, digest, and size come from a single `docker images --digests`
-call. Locally built images (empty RepoDigests, no registry source) are filtered
-out up front. For the rest, the remote digest comes from `crane digest`
-(daemon-free, reuses the docker login credentials, so Docker Hub, GHCR, and
-Artifactory OCI all work); only images whose digest differs are pulled. The
-status column carries the failure reason, and each row shows how long it took.
-Progress renders live as each image resolves.
+call. Locally built images (empty RepoDigests, no registry source) are not
+checked; the stale ones are removed afterwards. For registry images the remote
+digest comes from `crane digest` (daemon-free, reuses the docker login
+credentials, so Docker Hub, GHCR, and Artifactory OCI all work); only images
+whose digest differs are pulled. The status column carries the failure reason
+and each row shows how long it took. Finally dangling data is pruned. Progress
+renders live as each image resolves.
 """
 
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
+from datetime import UTC, datetime, timedelta
+from typing import Final
 
 from rich import box
 from rich.console import Console
 from rich.live import Live
 from rich.table import Table
 
-console = Console()
-
-_STATE_STYLE: dict[str, str] = {
+_CONSOLE: Final[Console] = Console()
+_STALE_LOCAL_AGE: Final[timedelta] = timedelta(days=7)
+_STATE_STYLE: Final[dict[str, str]] = {
     "checking": "dim",
     "pulling": "yellow",
     "up to date": "blue",
@@ -41,81 +45,85 @@ _STATE_STYLE: dict[str, str] = {
 }
 
 
-@dataclass
-class ImageStatus:
-    image: str
-    local: str
-    size: str
-    registry_digests: set[str] = field(default_factory=set)
-    state: str = "checking"
-    detail: str = ""
-    duration: float | None = None
-
-
 def main() -> None:
-    images: list[ImageStatus] = get_images()
-    if not images:
-        console.print("No registry-backed images to check.")
-        return
-    lock = threading.Lock()
-    with (
-        Live(render(images, lock), console=console, refresh_per_second=12, transient=True) as live,
-        ThreadPoolExecutor() as executor,
-    ):
-        futures = [executor.submit(process_image, status, lock) for status in images]
-        while any(not future.done() for future in futures):
-            live.update(render(images, lock))
-            time.sleep(0.1)
-    console.print(render(images, lock))
+    registry, stale_local = scan_images()
+    if registry:
+        update_registry_images(registry)
+    else:
+        _CONSOLE.print("No registry-backed images to check.")
+    cleanup_local(stale_local)
+    prune_system()
 
 
-def get_images() -> list[ImageStatus]:
-    result: subprocess.CompletedProcess[str] = subprocess.run(
+def scan_images() -> tuple[list[ImageStatus], list[str]]:
+    listing: subprocess.CompletedProcess[str] = subprocess.run(
         ["docker", "images", "--digests", "--format", "{{.Repository}}:{{.Tag}}\t{{.Digest}}\t{{.Size}}"],
         check=False,
         capture_output=True,
         text=True,
     )
     candidates: list[ImageStatus] = []
-    for raw_line in result.stdout.splitlines():
-        parts: list[str] = raw_line.split("\t")
-        if len(parts) != 3:
+    for raw_line in listing.stdout.splitlines():
+        if len(parts := raw_line.split("\t")) != 3 or "<none>" in parts[0]:
             continue
-        image, digest, size = parts
-        if "<none>" in image:
-            continue
-        candidates.append(ImageStatus(image=image, local=digest if digest.startswith("sha256:") else "", size=size))
+        candidates.append(ImageStatus(parts[0], parts[1] if parts[1].startswith("sha256:") else "", parts[2]))
 
     with ThreadPoolExecutor() as executor:
-        digest_sets: list[set[str] | None] = list(
-            executor.map(repo_digests, [candidate.image for candidate in candidates])
-        )
-    images: list[ImageStatus] = []
-    for status, digests in zip(candidates, digest_sets, strict=True):
-        if digests is not None and not digests:
-            continue
-        status.registry_digests = digests or set()
-        images.append(status)
-    images.sort(key=lambda status: status.image)
-    return images
+        details = list(executor.map(inspect_image, [candidate.image for candidate in candidates]))
+    cutoff: datetime = datetime.now(UTC) - _STALE_LOCAL_AGE
+    registry: list[ImageStatus] = []
+    stale_local: list[str] = []
+    for status, (digests, created) in zip(candidates, details, strict=True):
+        if digests is None:
+            registry.append(status)  # inspect flaked; let crane decide rather than drop it
+        elif digests:
+            status.registry_digests = digests
+            registry.append(status)
+        elif created is not None and created < cutoff:
+            stale_local.append(status.image)
+    registry.sort(key=lambda status: status.image)
+    return registry, stale_local
 
 
-def repo_digests(image: str) -> set[str] | None:
+def inspect_image(image: str) -> tuple[set[str] | None, datetime | None]:
     result: subprocess.CompletedProcess[str] = subprocess.run(
-        ["docker", "image", "inspect", "--format", "{{json .RepoDigests}}", image],
+        ["docker", "image", "inspect", "--format", "{{json .RepoDigests}}\t{{.Created}}", image],
         check=False,
         capture_output=True,
         text=True,
     )
     if result.returncode != 0:
-        return None
+        return None, None
+    repo_digests_json, _, created = result.stdout.strip().partition("\t")
     repo: str = image.rsplit(":", 1)[0]
     digests: set[str] = set()
-    for entry in json.loads(result.stdout or "[]"):
+    for entry in json.loads(repo_digests_json or "[]"):
         name, _, digest = entry.partition("@")
         if name == repo and digest:
             digests.add(digest)
-    return digests
+    return digests, parse_created(created)
+
+
+def parse_created(value: str) -> datetime | None:
+    if not (text := value.strip()):
+        return None
+    try:
+        return datetime.fromisoformat(re.sub(r"(\.\d{6})\d+", r"\1", text.replace("Z", "+00:00")))
+    except ValueError:
+        return None
+
+
+def update_registry_images(images: list[ImageStatus]) -> None:
+    lock = threading.Lock()
+    with (
+        Live(render(images, lock), console=_CONSOLE, refresh_per_second=12, transient=True) as live,
+        ThreadPoolExecutor() as executor,
+    ):
+        futures = [executor.submit(process_image, status, lock) for status in images]
+        while any(not future.done() for future in futures):
+            live.update(render(images, lock))
+            time.sleep(0.1)
+    _CONSOLE.print(render(images, lock))
 
 
 def process_image(status: ImageStatus, lock: threading.Lock) -> None:
@@ -138,13 +146,6 @@ def process_image(status: ImageStatus, lock: threading.Lock) -> None:
     finish(status, lock, "updated", started)
 
 
-def finish(status: ImageStatus, lock: threading.Lock, state: str, started: float, detail: str = "") -> None:
-    with lock:
-        status.state = state
-        status.detail = detail
-        status.duration = time.monotonic() - started
-
-
 def crane_digest(image: str) -> tuple[str | None, str]:
     try:
         result: subprocess.CompletedProcess[str] = subprocess.run(
@@ -163,15 +164,8 @@ def crane_digest(image: str) -> tuple[str | None, str]:
     return None, short_error(result.stderr)
 
 
-def current_digest(image: str) -> str:
-    result: subprocess.CompletedProcess[str] = subprocess.run(
-        ["docker", "images", "--digests", "--format", "{{.Digest}}", image],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    lines: list[str] = result.stdout.splitlines()
-    return lines[0].strip() if lines else ""
+def short_error(text: str, limit: int = 44) -> str:
+    return next((stripped for raw in reversed(text.splitlines()) if (stripped := raw.strip())), "")[:limit]
 
 
 def docker_pull(image: str) -> tuple[bool, str]:
@@ -181,9 +175,21 @@ def docker_pull(image: str) -> tuple[bool, str]:
     return (True, "") if result.returncode == 0 else (False, short_error(result.stderr))
 
 
-def short_error(text: str, limit: int = 44) -> str:
-    line: str = next((stripped for raw in reversed(text.splitlines()) if (stripped := raw.strip())), "")
-    return line[:limit]
+def current_digest(image: str) -> str:
+    result: subprocess.CompletedProcess[str] = subprocess.run(
+        ["docker", "images", "--digests", "--format", "{{.Digest}}", image],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    return lines[0].strip() if (lines := result.stdout.splitlines()) else ""
+
+
+def finish(status: ImageStatus, lock: threading.Lock, state: str, started: float, detail: str = "") -> None:
+    with lock:
+        status.state = state
+        status.detail = detail
+        status.duration = time.monotonic() - started
 
 
 def render(images: list[ImageStatus], lock: threading.Lock) -> Table:
@@ -195,16 +201,12 @@ def render(images: list[ImageStatus], lock: threading.Lock) -> Table:
     table.add_column("Size", justify="right")
     table.add_column("Time", justify="right")
     with lock:
-        rows: list[tuple[str, str, str, str, str, float | None]] = [
-            (s.image, s.state, s.detail, s.local.removeprefix("sha256:"), s.size, s.duration) for s in images
-        ]
+        rows = [(s.image, s.state, s.detail, s.local.removeprefix("sha256:"), s.size, s.duration) for s in images]
     sha_len: int = find_unique_sha_length([row[3] for row in rows])
     for index, (image, state, detail, digest, size, duration) in enumerate(rows, 1):
-        style: str = _STATE_STYLE.get(state, "")
         label: str = f"{state} [dim]({detail})[/dim]" if detail else state
-        table.add_row(
-            str(index), image, f"[{style}]{label}[/{style}]", digest[:sha_len], size, format_duration(duration)
-        )
+        styled: str = f"[{_STATE_STYLE.get(state, '')}]{label}[/]"
+        table.add_row(str(index), image, styled, digest[:sha_len], size, format_duration(duration))
     return table
 
 
@@ -222,6 +224,39 @@ def find_unique_sha_length(shas: list[str], min_len: int = 10) -> int:
         if len({sha[:length] for sha in present}) == len(present):
             return length
     return 64
+
+
+def cleanup_local(images: list[str]) -> None:
+    # Docker exposes no last-used timestamp, so "unused" is approximated by build age
+    # plus `docker rmi` refusing to remove an image a container still references.
+    if not (removed := [image for image in images if remove_image(image)]):
+        return
+    _CONSOLE.print(f"[bright_black]Removed {len(removed)} stale local image(s) (no registry source):[/]")
+    for image in removed:
+        _CONSOLE.print(f"[bright_black]  {image}[/]")
+
+
+def remove_image(image: str) -> bool:
+    return subprocess.run(["docker", "rmi", image], check=False, capture_output=True, text=True).returncode == 0
+
+
+def prune_system() -> None:
+    result: subprocess.CompletedProcess[str] = subprocess.run(
+        ["docker", "system", "prune", "-f", "--volumes"], check=False, capture_output=True, text=True
+    )
+    summary: str = next((line.strip() for line in result.stdout.splitlines() if "reclaimed" in line.lower()), "")
+    _CONSOLE.print(f"[bright_black]{summary or 'Pruned dangling docker data.'}[/]")
+
+
+@dataclass
+class ImageStatus:
+    image: str
+    local: str
+    size: str
+    registry_digests: set[str] = field(default_factory=set)
+    state: str = "checking"
+    detail: str = ""
+    duration: float | None = None
 
 
 if __name__ == "__main__":
