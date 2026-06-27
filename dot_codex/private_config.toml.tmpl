@@ -2,17 +2,21 @@
 model_reasoning_effort = "xhigh"
 suppress_unstable_features_warning = true
 
-# ─── Sandbox & Execution ──────────────────────────────────────────────────────
-sandbox_mode = "workspace-write"
+# ─── Approvals ───────────────────────────────────────────────────────────────
+# Prompt when escalating out of the sandbox — parity with Claude Code, which
+# auto-runs in-scope actions and asks for the rest. (sandbox_mode is omitted on
+# purpose: default_permissions below overrides it, so it would be dead.)
+approval_policy = "on-request"
 
 # ─── Commit Settings ──────────────────────────────────────────────────────────
 commit_attribution = ""
 
-# ─── Permissions ─────────────────────────────────────────────────────────────
+# ─── Permissions (parity with Claude Code — read all, write workspace, network on) ──
 default_permissions = "dev"
 
 [permissions.dev.filesystem]
-":minimal" = "read"
+":root" = "read"
+":workspace_roots" = "write"
 
 [permissions.dev.network]
 enabled = true
