@@ -4,22 +4,24 @@
 #     "rich>=14.2",
 # ]
 # ///
-"""Update local Docker images that came from a registry to their latest digest.
+"""Update registry-sourced Docker images to their latest digest; prune dormant local ones.
 
-A single `docker images --digests` call lists the images; a single
-`docker image inspect` (by image id, which always resolves — inspecting by tag
-intermittently reports "no such object") classifies them. Images with no
-RepoDigests are locally built: they are never looked up in a registry, only the
-stale ones are pruned. For registry images the remote digest comes from
-`crane digest` (daemon-free, reuses the docker login credentials, so Docker Hub,
-GHCR, and Artifactory OCI all work); only images whose digest differs are
-pulled. Rows are ordered newest-built first, and dangling data is pruned at the
-end. Progress renders live as each image resolves.
+Classification is by reference: an image whose repo carries a registry host (the part
+before the first "/" contains "." or ":", or is localhost) is registry-backed; anything
+else is a local build, including ones carrying a hostless RepoDigest from a mirror push.
+Inspection is keyed by image id, which always resolves — inspecting by tag intermittently
+reports "no such object". Registry images are always kept and refreshed via `crane digest`
+(daemon-free, reuses docker credentials); only those whose digest moved are pulled. Local
+images are pruned only once dormant for two weeks — by container last-run time, falling back
+to build time when no run was recorded. The table flags a platform differing from the host arch.
 """
 
 from __future__ import annotations
 
 import json
+import os
+import platform
+import pty
 import re
 import subprocess
 import threading
@@ -35,8 +37,13 @@ from rich.live import Live
 from rich.table import Table
 
 _CONSOLE: Final[Console] = Console()
-_STALE_LOCAL_AGE: Final[timedelta] = timedelta(days=7)
+_STALE_LOCAL_AGE: Final[timedelta] = timedelta(days=14)
 _OLDEST: Final[datetime] = datetime.min.replace(tzinfo=UTC)
+_HOST_ARCH: Final[str] = {"x86_64": "amd64", "aarch64": "arm64"}.get(platform.machine(), platform.machine())
+_DOWNLOAD_RE: Final[re.Pattern[str]] = re.compile(
+    r"([0-9a-f]{6,}): Downloading\s+\[[^\]]*\]\s+[0-9.]+[A-Za-z]+/([0-9.]+[A-Za-z]+)"
+)
+_SIZE_UNITS: Final[dict[str, int]] = {"b": 1, "kb": 1000, "mb": 1000**2, "gb": 1000**3, "tb": 1000**4}
 _STATE_STYLE: Final[dict[str, str]] = {
     "checking": "dim",
     "pulling": "yellow",
@@ -77,22 +84,33 @@ def scan_images() -> tuple[list[ImageStatus], list[str]]:
         if len(parts := raw_line.split("\t")) == 4 and "<none>" not in parts[0]
     ]
     inspected = bulk_inspect([row[1] for row in rows])
+    runs = last_run_times()
     cutoff: datetime = datetime.now(UTC) - _STALE_LOCAL_AGE
     registry: list[ImageStatus] = []
     stale_local: list[str] = []
     for image, image_id, digest, size in rows:
-        repo_digests, created = inspected.get(image_id, (None, None))
+        repo_digests, created, image_platform = inspected.get(image_id, (None, None, ""))
         if repo_digests is None:
             continue
-        if matched := digests_for_repo(image.rsplit(":", 1)[0], repo_digests):
-            registry.append(ImageStatus(image, digest if digest.startswith("sha256:") else "", size, created, matched))
-        elif created is not None and created < cutoff:
+        repo = image.rsplit(":", 1)[0]
+        if has_registry_host(repo) and (matched := digests_for_repo(repo, repo_digests)):
+            registry.append(
+                ImageStatus(
+                    image=image,
+                    local=digest if digest.startswith("sha256:") else "",
+                    size=size,
+                    created=created,
+                    platform=image_platform,
+                    registry_digests=matched,
+                )
+            )
+        elif (last_active := runs.get(image_id, created)) is not None and last_active < cutoff:
             stale_local.append(image)
     registry.sort(key=lambda status: status.created or _OLDEST, reverse=True)
     return registry, stale_local
 
 
-def bulk_inspect(image_ids: list[str]) -> dict[str, tuple[set[str], datetime | None]]:
+def bulk_inspect(image_ids: list[str]) -> dict[str, tuple[set[str], datetime | None, str]]:
     if not image_ids:
         return {}
     result: subprocess.CompletedProcess[str] = subprocess.run(
@@ -101,19 +119,56 @@ def bulk_inspect(image_ids: list[str]) -> dict[str, tuple[set[str], datetime | N
             "image",
             "inspect",
             "--format",
-            "{{.Id}}\t{{json .RepoDigests}}\t{{.Created}}",
+            "{{.Id}}\t{{json .RepoDigests}}\t{{.Created}}\t{{.Os}}/{{.Architecture}}",
             *sorted(set(image_ids)),
         ],
         check=False,
         capture_output=True,
         text=True,
     )
-    inspected: dict[str, tuple[set[str], datetime | None]] = {}
+    inspected: dict[str, tuple[set[str], datetime | None, str]] = {}
     for line in result.stdout.splitlines():
         image_id, _, rest = line.partition("\t")
-        digests_json, _, created = rest.partition("\t")
-        inspected[image_id] = (set(json.loads(digests_json or "[]")), parse_created(created))
+        digests_json, _, rest = rest.partition("\t")
+        created, _, image_platform = rest.partition("\t")
+        inspected[image_id] = (set(json.loads(digests_json or "[]")), parse_created(created), image_platform)
     return inspected
+
+
+def last_run_times() -> dict[str, datetime]:
+    # The only signal for when an image was last run is a container's State.StartedAt; with ephemeral
+    # (--rm) containers none survive, so scan_images falls back to the image build time.
+    container_ids: list[str] = subprocess.run(
+        ["docker", "ps", "-a", "--no-trunc", "--format", "{{.ID}}"],
+        check=False,
+        capture_output=True,
+        text=True,
+    ).stdout.split()
+    if not container_ids:
+        return {}
+    result: subprocess.CompletedProcess[str] = subprocess.run(
+        ["docker", "container", "inspect", "--format", "{{.Image}}\t{{.State.StartedAt}}", *container_ids],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    runs: dict[str, datetime] = {}
+    for line in result.stdout.splitlines():
+        image_id, _, started = line.partition("\t")
+        # Docker's zero time marks a container that was created but never started
+        if started.startswith("0001"):
+            continue
+        if (when := parse_created(started)) and when > runs.get(image_id, _OLDEST):
+            runs[image_id] = when
+    return runs
+
+
+def has_registry_host(repo: str) -> bool:
+    # Docker treats the part before the first "/" as a registry host only when it looks like one
+    # (contains "." or ":", or is "localhost"); otherwise the ref defaults to docker.io, so a local
+    # build like "guild-week-website-app" or "linterator-cli-cache/x" must not be sent to a registry.
+    host, slash, _ = repo.partition("/")
+    return bool(slash) and (host == "localhost" or "." in host or ":" in host)
 
 
 def digests_for_repo(repo: str, entries: set[str]) -> set[str]:
@@ -158,8 +213,13 @@ def process_image(status: ImageStatus, lock: threading.Lock) -> None:
         return
     with lock:
         status.state = "pulling"
-    ok, error = docker_pull(status.image)
-    finish(status, lock, "updated" if ok else "failed", started, "" if ok else error)
+    ok, error, downloaded = docker_pull(status.image)
+    if not ok:
+        finish(status, lock, "failed", started, error)
+        return
+    finish(
+        status, lock, "updated", started, update_detail(status.local, remote, downloaded, time.monotonic() - started)
+    )
 
 
 def crane_digest(image: str) -> tuple[str | None, str]:
@@ -174,8 +234,7 @@ def crane_digest(image: str) -> tuple[str | None, str]:
         return None, "crane not installed"
     if result.returncode == 0 and (digest := result.stdout.strip()):
         return digest, ""
-    error: str = result.stderr.lower()
-    if any(token in error for token in ("unauthorized", "401", "denied", "403", "forbidden")):
+    if any(token in result.stderr.lower() for token in ("unauthorized", "401", "denied", "403", "forbidden")):
         return None, "auth required"
     return None, short_error(result.stderr)
 
@@ -184,11 +243,59 @@ def short_error(text: str, limit: int = 44) -> str:
     return next((stripped for raw in reversed(text.splitlines()) if (stripped := raw.strip())), "")[:limit]
 
 
-def docker_pull(image: str) -> tuple[bool, str]:
-    result: subprocess.CompletedProcess[str] = subprocess.run(
-        ["docker", "pull", image], check=False, capture_output=True, text=True
-    )
-    return (True, "") if result.returncode == 0 else (False, short_error(result.stderr))
+def docker_pull(image: str) -> tuple[bool, str, int]:
+    # A pty makes docker emit per-layer progress ("Downloading [..] done/total"); summing each
+    # layer's total yields the bytes actually fetched, which the non-tty capture_output never prints.
+    layer_totals: dict[str, int] = {}
+    output: list[str] = []
+    pid, fd = pty.fork()
+    if pid == 0:
+        try:
+            os.execvp("docker", ["docker", "pull", image])
+        except OSError:
+            os._exit(127)
+    try:
+        while True:
+            try:
+                data = os.read(fd, 65536)
+            except OSError:
+                break
+            if not data:
+                break
+            text = data.decode("utf-8", "replace")
+            output.append(text)
+            for layer, total in _DOWNLOAD_RE.findall(text):
+                layer_totals[layer] = parse_size(total)
+    finally:
+        os.close(fd)
+    if os.waitstatus_to_exitcode(os.waitpid(pid, 0)[1]) == 0:
+        return True, "", sum(layer_totals.values())
+    return False, short_error("".join(output)), 0
+
+
+def parse_size(text: str) -> int:
+    if match := re.match(r"\s*([0-9.]+)\s*([A-Za-z]+)", text):
+        return int(float(match.group(1)) * _SIZE_UNITS.get(match.group(2).lower(), 1))
+    return 0
+
+
+def update_detail(old: str, new: str, downloaded: int, duration: float) -> str:
+    move: str = f"{short_digest(old)} → {short_digest(new)}"
+    if downloaded and duration:
+        return f"{move} · {format_bytes(downloaded)} @ {format_bytes(downloaded / duration)}/s"
+    return move
+
+
+def short_digest(digest: str) -> str:
+    return digest.removeprefix("sha256:")[:12] if digest else "?"
+
+
+def format_bytes(num: float) -> str:
+    for unit in ("B", "KB", "MB", "GB"):
+        if num < 1000:
+            return f"{num:.0f}{unit}" if unit == "B" else f"{num:.1f}{unit}"
+        num /= 1000
+    return f"{num:.1f}TB"
 
 
 def finish(status: ImageStatus, lock: threading.Lock, state: str, started: float, detail: str = "") -> None:
@@ -202,17 +309,33 @@ def render(images: list[ImageStatus], lock: threading.Lock) -> Table:
     table: Table = Table(title="Docker Image Update Summary", box=box.SIMPLE_HEAVY)
     table.add_column("#", justify="right")
     table.add_column("Image", style="bold")
+    table.add_column("Platform")
     table.add_column("Status")
     table.add_column("Updated", justify="right")
     table.add_column("Size", justify="right")
     table.add_column("Time", justify="right")
     with lock:
-        rows = [(s.image, s.state, s.detail, s.created, s.size, s.duration) for s in images]
-    for index, (image, state, detail, created, size, duration) in enumerate(rows, 1):
-        label: str = f"{state} [dim]({detail})[/dim]" if detail else state
-        styled: str = f"[{_STATE_STYLE.get(state, '')}]{label}[/]"
-        table.add_row(str(index), image, styled, format_age(created), size, format_duration(duration))
+        rows = [(s.image, s.platform, s.state, s.detail, s.created, s.size, s.duration) for s in images]
+    for index, (image, image_platform, state, detail, created, size, duration) in enumerate(rows, 1):
+        styled: str = f"[{_STATE_STYLE.get(state, '')}]{state}{f' [dim]({detail})[/dim]' if detail else ''}[/]"
+        table.add_row(
+            str(index),
+            image,
+            render_platform(image_platform),
+            styled,
+            format_age(created),
+            size,
+            format_duration(duration),
+        )
     return table
+
+
+def render_platform(image_platform: str) -> str:
+    # Flag a mismatch (e.g. an amd64 image pulled onto an arm64 host) so emulated images stand out.
+    arch: str = image_platform.split("/")[1] if "/" in image_platform else ""
+    if arch and arch != _HOST_ARCH:
+        return f"[yellow]{image_platform}[/]"
+    return image_platform
 
 
 def format_age(created: datetime | None) -> str:
@@ -239,8 +362,8 @@ def format_duration(duration: float | None) -> str:
 
 
 def cleanup_local(images: list[str]) -> None:
-    # Docker exposes no last-used timestamp, so "unused" is approximated by build age
-    # plus `docker rmi` refusing to remove an image a container still references.
+    # Staleness is decided in scan_images (last run, else build time); `docker rmi` still
+    # refuses to remove an image a container references, a final safety net.
     if not (removed := [image for image in images if remove_image(image)]):
         return
     _CONSOLE.print(f"[bright_black]Removed {len(removed)} stale local image(s) (no registry source):[/]")
@@ -266,6 +389,7 @@ class ImageStatus:
     local: str
     size: str
     created: datetime | None
+    platform: str = ""
     registry_digests: set[str] = field(default_factory=set)
     state: str = "checking"
     detail: str = ""
