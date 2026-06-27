@@ -74,7 +74,9 @@ step above and must not be restated here.
 
 1. **Test through public APIs only.** Exercise behavior via the module's public interface; never import, call, or assert
     on private (underscore-prefixed) functions, methods, or attributes directly. If private logic needs coverage, drive
-    it through the public entry point that uses it.
+    it through the public entry point that uses it. Never widen a symbol's visibility — dropping its underscore prefix
+    (`_is_machine_reachable` → `is_machine_reachable`) or adding it to `__all__` — just to make it testable; that is
+    cheating and not allowed. Cover it through the public caller instead.
 
 Keep all other house conventions (type annotations everywhere, one assertion-concept per test, multiple test files over
 test classes) intact while applying these.
