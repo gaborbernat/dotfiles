@@ -13,11 +13,21 @@
       {"id":"cw","type":"context-window","color":"blue","rawValue":true},
       {"id":"csp","type":"custom-text","customText":" | ","color":"brightBlack"},
       {"id":"cp","type":"context-percentage","color":"blue","rawValue":true},
+      {"id":"scc","type":"custom-text","customText":" | ","color":"brightBlack"},
+      {"id":"cc","type":"compaction-counter","color":"yellow","rawValue":true},
       {"id":"s2","type":"custom-text","customText":" · ","color":"brightBlack"},
       {"id":"gb","type":"git-branch","color":"magenta","rawValue":true},
       {"id":"sgc","type":"custom-text","customText":" ","color":"brightBlack"},
       {"id":"gc","type":"git-changes","color":"yellow","rawValue":true},
+      {"id":"sab","type":"custom-text","customText":" ","color":"brightBlack"},
+      {"id":"ab","type":"git-ahead-behind","color":"magenta","rawValue":true},
+      {"id":"spr","type":"custom-text","customText":" ","color":"brightBlack"},
+      {"id":"pr","type":"git-pr","color":"magenta","rawValue":true},
       {"id":"s3","type":"custom-text","customText":" · ","color":"brightBlack"},
+{{- $q := joinPath .chezmoi.homeDir ".local/share/chezmoi-private/ccstatusline-quota.json" }}
+{{- if stat $q }}
+      {{ output "cat" $q }}
+{{- else }}
       {"id":"l1","type":"custom-text","customText":"Sess ","color":"green"},
       {"id":"su","type":"session-usage","color":"green","rawValue":true},
       {"id":"srt","type":"custom-text","customText":" ","color":"brightBlack"},
@@ -31,6 +41,7 @@
       {"id":"eu","type":"extra-usage-used","color":"yellow","rawValue":true},
       {"id":"l4","type":"custom-text","customText":" / ","color":"brightBlack"},
       {"id":"er","type":"extra-usage-remaining","color":"green","rawValue":true}
+{{- end }}
     ]
   ],
   "flexMode":"full-until-compact","compactThreshold":60,"colorLevel":3,
