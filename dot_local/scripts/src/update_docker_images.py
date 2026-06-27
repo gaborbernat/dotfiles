@@ -6,14 +6,15 @@
 # ///
 """Update local Docker images that came from a registry to their latest digest.
 
-The image list, digest, and size come from a single `docker images --digests`
-call. Locally built images (empty RepoDigests, no registry source) are not
-checked; the stale ones are removed afterwards. For registry images the remote
-digest comes from `crane digest` (daemon-free, reuses the docker login
-credentials, so Docker Hub, GHCR, and Artifactory OCI all work); only images
-whose digest differs are pulled. The status column carries the failure reason
-and each row shows how long it took. Finally dangling data is pruned. Progress
-renders live as each image resolves.
+A single `docker images --digests` call lists the images; a single
+`docker image inspect` (by image id, which always resolves — inspecting by tag
+intermittently reports "no such object") classifies them. Images with no
+RepoDigests are locally built: they are never looked up in a registry, only the
+stale ones are pruned. For registry images the remote digest comes from
+`crane digest` (daemon-free, reuses the docker login credentials, so Docker Hub,
+GHCR, and Artifactory OCI all work); only images whose digest differs are
+pulled. Rows are ordered newest-built first, and dangling data is pruned at the
+end. Progress renders live as each image resolves.
 """
 
 from __future__ import annotations
@@ -35,6 +36,7 @@ from rich.table import Table
 
 _CONSOLE: Final[Console] = Console()
 _STALE_LOCAL_AGE: Final[timedelta] = timedelta(days=7)
+_OLDEST: Final[datetime] = datetime.min.replace(tzinfo=UTC)
 _STATE_STYLE: Final[dict[str, str]] = {
     "checking": "dim",
     "pulling": "yellow",
@@ -57,51 +59,70 @@ def main() -> None:
 
 def scan_images() -> tuple[list[ImageStatus], list[str]]:
     listing: subprocess.CompletedProcess[str] = subprocess.run(
-        ["docker", "images", "--digests", "--format", "{{.Repository}}:{{.Tag}}\t{{.Digest}}\t{{.Size}}"],
+        [
+            "docker",
+            "images",
+            "--digests",
+            "--no-trunc",
+            "--format",
+            "{{.Repository}}:{{.Tag}}\t{{.ID}}\t{{.Digest}}\t{{.Size}}",
+        ],
         check=False,
         capture_output=True,
         text=True,
     )
-    candidates: list[ImageStatus] = []
-    for raw_line in listing.stdout.splitlines():
-        if len(parts := raw_line.split("\t")) != 3 or "<none>" in parts[0]:
-            continue
-        candidates.append(ImageStatus(parts[0], parts[1] if parts[1].startswith("sha256:") else "", parts[2]))
-
-    with ThreadPoolExecutor() as executor:
-        details = list(executor.map(inspect_image, [candidate.image for candidate in candidates]))
+    rows: list[list[str]] = [
+        parts
+        for raw_line in listing.stdout.splitlines()
+        if len(parts := raw_line.split("\t")) == 4 and "<none>" not in parts[0]
+    ]
+    inspected = bulk_inspect([row[1] for row in rows])
     cutoff: datetime = datetime.now(UTC) - _STALE_LOCAL_AGE
     registry: list[ImageStatus] = []
     stale_local: list[str] = []
-    for status, (digests, created) in zip(candidates, details, strict=True):
-        if digests is None:
-            registry.append(status)  # inspect flaked; let crane decide rather than drop it
-        elif digests:
-            status.registry_digests = digests
-            registry.append(status)
+    for image, image_id, digest, size in rows:
+        repo_digests, created = inspected.get(image_id, (None, None))
+        if repo_digests is None:
+            continue
+        if matched := digests_for_repo(image.rsplit(":", 1)[0], repo_digests):
+            registry.append(ImageStatus(image, digest if digest.startswith("sha256:") else "", size, created, matched))
         elif created is not None and created < cutoff:
-            stale_local.append(status.image)
-    registry.sort(key=lambda status: status.image)
+            stale_local.append(image)
+    registry.sort(key=lambda status: status.created or _OLDEST, reverse=True)
     return registry, stale_local
 
 
-def inspect_image(image: str) -> tuple[set[str] | None, datetime | None]:
+def bulk_inspect(image_ids: list[str]) -> dict[str, tuple[set[str], datetime | None]]:
+    if not image_ids:
+        return {}
     result: subprocess.CompletedProcess[str] = subprocess.run(
-        ["docker", "image", "inspect", "--format", "{{json .RepoDigests}}\t{{.Created}}", image],
+        [
+            "docker",
+            "image",
+            "inspect",
+            "--format",
+            "{{.Id}}\t{{json .RepoDigests}}\t{{.Created}}",
+            *sorted(set(image_ids)),
+        ],
         check=False,
         capture_output=True,
         text=True,
     )
-    if result.returncode != 0:
-        return None, None
-    repo_digests_json, _, created = result.stdout.strip().partition("\t")
-    repo: str = image.rsplit(":", 1)[0]
-    digests: set[str] = set()
-    for entry in json.loads(repo_digests_json or "[]"):
+    inspected: dict[str, tuple[set[str], datetime | None]] = {}
+    for line in result.stdout.splitlines():
+        image_id, _, rest = line.partition("\t")
+        digests_json, _, created = rest.partition("\t")
+        inspected[image_id] = (set(json.loads(digests_json or "[]")), parse_created(created))
+    return inspected
+
+
+def digests_for_repo(repo: str, entries: set[str]) -> set[str]:
+    matched: set[str] = set()
+    for entry in entries:
         name, _, digest = entry.partition("@")
         if name == repo and digest:
-            digests.add(digest)
-    return digests, parse_created(created)
+            matched.add(digest)
+    return matched
 
 
 def parse_created(value: str) -> datetime | None:
@@ -138,12 +159,7 @@ def process_image(status: ImageStatus, lock: threading.Lock) -> None:
     with lock:
         status.state = "pulling"
     ok, error = docker_pull(status.image)
-    if not ok:
-        finish(status, lock, "failed", started, error)
-        return
-    with lock:
-        status.local = current_digest(status.image) or remote
-    finish(status, lock, "updated", started)
+    finish(status, lock, "updated" if ok else "failed", started, "" if ok else error)
 
 
 def crane_digest(image: str) -> tuple[str | None, str]:
@@ -175,16 +191,6 @@ def docker_pull(image: str) -> tuple[bool, str]:
     return (True, "") if result.returncode == 0 else (False, short_error(result.stderr))
 
 
-def current_digest(image: str) -> str:
-    result: subprocess.CompletedProcess[str] = subprocess.run(
-        ["docker", "images", "--digests", "--format", "{{.Digest}}", image],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    return lines[0].strip() if (lines := result.stdout.splitlines()) else ""
-
-
 def finish(status: ImageStatus, lock: threading.Lock, state: str, started: float, detail: str = "") -> None:
     with lock:
         status.state = state
@@ -197,17 +203,31 @@ def render(images: list[ImageStatus], lock: threading.Lock) -> Table:
     table.add_column("#", justify="right")
     table.add_column("Image", style="bold")
     table.add_column("Status")
-    table.add_column("Digest", overflow="fold")
+    table.add_column("Updated", justify="right")
     table.add_column("Size", justify="right")
     table.add_column("Time", justify="right")
     with lock:
-        rows = [(s.image, s.state, s.detail, s.local.removeprefix("sha256:"), s.size, s.duration) for s in images]
-    sha_len: int = find_unique_sha_length([row[3] for row in rows])
-    for index, (image, state, detail, digest, size, duration) in enumerate(rows, 1):
+        rows = [(s.image, s.state, s.detail, s.created, s.size, s.duration) for s in images]
+    for index, (image, state, detail, created, size, duration) in enumerate(rows, 1):
         label: str = f"{state} [dim]({detail})[/dim]" if detail else state
         styled: str = f"[{_STATE_STYLE.get(state, '')}]{label}[/]"
-        table.add_row(str(index), image, styled, digest[:sha_len], size, format_duration(duration))
+        table.add_row(str(index), image, styled, format_age(created), size, format_duration(duration))
     return table
+
+
+def format_age(created: datetime | None) -> str:
+    if created is None:
+        return ""
+    days: int = (datetime.now(UTC) - created).days
+    if days < 1:
+        return "today"
+    if days < 7:
+        return f"{days}d ago"
+    if days < 30:
+        return f"{days // 7}w ago"
+    if days < 365:
+        return f"{days // 30}mo ago"
+    return f"{days // 365}y ago"
 
 
 def format_duration(duration: float | None) -> str:
@@ -216,14 +236,6 @@ def format_duration(duration: float | None) -> str:
     if duration < 60:
         return f"{duration:.1f}s"
     return f"{int(duration // 60)}m{int(duration % 60)}s"
-
-
-def find_unique_sha_length(shas: list[str], min_len: int = 10) -> int:
-    present: list[str] = list({sha for sha in shas if sha})
-    for length in range(min_len, 65):
-        if len({sha[:length] for sha in present}) == len(present):
-            return length
-    return 64
 
 
 def cleanup_local(images: list[str]) -> None:
@@ -253,6 +265,7 @@ class ImageStatus:
     image: str
     local: str
     size: str
+    created: datetime | None
     registry_digests: set[str] = field(default_factory=set)
     state: str = "checking"
     detail: str = ""
