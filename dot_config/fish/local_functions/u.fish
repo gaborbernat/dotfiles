@@ -8,12 +8,7 @@ function u -d "Update all development tools (one mprocs tab per tool)"
         set --append cmds "fish -lc 'source $stagefile; _u_stage $s'"
     end
 
-    _u_title_watch $stages &
-    set -l watcher $last_pid
-
     mprocs --proc-list-title "Upgrade packages" --names (string join , $stages) $cmds
-
-    kill $watcher 2>/dev/null
 
     set -l npass 0
     set -l nfail 0
