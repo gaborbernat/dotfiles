@@ -72,6 +72,13 @@ step above and must not be restated here.
    class named in a `class` statement). Type annotations are not a use: `from __future__ import annotations` (Python
    ≤3.13) and PEP 649 lazy evaluation (3.14+) defer them, so never reorder to satisfy an annotation reference.
 
+1. **No defensive code for impossible states.** Don't guard against a condition the callers, types, or invariants
+   already preclude — delete the branch instead of writing an `if` (or a test) for a case that cannot occur. A guard
+   earns its place only when something real can violate it at runtime (untrusted input, an allocation/OS failure, a
+   documented `None`). If a branch is unreachable without a bug elsewhere it is dead code: remove it, or — when removing
+   it would lose a genuinely-untestable safety net (an allocation failure, an exhaustive-`switch` default the compiler
+   requires) — exclude it from coverage with a one-line justification, never a hollow test.
+
 ### Test rules
 
 1. **Parameterize.** Collapse near-duplicate test functions into a single `@pytest.mark.parametrize` using
@@ -88,10 +95,27 @@ step above and must not be restated here.
    (`_is_machine_reachable` → `is_machine_reachable`) or adding it to `__all__` — just to make it testable; that is
    cheating and not allowed. Cover it through the public caller instead.
 
-1. **Assertions must verify behavior, not restate it.** Reject vacuous or tautological tests: `assert True`, asserting a
-   literal that was just passed in, or asserting only that a mock was called without checking the resulting return value
-   or state. Every test must fail if the production behavior regresses — if a test would still pass with the function
-   body replaced by `pass`/`raise`, it tests nothing; rewrite it to assert the real outcome.
+1. **Mock only true boundaries; never hand-roll fakes.** Exercise real collaborators by default. Reach for a mock only
+   at a genuine seam you cannot run in-process — network, clock, filesystem, subprocess. When you do, use
+   `pytest-mock`'s `mocker` fixture and `MagicMock`; never write a bespoke fake/stub class and never import from
+   `unittest.mock`. A test built mostly of mocks asserting mock calls tests the mock, not the code — prefer one
+   integration test through the real path.
+
+1. **Every test must be able to fail for the right reason.** Breaking the behavior a test targets must make that test
+   fail; reaching a line or branch is not the same as testing it, and a test that passes regardless is as empty as no
+   test at all. Two ways tests fall short:
+
+   - *Tautological assertions* — `assert True`, asserting a literal that was just passed in, or asserting only that a
+     mock was called without checking the resulting value or state. If the test would still pass with the function body
+     replaced by `pass`/`raise`, it tests nothing.
+   - *Coverage without discrimination* — executing a branch only to satisfy the coverage gate while asserting something
+     that holds whether or not that branch fired: an idempotence or round-trip check (`f(f(x)) == f(x)`,
+     `parse(render(x)) == x`) that still passes on a no-op, a "does not raise" / truthy assertion (`assert parse(src)`,
+     `assert result`), or a differential that passes regardless. Pin the observable difference *that* branch produces —
+     the exact output, the specific value, the state change.
+
+   When a path has no observable effect to assert (a defensive guard, an unreachable-without-a-bug invariant), do not
+   manufacture a hollow test — delete it or exclude it per *No defensive code for impossible states*.
 
 Keep all other house conventions (type annotations everywhere, one assertion-concept per test, multiple test files over
 test classes) intact while applying these.
