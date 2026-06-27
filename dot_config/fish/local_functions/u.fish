@@ -1,5 +1,5 @@
 function u -d "Update all development tools (one mprocs tab per tool)"
-    set -l stages brew mas uv rust cargo npm fisher docker
+    set -l stages brew uv rust cargo npm fisher docker
     set -l stagefile $__fish_config_dir/local_functions/_u_stage.fish
 
     set -gx _U_STATUS_DIR (mktemp -d)
