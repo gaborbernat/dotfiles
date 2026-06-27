@@ -1,0 +1,37 @@
+#!/bin/sh
+# Single skill store is ~/.agents/skills. Symlink every skill into each agent's
+# own skills dir so claude and codex share one copy instead of duplicating it.
+# Re-runs whenever the store changes:
+# store: {{ output "sh" "-c" "ls -1 \"$HOME/.agents/skills\" 2>/dev/null | sort | tr '\\n' ',' || true" }}
+set -eu
+
+store="$HOME/.agents/skills"
+[ -d "$store" ] || exit 0
+
+for agent_dir in "$HOME/.claude/skills" "$HOME/.codex/skills"; do
+    mkdir -p "$agent_dir"
+
+    # Link every store skill into the agent dir (never touch codex's own .system).
+    for dir in "$store"/*/; do
+        [ -d "$dir" ] || continue
+        name=$(basename "$dir")
+        [ "$name" = ".system" ] && continue
+        target="$agent_dir/$name"
+        if [ -L "$target" ]; then
+            ln -sfn "$store/$name" "$target"
+        elif [ -e "$target" ]; then
+            rm -rf "$target"          # stale real copy from the old per-agent layout
+            ln -s "$store/$name" "$target"
+        else
+            ln -s "$store/$name" "$target"
+        fi
+    done
+
+    # Prune dead links that point into the store.
+    for link in "$agent_dir"/*; do
+        [ -L "$link" ] || continue
+        case "$(readlink "$link")" in
+            "$store"/*) [ -e "$link" ] || rm -f "$link" ;;
+        esac
+    done
+done

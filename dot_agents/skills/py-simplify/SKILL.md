@@ -1,6 +1,6 @@
 ---
 name: py-simplify
-description: Simplify and tighten Python code and tests to a strict house style (comments explain why not what, parameterized tests, __all__ exports, Final typing, walrus, late/compact variable definitions). Use when asked to simplify, tidy, or refactor Python for style — not to find bugs.
+description: Simplify and tighten Python code and tests to a strict house style (comments and docstrings explain why not what and stay concise, parameterized tests, __all__ exports, Final typing, walrus, late/compact variable definitions). Use when asked to simplify, tidy, or refactor Python for style — not to find bugs.
 ---
 
 Apply the rules below to the Python files in scope (the current diff, a named file, or the file under discussion). This
@@ -21,8 +21,9 @@ step above and must not be restated here.
 
 ## Rules
 
-1. **Comments explain why, not what.** Delete any comment that restates what the code does. Keep only comments giving
-   rationale the code can't show. Code should be self-documenting.
+1. **Comments and docstrings explain why, not what — concisely.** Delete any comment or docstring that restates what the
+   code does. Keep only those giving rationale the code can't show, and keep them as short as possible. Code should be
+   self-documenting.
 
 1. **Compact, late variable definitions.** Define each variable as late as possible, immediately before its first use —
    not at the top of a block.
@@ -70,6 +71,10 @@ step above and must not be restated here.
 
 01. **100% diff coverage.** Every line changed in the PR must be covered by tests, measured against the diff versus the
     merge base (not whole-repo coverage). Add tests for any uncovered changed line before the PR is ready.
+
+1. **Test through public APIs only.** Exercise behavior via the module's public interface; never import, call, or assert
+    on private (underscore-prefixed) functions, methods, or attributes directly. If private logic needs coverage, drive
+    it through the public entry point that uses it.
 
 Keep all other house conventions (type annotations everywhere, one assertion-concept per test, multiple test files over
 test classes) intact while applying these.
