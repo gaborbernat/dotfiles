@@ -4,9 +4,10 @@ function _u_stage -a name -d "Run one upgrade stage for u (one mprocs tab)"
             brew upgrade --yes
             and brew cleanup
         case uv
-            uv self update
-            and update_python
-            and uv tool upgrade --all
+            uv self update; and update_python; and uv tool upgrade --all
+            set -l ok $status
+            _u_uv_inventory
+            test $ok -eq 0
         case rust
             rustup update
         case cargo
@@ -19,6 +20,9 @@ function _u_stage -a name -d "Run one upgrade stage for u (one mprocs tab)"
             else
                 echo "all global packages already up to date"
             end
+            set -l ok $status
+            _u_npm_inventory
+            test $ok -eq 0
         case fisher
             fisher update
         case docker
@@ -46,4 +50,26 @@ function _u_stage -a name -d "Run one upgrade stage for u (one mprocs tab)"
     set -l rc $status
     test -n "$_U_STATUS_DIR"; and echo $rc >$_U_STATUS_DIR/$name
     return $rc
+end
+
+function _u_npm_inventory -d "List global npm packages with version and last-updated date"
+    set -l root (npm root -g)
+    echo
+    echo "Global npm packages (version · last updated):"
+    for spec in (npm ls -g --depth=0 2>/dev/null | string match -r '@?\S+@\S+$')
+        set -l pkg (string replace -r '@[^@]+$' '' $spec)
+        printf '  %-26s %-10s %s\n' $pkg (string replace -r '^.*@' '' $spec) \
+            (/usr/bin/stat -f '%Sm' -t '%Y-%m-%d %H:%M' "$root/$pkg" 2>/dev/null)
+    end
+end
+
+function _u_uv_inventory -d "List uv tools with version and last-updated date"
+    set -l tdir (uv tool dir 2>/dev/null)
+    echo
+    echo "uv tools (version · last updated):"
+    for line in (uv tool list 2>/dev/null | string match -rv '^([- ]|$)')
+        set -l parts (string split ' ' $line)
+        printf '  %-26s %-10s %s\n' $parts[1] (string replace -r '^v' '' $parts[2]) \
+            (/usr/bin/stat -f '%Sm' -t '%Y-%m-%d %H:%M' "$tdir/$parts[1]" 2>/dev/null)
+    end
 end
