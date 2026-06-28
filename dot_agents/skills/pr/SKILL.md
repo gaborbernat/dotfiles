@@ -61,6 +61,24 @@ Existing sessions remain unaffected. The retry logic uses exponential backoff
 to avoid hammering the auth provider.
 ```
 
+## Diagrams
+
+Include a mermaid diagram when it makes the change easier to grasp than prose alone — architecture, request/data flow, state transitions, or how components relate. Skip it for small or self-evident changes; never add one just to decorate.
+
+Color the diagram so it is easy on the eye and stays legible in both GitHub light and dark themes. Don't rely on default theme colors — they wash out on one side. Set explicit fills with `classDef`, using soft mid-tone fills, a saturated stroke, and dark text (`color:#...`) so contrast holds on both white and dark backgrounds. Use a small palette (2-3 classes) to group node types; keep fills muted, not neon.
+
+```mermaid
+flowchart LR
+    Client --> Auth{Token valid?}
+    Auth -- yes --> Handler[Request handler]
+    Auth -- expired --> Retry[Backoff retry]
+    Retry --> Auth
+    classDef accent fill:#cfe4ff,stroke:#1f6feb,color:#0b1f3a;
+    classDef warn fill:#ffe3a3,stroke:#d29200,color:#3a2c00;
+    class Client,Handler accent;
+    class Auth,Retry warn;
+```
+
 ## Labels
 
 Pick applicable labels from `enhancement`, `bug`, `documentation` based on the change type:
