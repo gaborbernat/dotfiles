@@ -24,7 +24,7 @@ Keep titles under 72 characters. The emoji goes at the start, pick one that matc
 
 ## Description Format
 
-Write in paragraphs, not bullet lists. Do not start with a header. Use 1-3 emoji sparingly throughout to highlight key points.
+Write in paragraphs, not bullet lists. Do not start with a header. Use 1-3 emoji sparingly throughout to highlight key points. Once the title and body are drafted, run them through the `no-slop` skill and apply its edits before creating or updating the PR.
 
 **Structure**:
 
