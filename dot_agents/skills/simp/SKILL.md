@@ -31,6 +31,11 @@ step above and must not be restated here.
    a short comment is encouraged rather than omitted: it captures rationale the code cannot, and doubles as durable
    context a coding agent will reliably read.
 
+1. **No section/grouping comments.** Never use a comment as a visual divider or section header to group code
+   (`# --- section a ---`, `# === helpers ===`, `# Setup`, banner bars). It restates structure the code already shows
+   and rots as code moves. If a block feels like it needs a label, that is a signal to extract a function or class with
+   a descriptive name instead.
+
 1. **Wrap to the configured line length.** Use the project's ruff `line-length` (`pyproject.toml`/`ruff.toml`; 120 if
    unset) for everything. `ruff format` already wraps code; manually reflow long comments and docstrings to the same
    width — ruff does not touch prose. No line should exceed the limit.
@@ -86,6 +91,11 @@ step above and must not be restated here.
 
 1. **Fixtures over setup duplication.** Extract repeated setup/teardown into fixtures.
 
+1. **No test classes — fold the grouping into the name.** Never group tests with a class. Use module-level test
+   functions and move what would have been the class name into a prefix on each test's name (`class TestParser` with
+   `test_handles_empty` → `test_parser_handles_empty`). When a group grows large, split it into a separate test
+   file/module rather than a class.
+
 1. **100% diff coverage.** Every line changed in the PR must be covered by tests, measured against the diff versus the
    merge base (not whole-repo coverage). Add tests for any uncovered changed line before the PR is ready.
 
@@ -117,5 +127,5 @@ step above and must not be restated here.
    When a path has no observable effect to assert (a defensive guard, an unreachable-without-a-bug invariant), do not
    manufacture a hollow test — delete it or exclude it per *No defensive code for impossible states*.
 
-Keep all other house conventions (type annotations everywhere, one assertion-concept per test, multiple test files over
-test classes) intact while applying these.
+Keep all other house conventions (type annotations everywhere, one assertion-concept per test) intact while applying
+these.
