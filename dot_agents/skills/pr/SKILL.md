@@ -36,6 +36,8 @@ Write in paragraphs, not bullet lists. Do not start with a header. Use 1-3 emoji
 
 **Formatting**:
 - Use backticks `` for quoting code, variables, file names, and technical terms (not double quotes "")
+- Only state what the diff or a reference proves. Don't speculate about behavior, performance, or intent you can't back up
+- When a reference exists (issue, ticket, design doc, spec, benchmark, prior PR or commit), weave the link into the sentence it supports rather than dumping it in a footer
 
 **Avoid**:
 - Mentioning tests or test coverage
@@ -43,6 +45,7 @@ Write in paragraphs, not bullet lists. Do not start with a header. Use 1-3 emoji
 - Adding yourself as co-author
 - Starting with a header like "## Summary"
 - Bullet-point lists of file changes
+- Marketing or hype language, and any claim or assumption not grounded in the diff or a cited reference
 - AI slop: filler phrases, throat-clearing openers, emphasis crutches, adverbs, vague declaratives, em dashes, passive voice, "not X but Y" contrasts, false agency (inanimate objects doing human verbs)
 
 **Good example**:
