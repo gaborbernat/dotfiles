@@ -12,7 +12,7 @@ import re
 import sys
 from typing import Final
 
-THRESHOLD: Final[int] = 80
+THRESHOLD: Final[int] = 100
 
 _WORDS: Final[frozenset[str]] = frozenset({
     "delve", "delves", "delving", "showcasing", "underscores", "intricate", "multifaceted", "nuanced",

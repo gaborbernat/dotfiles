@@ -39,9 +39,9 @@ Before delivering:
 ## Validate
 
 Always run the gate on the rewrite before delivering: `python3 scripts/slop_score.py <file>` (resolve the path against
-this skill's directory; pipe text on stdin instead of a file when there's no file). If it scores below 80, fix the
-flagged hits and rerun until it clears. Then confirm every fact survived. For a deeper check, A/B the before and after
-with a blind judge and keep the one a reader prefers.
+this skill's directory; pipe text on stdin instead of a file when there's no file). It must score 100/100; fix every
+flagged hit and rerun until it does. Then confirm every fact survived. For a deeper check, A/B the before and after with
+a blind judge and keep the one a reader prefers.
 
 ## Examples
 
