@@ -43,8 +43,9 @@ step above and must not be restated here.
 1. **Compact, late variable definitions.** Define each variable as late as possible, immediately before its first use —
    not at the top of a block.
 
-1. **No single-use variables.** A variable used only once must be inlined. Exception: keep the variable when naming it
-   makes the code more compact *and* more readable (e.g. it untangles a deeply nested expression).
+1. **Inline single-use variables.** Strongly prefer inlining the value at its point of use. A variable earns its name
+   only when its value is used in two or more places, or when naming it genuinely makes the code more compact (e.g. it
+   untangles a deeply nested expression instead of repeating it) without hurting readability. Otherwise inline it.
 
 1. **Walrus where it helps.** Use `:=` whenever it makes the code more compact without hurting readability.
 
@@ -106,14 +107,14 @@ step above and must not be restated here.
    cheating and not allowed. Cover it through the public caller instead.
 
 1. **Mock only true boundaries; never hand-roll fakes.** Exercise real collaborators by default. Reach for a mock only
-   at a genuine seam you cannot run in-process — network, clock, filesystem, subprocess. Always go through
-   `pytest-mock`'s `mocker` fixture (never import from `unittest.mock`), and never write a bespoke fake/stub class. When
-   a real class/function exists to spec against, prefer `mocker.create_autospec(Target)` over a raw mock so the mock
-   keeps the real signature and fails when the API drifts; fall back to `mocker.MagicMock` only when there is nothing to
-   spec. Build mocks compactly by passing attributes/return values to the constructor —
-   `mocker.MagicMock(name="x", total=3)` — rather than defining the mock and then assigning fields line by line. A test
-   built mostly of mocks asserting mock calls tests the mock, not the code — prefer one integration test through the
-   real path.
+   at a genuine seam you cannot run in-process — network, clock, filesystem, subprocess. Prefer `pytest-mock`'s `mocker`
+   fixture; only fall back to stdlib `unittest.mock` when `mocker` isn't available (e.g. code outside a test where the
+   fixture can't be injected). Never write a bespoke fake/stub class. When a real class/function exists to spec against,
+   prefer `create_autospec(Target)` over a raw mock so the mock keeps the real signature and fails when the API drifts;
+   fall back to a plain `MagicMock` only when there is nothing to spec. Build mocks compactly by passing
+   attributes/return values to the constructor — `mocker.MagicMock(name="x", total=3)` — rather than defining the mock
+   and then assigning fields line by line. A test built mostly of mocks asserting mock calls tests the mock, not the
+   code — prefer one integration test through the real path.
 
 1. **Every test must be able to fail for the right reason.** Breaking the behavior a test targets must make that test
    fail; reaching a line or branch is not the same as testing it, and a test that passes regardless is as empty as no
