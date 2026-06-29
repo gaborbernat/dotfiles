@@ -1,36 +1,47 @@
 ---
 name: no-slop
-description: Remove AI writing patterns from prose. Use when drafting, editing, or reviewing text to eliminate predictable AI tells like filler phrases, throat-clearing, emphasis crutches, vague declaratives, and formulaic structures.
+description: Remove AI writing patterns from prose and code artifacts (PRs, commits, comments, docstrings, docs). Use when drafting, editing, or reviewing text to eliminate predictable AI tells like filler, throat-clearing, emphasis crutches, vague declaratives, and formulaic structures.
 ---
 
-Eliminate predictable AI writing patterns from prose. Based on [stop-slop](https://github.com/hardikp/stop-slop).
+Strip AI tells, then restore a human voice. Two passes.
 
-## Core Rules
+## Pass 1 — strip
 
-1. **Cut filler phrases.** Remove throat-clearing openers, emphasis crutches, and all adverbs. See [references/phrases.md](references/phrases.md).
-2. **Break formulaic structures.** Avoid binary contrasts, negative listings, dramatic fragmentation, rhetorical setups, false agency. See [references/structures.md](references/structures.md).
-3. **Use active voice.** Every sentence needs a human subject doing something. No passive constructions. No inanimate objects performing human actions.
-4. **Be specific.** No vague declaratives ("The reasons are structural"). Name the specific thing. No lazy extremes ("every," "always," "never") doing vague work.
-5. **Put the reader in the room.** No narrator-from-a-distance voice. "You" beats "People." Specifics beat abstractions.
-6. **Vary rhythm.** Mix sentence lengths. Two items beat three. End paragraphs differently. No em dashes.
-7. **Trust readers.** State facts directly. Skip softening, justification, hand-holding.
-8. **Cut quotables.** If it sounds like a pull-quote, rewrite it.
+1. Cut filler: throat-clearing openers, emphasis crutches, all adverbs. See
+   [references/phrases.md](references/phrases.md).
+1. Cut AI vocabulary and copula avoidance. See [references/lexicon.md](references/lexicon.md).
+1. Break formulaic structures: binary contrasts, negative listing, dramatic fragmentation, rhetorical setups, false
+   agency, significance inflation, elegant variation, copula chains. See
+   [references/structures.md](references/structures.md).
+1. Active voice, human subject. No passive, no inanimate actors.
+1. Be specific. No vague declaratives, no lazy extremes (every/always/never).
+1. Vary rhythm. Mix sentence lengths, two items beat three. No em dashes, no colon-drama, no markdown over-structuring.
+1. Trust readers. State facts directly; no softening, no quotables.
 
-## Quick Checks
+## Pass 2 — voice
 
-Before delivering prose:
+Restore a human voice without re-adding slop. See [references/voice.md](references/voice.md).
 
-- Any adverbs? Kill them.
-- Any passive voice? Find the actor, make them the subject.
-- Inanimate thing doing a human verb ("the decision emerges")? Name the person.
-- Sentence starts with a Wh- word? Restructure it.
-- Any "here's what/this/that" throat-clearing? Cut to the point.
-- Any "not X, it's Y" contrasts? State Y directly.
-- Three consecutive sentences match length? Break one.
-- Paragraph ends with punchy one-liner? Vary it.
-- Em-dash anywhere? Remove it.
-- Vague declarative ("The implications are significant")? Name the specific implication.
+## Code artifacts
+
+PRs, commits, comments, docstrings, naming, structure: see [references/code.md](references/code.md). For Python style
+run `/simp`.
+
+## Quick checks
+
+Before delivering:
+
+- Adverb, passive voice, inanimate actor, Wh-opener, "here's what/this" → cut or recast.
+- "not X, it's Y" contrast, three same-length sentences, punchy one-line ending → state directly, vary.
+- Em dash, drama colon, over-structured markdown, a phrase repeated across paragraphs → remove.
+- AI-word (lexicon), vague declarative, significance inflation → name the specific thing.
+- Optional gate: `python3 scripts/slop_score.py FILE` (0-100, aim for 80+).
+
+## Validate
+
+After rewriting, confirm every fact survived and the slop is gone. For a real check, A/B the before and after with a
+blind judge and keep the one a reader prefers.
 
 ## Examples
 
-See [references/examples.md](references/examples.md) for before/after transformations.
+See [references/examples.md](references/examples.md).
