@@ -66,7 +66,7 @@ to avoid hammering the auth provider.
 
 ## Diagrams
 
-Include a mermaid diagram when it makes the change easier to grasp than prose alone — architecture, request/data flow, state transitions, or how components relate. Skip it for small or self-evident changes; never add one just to decorate.
+Include a mermaid diagram only when the graph is non-trivial and genuinely makes the change easier to grasp than prose alone — architecture, request/data flow, state transitions, or how components relate. Skip it for trivial or self-evident graphs (a couple of nodes, a linear A→B→C flow) and never add one just to decorate.
 
 Color the diagram so it is easy on the eye and stays legible in both GitHub light and dark themes. Don't rely on default theme colors — they wash out on one side. Set explicit fills with `classDef`, using soft mid-tone fills, a saturated stroke, and dark text (`color:#...`) so contrast holds on both white and dark backgrounds. Use a small palette (2-3 classes) to group node types; keep fills muted, not neon.
 
