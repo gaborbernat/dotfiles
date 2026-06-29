@@ -41,13 +41,16 @@ Before delivering:
 The rules above are the work. Apply every one of them by hand to every draft — phrases, structures, lexicon, voice, and
 code. That is what de-slopping is.
 
-The script is a dumb backstop that matches a small hardcoded subset of patterns. A 100/100 is necessary but never
-sufficient: text can score 100 and still be slop. Never treat the gate as the goal, as "done," or as a substitute for
-the rules.
+The script is a dumb backstop that matches a small hardcoded subset of patterns. Passing it is necessary but never
+sufficient: text can pass and still be slop. Never treat the script as the goal, as "done," or as a substitute for the
+rules.
 
-After applying every rule, run the gate as a final floor: `uv run scripts/slop_score.py <file>` (resolve the path
-against this skill's directory; pipe text on stdin when there's no file). A score below 100 means you missed obvious
-hits — fix them and rerun. A 100 means keep going on everything the script can't see. Then confirm every fact survived.
+After applying every rule, run it as a final check: `uv run scripts/slop_score.py <file>` (resolve the path against this
+skill's directory; pipe text on stdin when there's no file). It prints two lines. GATE flags AI-unambiguous tells and
+must read 100 — any hit fails the run, so fix every gate hit and rerun until it clears. ADVISORY grades the stricter
+style layer (adverbs, passive voice, weak hedges, rhythm, over-structured markdown) and lists each nit; it stays low
+even on good human prose, so don't chase 100 there, but read every finding and fix what the rules call for. Then confirm
+every fact survived.
 
 ## Examples
 
