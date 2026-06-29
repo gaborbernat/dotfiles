@@ -38,10 +38,16 @@ Before delivering:
 
 ## Validate
 
-Always run the gate on the rewrite before delivering: `uv run scripts/slop_score.py <file>` (resolve the path against
-this skill's directory; pipe text on stdin instead of a file when there's no file). It must score 100/100; fix every
-flagged hit and rerun until it does. Then confirm every fact survived. For a deeper check, A/B the before and after with
-a blind judge and keep the one a reader prefers.
+The rules above are the work. Apply every one of them by hand to every draft — phrases, structures, lexicon, voice, and
+code. That is what de-slopping is.
+
+The script is a dumb backstop that matches a small hardcoded subset of patterns. A 100/100 is necessary but never
+sufficient: text can score 100 and still be slop. Never treat the gate as the goal, as "done," or as a substitute for
+the rules.
+
+After applying every rule, run the gate as a final floor: `uv run scripts/slop_score.py <file>` (resolve the path
+against this skill's directory; pipe text on stdin when there's no file). A score below 100 means you missed obvious
+hits — fix them and rerun. A 100 means keep going on everything the script can't see. Then confirm every fact survived.
 
 ## Examples
 

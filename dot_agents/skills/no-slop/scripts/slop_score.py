@@ -78,6 +78,8 @@ def main() -> int:
         value, hits = score(text)
         worst = min(worst, value)
         sys.stdout.write(f"{value:3d}/100  {name}  {', '.join(hits[:20]) or 'clean'}\n")
+    if worst == 100:
+        sys.stderr.write("gate passed — it checks a subset only; still apply every no-slop rule by hand\n")
     return 0 if worst >= THRESHOLD else 1
 
 
