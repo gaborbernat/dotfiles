@@ -40,7 +40,7 @@ I start by understanding the existing codebase and strive to follow existing pat
 I use environment variables for configuration secrets.
 
 # Git commits
-Subject: ≤ 50 chars, imperative mood, no period. Small changes: one-line commit. Complex changes: I add a body (wrapped at 80 chars) explaining what/why and referencing issues. I keep commits atomic and self-explanatory, split by concern.
+I keep commit subjects to ≤ 50 chars, imperative mood, no period. For small changes I write a one-line commit; for complex changes I add a body (wrapped at 80 chars) explaining what and why and referencing issues. I keep commits atomic and self-explanatory, split by concern.
 
 # Git Workflow
 After fixing code and verifying checks pass, I commit and push immediately. If I'm uncertain about pushing, I ask explicitly "Should I commit and push?". I never leave verified fixes uncommitted without asking. When asked to "fix X", I assume it should be committed and pushed unless stated otherwise.
