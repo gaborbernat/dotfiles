@@ -83,6 +83,11 @@ step above and must not be restated here.
    it would lose a genuinely-untestable safety net (an allocation failure, an exhaustive-`switch` default the compiler
    requires) — exclude it from coverage with a one-line justification, never a hollow test.
 
+1. **Compare composite values in one check.** When comparing or asserting a structured value (dict, list, tuple,
+   dataclass, model), compare the whole object with a single `==` against one expected literal rather than picking it
+   apart field by field across several comparisons. One equality reads better, gives a full diff on failure, and can't
+   drift out of sync. Break it up only when you genuinely assert on a subset.
+
 ### Test rules
 
 1. **Parameterize.** Collapse near-duplicate test functions into a single `@pytest.mark.parametrize` using
