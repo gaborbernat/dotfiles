@@ -40,12 +40,10 @@ step above and must not be restated here.
    unset) for everything. `ruff format` already wraps code; manually reflow long comments and docstrings to the same
    width — ruff does not touch prose. No line should exceed the limit.
 
-1. **Compact, late variable definitions.** Define each variable as late as possible, immediately before its first use —
-   not at the top of a block.
-
-1. **Inline single-use variables.** Strongly prefer inlining the value at its point of use. A variable earns its name
-   only when its value is used in two or more places, or when naming it genuinely makes the code more compact (e.g. it
-   untangles a deeply nested expression instead of repeating it) without hurting readability. Otherwise inline it.
+1. **Compact, late variables.** Define each variable as late as possible, immediately before its first use — not at the
+   top of a block. Strongly prefer inlining single-use values at their point of use: a variable earns its name only when
+   its value is used in two or more places, or when naming it genuinely makes the code more compact (e.g. it untangles a
+   deeply nested expression instead of repeating it) without hurting readability.
 
 1. **Walrus where it helps.** Use `:=` whenever it makes the code more compact without hurting readability.
 
