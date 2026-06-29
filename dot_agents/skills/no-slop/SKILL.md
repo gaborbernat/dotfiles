@@ -35,12 +35,13 @@ Before delivering:
 - "not X, it's Y" contrast, three same-length sentences, punchy one-line ending → state directly, vary.
 - Em dash, drama colon, over-structured markdown, a phrase repeated across paragraphs → remove.
 - AI-word (lexicon), vague declarative, significance inflation → name the specific thing.
-- Optional gate: `python3 scripts/slop_score.py FILE` (0-100, aim for 80+).
 
 ## Validate
 
-After rewriting, confirm every fact survived and the slop is gone. For a real check, A/B the before and after with a
-blind judge and keep the one a reader prefers.
+Always run the gate on the rewrite before delivering: `python3 scripts/slop_score.py <file>` (resolve the path against
+this skill's directory; pipe text on stdin instead of a file when there's no file). If it scores below 80, fix the
+flagged hits and rerun until it clears. Then confirm every fact survived. For a deeper check, A/B the before and after
+with a blind judge and keep the one a reader prefers.
 
 ## Examples
 
