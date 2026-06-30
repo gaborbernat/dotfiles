@@ -40,12 +40,13 @@ idioms, mapping the Python specifics yourself (its formatter for `ruff`, its tes
    to the same width, since formatters do not touch prose. No line should exceed the limit.
 
 1. **Compact, late variables.** Define each variable as late as possible, immediately before its first use — not at the
-   top of a block. Inline single-use local values at their point of use. A local earns a name only when its value is
-   used in two or more places, or when a concrete necessity forces it (the inlined form exceeds the line limit, or the
-   identical subexpression repeats within one statement). Readability, documenting intent, visual symmetry, and giving a
-   comment a home are not exceptions — inline the value and put any comment at the use site. A genuine module-scope
-   configuration or taxonomy constant stays named (and typed `Final` in Python); lifting a one-off local to module scope
-   only to name or comment it does not make it one.
+   top of a block. Inline single-use local values at their point of use. A local earns a name when its value is used in
+   two or more places, or when naming it makes the code more compact — most often because inlining would wrap the
+   statement across several lines (a long log or exception message, a nested call argument), or because the identical
+   subexpression repeats within one statement. Prefer the named two-line form over the inlined multi-line explosion.
+   Readability, documenting intent, visual symmetry, and giving a comment a home are not exceptions — inline the value
+   and put any comment at the use site. A genuine module-scope configuration or taxonomy constant stays named (and typed
+   `Final` in Python); lifting a one-off local to module scope only to name or comment it does not make it one.
 
 1. **Descriptive names.** Give every name a descriptive word. Single-character names are allowed only as loop or
    comprehension targets (`[x.id for x in rows]`); everywhere else name the thing.
