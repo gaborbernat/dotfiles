@@ -50,6 +50,11 @@ _NGRAM_MIN_COUNT: Final[int] = 3
 _PITHY_MAX_WORDS: Final[int] = 6
 _SHORT_TEXT_WORDS: Final[int] = 10
 _MAX_SHOWN: Final[int] = 14
+_REMINDER: Final[str] = (
+    "\nThe script is a backstop, not the work: it catches only a fraction of the rules, so passing it is not\n"
+    "completion. Before delivering, apply every reference by hand - phrases.md, structures.md, lexicon.md, voice.md,\n"
+    "code.md - then resolve each ADVISORY finding above. Re-read any reference you skipped.\n"
+)
 
 _Spec = tuple[str, int, bool, tuple[str, ...]]
 _CompiledSpec = tuple[str, int, bool, re.Pattern[str]]
@@ -414,8 +419,7 @@ def main() -> int:
     failed = False
     for name, text in read_inputs():
         failed = report(name, text) or failed
-    if not failed:
-        sys.stderr.write("gate passed — it checks a subset only; still apply every no-slop rule by hand\n")
+    sys.stderr.write(_REMINDER)
     return 1 if failed else 0
 
 

@@ -36,8 +36,10 @@ Write in paragraphs, not bullet lists. Do not start with a header. Use 1-3 emoji
 
 **Formatting**:
 - Use backticks `` for quoting code, variables, file names, and technical terms (not double quotes "")
+- Never hard-wrap the body. Write each paragraph as one physical line — GitHub renders the markdown, so manual line breaks mid-paragraph show up as broken lines in the rendered PR
 - Only state what the diff or a reference proves. Don't speculate about behavior, performance, or intent you can't back up
 - When a reference exists (issue, ticket, design doc, spec, benchmark, prior PR or commit), weave the link into the sentence it supports rather than dumping it in a footer
+- Set the body from a file: write it with the Write tool, then `gh pr create/edit --body-file <file>`. Never pass the body inline (`--body "..."` or a heredoc) — the shell runs backticks and `$(...)` as command substitution and mangles every code span. A file avoids all shell escaping
 
 **Avoid**:
 - Mentioning tests or test coverage
@@ -45,6 +47,7 @@ Write in paragraphs, not bullet lists. Do not start with a header. Use 1-3 emoji
 - Adding yourself as co-author
 - Starting with a header like "## Summary"
 - Bullet-point lists of file changes
+- Hard-wrapping paragraphs with manual mid-paragraph newlines
 - Marketing or hype language, and any claim or assumption not grounded in the diff or a cited reference
 - AI slop: filler phrases, throat-clearing openers, emphasis crutches, adverbs, vague declaratives, em dashes, passive voice, "not X but Y" contrasts, false agency (inanimate objects doing human verbs)
 
@@ -104,7 +107,7 @@ Pick applicable labels from `enhancement`, `bug`, `documentation` based on the c
 7. Create with:
 
 ```bash
-gh pr create --title "..." --body "..." --label "<labels>"
+gh pr create --title "..." --body-file <file> --label "<labels>"
 ```
 
 ### Updating an existing PR
@@ -115,4 +118,4 @@ gh pr create --title "..." --body "..." --label "<labels>"
 4. Draft title following Commitizen format with emoji
 5. Write description paragraphs explaining why and how
 6. Determine labels from the change type
-7. Update with `gh pr edit <number> --title "..." --body "..."` and add missing labels
+7. Update with `gh pr edit <number> --title "..." --body-file <file>` and add missing labels

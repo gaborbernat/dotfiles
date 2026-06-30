@@ -5,6 +5,11 @@ description: Remove AI writing patterns from prose and code artifacts (PRs, comm
 
 Strip AI tells, then restore a human voice. Two passes.
 
+This is a by-hand editing task. You must read and apply every rule below to the draft yourself. The script
+(`scripts/slop_score.py`) is a backstop that catches only a fraction of the patterns: it never replaces the rules, and a
+passing score is not completion. Running the script instead of applying the rules is the most common way to do this
+wrong.
+
 ## Pass 1 — strip
 
 1. Cut filler: throat-clearing openers, emphasis crutches, all adverbs. See
