@@ -15,8 +15,10 @@ fix. "It reads nicer", "it documents intent", "it keeps things symmetric", "it i
 as "could" or "I think" are not exceptions; when that is the only justification, the rule wins. Do not invent a reason
 to keep a violation.
 
-Rules are organized per language. Only **Python** is defined today. When working in another language, apply the *spirit*
-of the matching Python rule — its closest idiomatic equivalent — until a dedicated section for that language exists.
+The rules are stated with Python examples and tools (`ruff`, `pytest`, `Final`, `__all__`), but their spirit is
+language-agnostic. In another language, apply the closest idiomatic equivalent — map the Python specifics to that
+language (its formatter for `ruff`, its test framework for `pytest`) and skip the few mechanics with no analog. Work out
+the mapping yourself.
 
 ## Python
 
@@ -102,7 +104,8 @@ step above and must not be restated here.
 1. **Parameterize.** Collapse near-duplicate test functions into a single `@pytest.mark.parametrize` using
    `pytest.param(..., id="...")` for each case. Always give a readable `id`.
 
-1. **Fixtures over setup duplication.** Extract repeated setup/teardown into fixtures.
+1. **Fixtures over setup duplication.** Extract repeated setup/teardown into fixtures, and prefer fixture injection over
+   helper methods wherever a fixture fits.
 
 1. **No test classes — fold the grouping into the name.** Never group tests with a class. Use module-level test
    functions and move what would have been the class name into a prefix on each test's name (`class TestParser` with
