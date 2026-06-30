@@ -8,7 +8,10 @@ set -eu
 store="$HOME/.agents/skills"
 [ -d "$store" ] || exit 0
 
-for agent_dir in "$HOME/.claude/skills" "$HOME/.codex/skills"; do
+agent_dirs="$HOME/.claude/skills $HOME/.codex/skills"
+[ -n "${CLAUDE_CONFIG_DIR:-}" ] && agent_dirs="$agent_dirs $CLAUDE_CONFIG_DIR/skills"
+
+for agent_dir in $agent_dirs; do
     mkdir -p "$agent_dir"
 
     # Link every store skill into the agent dir (never touch codex's own .system).
