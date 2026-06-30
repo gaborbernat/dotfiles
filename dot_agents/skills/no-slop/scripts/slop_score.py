@@ -7,15 +7,15 @@
 Usage: slop_score.py FILE...   |   echo "text" | slop_score.py
 
 GATE lists AI-unambiguous tells that good human prose does not contain (delve,
-"not just X but Y", AI self-disclosure, brochure language). Any hit drops the
-gate below 100; the run fails when the gate is under the pass threshold. Benchmarked
-to stay at 100 on pre-AI human technical writing.
+"not just X but Y", AI self-disclosure, brochure language). Any hit fails the
+run. Calibrated against a pre-AI human corpus so genuine technical writing stays
+at 100.
 
 ADVISORY is the stricter no-slop style layer plus statistical signals (em dashes,
-adverbs, passive voice, weak hedges, uniform rhythm, over-structured markdown).
-Human writing trips these too, so they never fail the run; they show what to keep
-fixing. A clean gate is necessary, never sufficient: apply every no-slop rule by
-hand regardless.
+adverbs, passive voice, weak hedges, chatbot tone, copula avoidance, uniform
+rhythm, over-structured markdown). Human writing trips these too, so they never
+fail the run; they show what to keep fixing. A clean gate is necessary, never
+sufficient: apply every no-slop rule by hand regardless.
 
 Scoring (density per 1000 words, exponential decay, concentration multiplier on
 clustered tells), tiers, and word lists are adapted from eric-tramel/slop-guard,
@@ -62,27 +62,14 @@ _GATE: Final[tuple[_Spec, ...]] = (
         False,
         (
             r"\bas an ai\b",
-            r"\bas a large language model\b",
-            r"\bi'?m an ai\b",
-            r"\bi cannot\b",
-            r"\bi can'?t provide\b",
-            r"\bi hope this helps\b",
-            r"\bi hope (?:this|that) is helpful\b",
-            r"\bwould you like me to\b",
-            r"\blet me know if you\b",
-            r"\bis there anything else\b",
-            r"\bcertainly!",
-            r"\bof course!",
-            r"\bgreat question\b",
-            r"\byou'?re absolutely right\b",
-            r"\bhappy to help\b",
-            r"\bfeel free to\b",
-            r"\bdon'?t hesitate to\b",
+            r"\bas a (?:large )?language model\b",
+            r"\bi'?m (?:just )?an ai\b",
+            r"\bas of my (?:last )?(?:training|knowledge|update)\b",
             r"\bup to my last (?:training|update)\b",
-            r"\bas of my last\b",
-            r"\bat the time of writing\b",
-            r"\bto my knowledge\b",
-            r"\bbased on available information\b",
+            r"\bknowledge cut-?off\b",
+            r"\bi don'?t have (?:access to )?real-?time\b",
+            r"\bi can'?t provide\b",
+            r"\bi'?m unable to (?:browse|access)\b",
         ),
     ),
     (
@@ -145,7 +132,6 @@ _GATE: Final[tuple[_Spec, ...]] = (
             r"\bi'?ll say it again\b",
             r"\bi'?m going to be honest\b",
             r"\bcan we talk about\b",
-            r"\bthe real \w+ is\b",
         ),
     ),
     (
@@ -156,13 +142,7 @@ _GATE: Final[tuple[_Spec, ...]] = (
             r"\bplot twist\b",
             r"\bspoiler:?",
             r"\byou already know this\b",
-            r"\bbut that'?s another\b",
             r"\ba feature,? not a bug\b",
-            r"\blet me walk you through\b",
-            r"\bin this section\b",
-            r"\bas we'?ll see\b",
-            r"\bi want to explore\b",
-            r"\bthe rest of this (?:essay|post|article)\b",
         ),
     ),
     (
@@ -279,26 +259,12 @@ _GATE: Final[tuple[_Spec, ...]] = (
         ),
     ),
     (
-        "copula-avoidance",
-        -2,
-        False,
-        (
-            r"\bserves as\b",
-            r"\bacts as\b",
-            r"\bfunctions as\b",
-            r"\bstands as\b",
-            r"\boperates as\b",
-            r"\bplays host to\b",
-        ),
-    ),
-    (
         "ai-vocabulary",
         -2,
         False,
         (
             r"\bdelv(?:e|es|ed|ing)\b",
             r"\bshowcas(?:e|es|ed|ing)\b",
-            r"\bunderscor(?:es|ing)\b",
             r"\bmultifaceted\b",
             r"\bnuanced\b",
             r"\bmeticulous(?:ly)?\b",
@@ -312,10 +278,7 @@ _GATE: Final[tuple[_Spec, ...]] = (
             r"\bintricac(?:y|ies)\b",
             r"\bintricate\b",
             r"\bfostering\b",
-            r"\bgarner(?:s|ing|ed)?\b",
             r"\bsymboliz(?:e|es|ing)\b",
-            r"\borchestrat(?:e|es|ed|ing)\b",
-            r"\bparadigm\b",
             r"\blabyrinthine\b",
             r"\bpalpable\b",
             r"\btranscend(?:s|ed|ing)?\b",
@@ -367,14 +330,22 @@ _ADVISORY_WORDS: Final[dict[str, tuple[str, ...]]] = {
     ),
     "vague transitions": ("additionally", "moreover", "furthermore"),
 }
-# Unattributed authority with no named source. Literal phrase alternation, so kept plain (verbose would need every
-# space escaped).
+# Chatbot pleasantries: strong AI signal but humans use them too, so advisory not gate.
+_CHATBOT: Final[re.Pattern[str]] = re.compile(
+    r"\b(?:feel free to|don'?t hesitate to|happy to help|of course!|certainly!|great question"
+    r"|you'?re absolutely right|is there anything else|let me know if|would you like me to"
+    r"|i hope this (?:helps|is helpful)|to my knowledge|based on available information)",
+    re.IGNORECASE,
+)
+# Copula avoidance: inflated linking verb dodging a plain "is". Common enough in human prose to be advisory.
+_COPULA: Final[re.Pattern[str]] = re.compile(
+    r"\b(?:serves as|acts as|functions as|stands as|operates as|plays host to)\b", re.IGNORECASE
+)
 _WEASEL: Final[re.Pattern[str]] = re.compile(
     r"\b(?:studies show|research suggests|experts? (?:say|argue)|critics? argue|it is widely believed|"
     r"many (?:argue|believe)|observers have|industry reports|is widely recognized|has been featured in)\b",
     re.IGNORECASE,
 )
-# Filler transitions that announce a pivot instead of making one. Anchored to a sentence start.
 _GENERIC_TRANSITION: Final[re.Pattern[str]] = re.compile(
     r"(?:^|\.\s+)(?:that said|moving on|with that in mind|in conclusion|in summary|to sum up),?",
     re.IGNORECASE,
@@ -434,12 +405,6 @@ _PASSIVE: Final[re.Pattern[str]] = re.compile(
 _RULE_OF_THREE: Final[re.Pattern[str]] = re.compile(
     r"""
     \b \w+ , \s+ \w+ ,? \s+ and \s+ \w+ \b   # tricolon: "item, item, and item"
-    """,
-    re.VERBOSE,
-)
-_CONTRACTION: Final[re.Pattern[str]] = re.compile(
-    r"""
-    \b \w+ ' (?: t | s | re | ve | ll | d | m ) \b   # it's, don't, we'll, I'm
     """,
     re.VERBOSE,
 )
@@ -510,6 +475,8 @@ def _advisory_signals(text: str, words: list[str]) -> list[tuple[str, int, int]]
         ("puff adjectives", sum(counts[word] for word in _ADVISORY_WORDS["puff adjectives"]), 1),
         ("vague transitions", sum(counts[word] for word in _ADVISORY_WORDS["vague transitions"]), 1),
         ("-ly adverbs", _count_adverbs(words), 1),
+        ("chatbot tone", len(_CHATBOT.findall(text)), 2),
+        ("copula avoidance", len(_COPULA.findall(text)), 1),
         ("weasel attribution", len(_WEASEL.findall(text)), 2),
         ("generic transitions", len(_GENERIC_TRANSITION.findall(text)), 1),
         ("em dashes", text.count(chr(0x2014)) + text.count(chr(0x2013)), 3),
@@ -524,7 +491,6 @@ def _advisory_signals(text: str, words: list[str]) -> list[tuple[str, int, int]]
         ("bold-bullet run", int(bold_bullets >= _BOLD_BULLET_RUN_MIN), 5),
         ("repeated phrases", _repeated_ngrams(words), 1),
         ("pithy fragments", _pithy_fragments(text), 2),
-        ("no contractions", int(_no_contractions(text)), 2),
     ]
 
 
@@ -564,11 +530,6 @@ def _pithy_fragments(text: str) -> int:
     return sum(
         1 for part in _SENT_SPLIT.split(text) if "," in part and 0 < len(_WORD.findall(part)) <= _PITHY_MAX_WORDS
     )
-
-
-def _no_contractions(text: str) -> bool:
-    sentences = sum(1 for part in _SENT_SPLIT.split(text) if part.strip())
-    return sentences >= _RHYTHM_MIN_SENTENCES and not _CONTRACTION.search(text)
 
 
 def _concentrated(count: int) -> float:
