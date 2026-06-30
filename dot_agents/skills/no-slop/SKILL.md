@@ -51,11 +51,14 @@ sufficient: text can pass and still be slop. Never treat the script as the goal,
 rules.
 
 After applying every rule, run it as a final check: `uv run scripts/slop_score.py <file>` (resolve the path against this
-skill's directory; pipe text on stdin when there's no file). It prints two lines. GATE flags AI-unambiguous tells and
-must read 100 — any hit fails the run, so fix every gate hit and rerun until it clears. ADVISORY grades the stricter
-style layer (adverbs, passive voice, weak hedges, rhythm, over-structured markdown) and lists each nit; it stays low
-even on good human prose, so don't chase 100 there, but read every finding and fix what the rules call for. Then confirm
-every fact survived.
+skill's directory; pipe text on stdin when there's no file). For prose it prints three lines. GATE flags AI-unambiguous
+tells and must read 100 — any hit fails the run, so fix every gate hit and rerun until it clears. ADVISORY grades the
+stricter style layer (adverbs, passive voice, weak hedges, rhythm, over-structured markdown) and lists each nit; it
+stays low even on good human prose, so don't chase 100 there, but read every finding and fix what the rules call for.
+VOICE reports the fingerprint against the author's profile (no contractions, no em dashes, varied rhythm, concrete
+numbers) and flags anything off-profile. For a source file (`.py`, `.ts`, ...) it prints a CODE line instead: banner
+comments, narrator comments, filler-noun classes (`FooManager`/`Helper`/`Util`), and tautological docstrings. Then
+confirm every fact survived.
 
 ## Examples
 

@@ -413,6 +413,37 @@ _RULE_OF_THREE: Final[re.Pattern[str]] = re.compile(
     """,
     re.VERBOSE,
 )
+_CONTRACTION: Final[re.Pattern[str]] = re.compile(r"\b\w+'(?:t|s|re|ve|ll|d|m)\b")
+_NUMBER: Final[re.Pattern[str]] = re.compile(r"\b\d[\d,.]*\b")
+_CODE_EXTS: Final[frozenset[str]] = frozenset({
+    ".py",
+    ".pyi",
+    ".js",
+    ".ts",
+    ".tsx",
+    ".jsx",
+    ".go",
+    ".rs",
+    ".java",
+    ".rb",
+    ".c",
+    ".cpp",
+    ".cc",
+    ".h",
+    ".hpp",
+})
+_VOICE_CV_FLOOR: Final[float] = 0.45
+_VOICE_NUMBERS_FLOOR: Final[float] = 3.0
+# (category, penalty, pattern). Calibrated to zero hits on the author's real source (virtualenv, tox, build).
+_CODE: Final[tuple[tuple[str, int, str], ...]] = (
+    ("section-banner comment", -3, r"(?m)^[ \t]*(?:#|//)[ \t]*[-=*~_]{3,}"),
+    ("narrator comment", -2, r"(?im)^[ \t]*(?:#|//)[ \t]*(?:now we\b|we [a-z]|let'?s\b|first,? we\b|next,? we\b)"),
+    ("filler-noun class", -2, r"\bclass\s+[A-Za-z0-9_]+(?:Manager|Helper|Utils?|Wrapper|Processor)\b"),
+    ("tautological docstring", -2, r'(?i)"""\s*(?:returns?|gets?|sets?|runs?|creates?|does?|handles?)\.?\s*"""'),
+)
+_CODE_COMPILED: Final[tuple[tuple[str, int, re.Pattern[str]], ...]] = tuple(
+    (name, penalty, re.compile(pattern)) for name, penalty, pattern in _CODE
+)
 
 
 def main() -> int:
@@ -430,6 +461,8 @@ def read_inputs() -> list[tuple[str, str]]:
 
 
 def report(name: str, text: str) -> bool:
+    if pathlib.Path(name).suffix in _CODE_EXTS:
+        return code_report(name, text)
     words = _WORD.findall(text.lower())
     if len(words) < _SHORT_TEXT_WORDS:
         sys.stdout.write(f"GATE  --/100  {name}  (too short)\n")
@@ -441,8 +474,43 @@ def report(name: str, text: str) -> bool:
     sys.stdout.write(
         f"GATE  {gate:3d}/100  {name}  {summarize(gate_hits) or 'clean'}\n"
         f"ADVISORY  {advisory_score:3d}/100 ({_band(advisory_score)})  {summarize(advisory_hits) or 'clean'}\n"
+        f"{_voice_line(text, words)}\n"
     )
     return bool(gate_hits)
+
+
+def code_report(name: str, text: str) -> bool:
+    words = _WORD.findall(text)
+    hits: Counter[str] = Counter()
+    penalty = 0.0
+    for category, weight, pattern in _CODE_COMPILED:
+        if count := len(pattern.findall(text)):
+            hits[category] = count
+            penalty += abs(weight) * count
+    score = score_from_density(penalty, len(words)) if words else 100
+    sys.stdout.write(f"CODE  {score:3d}/100 ({_band(score)})  {name}  {summarize(hits) or 'clean'}\n")
+    return False
+
+
+def _voice_line(text: str, words: list[str]) -> str:
+    lengths = [count for part in _SENT_SPLIT.split(text) if (count := len(_WORD.findall(part)))]
+    cv = statistics.pstdev(lengths) / statistics.fmean(lengths) if len(lengths) >= _RHYTHM_MIN_SENTENCES else 0.0
+    numbers = 1000 * len(_NUMBER.findall(text)) / len(words)
+    contractions = len(_CONTRACTION.findall(text))
+    em_dash = text.count(chr(0x2014)) + text.count(chr(0x2013))
+    off = []
+    if cv and cv < _VOICE_CV_FLOOR:
+        off.append("uniform rhythm")
+    if numbers < _VOICE_NUMBERS_FLOOR:
+        off.append("thin on specifics")
+    if contractions:
+        off.append("contractions")
+    if em_dash:
+        off.append("em dashes")
+    return (
+        f"VOICE  CV {cv:.2f}  numbers/1k {numbers:.1f}  contractions {contractions}  em-dash {em_dash}"
+        f"  [{', '.join(off) or 'on profile'}]"
+    )
 
 
 def scan(text: str, specs: tuple[_CompiledSpec, ...]) -> tuple[Counter[str], float]:
