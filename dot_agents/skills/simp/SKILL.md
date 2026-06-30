@@ -9,6 +9,12 @@ quality pass: simplify and restyle without changing behavior. It does not hunt f
 Read each target file and its siblings first to match existing conventions, then apply every rule that fits. Report what
 changed and why. Run the project's tests if test files were touched.
 
+Apply the rules as written. A rule's exception holds only when a concrete, unavoidable necessity forces it — a line that
+cannot otherwise fit the width limit, a value the language requires to exist before use, an upstream bug with no other
+fix. "It reads nicer", "it documents intent", "it keeps things symmetric", "it is more consistent", and anything phrased
+as "could" or "I think" are not exceptions; when that is the only justification, the rule wins. Do not invent a reason
+to keep a violation.
+
 Rules are organized per language. Only **Python** is defined today. When working in another language, apply the *spirit*
 of the matching Python rule — its closest idiomatic equivalent — until a dedicated section for that language exists.
 
@@ -41,9 +47,12 @@ step above and must not be restated here.
    width — ruff does not touch prose. No line should exceed the limit.
 
 1. **Compact, late variables.** Define each variable as late as possible, immediately before its first use — not at the
-   top of a block. Strongly prefer inlining single-use values at their point of use: a variable earns its name only when
-   its value is used in two or more places, or when naming it genuinely makes the code more compact (e.g. it untangles a
-   deeply nested expression instead of repeating it) without hurting readability.
+   top of a block. Inline single-use local values at their point of use. A local earns a name only when its value is
+   used in two or more places, or when a concrete necessity forces it (the inlined form exceeds the line limit, or the
+   identical subexpression repeats within one statement). Readability, documenting intent, visual symmetry, and giving a
+   comment a home are not exceptions — inline the value and put any comment at the use site. A genuine module-scope
+   configuration or taxonomy constant stays named and `Final`; lifting a one-off local to module scope only to name or
+   comment it does not make it one.
 
 1. **Walrus where it helps.** Use `:=` whenever it makes the code more compact without hurting readability.
 
