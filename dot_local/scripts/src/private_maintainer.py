@@ -72,6 +72,10 @@ REPOSITORIES = [
     "gaborbernat/gaborbernat",
 ]
 
+# Automation accounts whose green PRs are safe to auto-merge; collected from a month of GitHub notifications.
+# Drop github-actions[bot] if you don't want workflow-authored PRs merged unattended.
+BOT_AUTHORS = frozenset({"dependabot[bot]", "pre-commit-ci[bot]", "github-actions[bot]"})
+
 
 def main() -> None:
     opts = parse_cli()
@@ -188,6 +192,8 @@ def scan_single_repository(
 
     for pr in prs:
         if pr.draft:
+            continue
+        if (user := pr.user) is None or user.type != "Bot" or user.login not in BOT_AUTHORS:
             continue
 
         check_status, reason = check_pr_status(pr)
