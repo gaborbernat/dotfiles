@@ -56,6 +56,7 @@ REPOSITORIES = [
     "gaborbernat/bump-deps-index",
     "gaborbernat/pypi-changes",
     "gaborbernat/mdformat-hugo",
+    "tox-dev/mdformat-zola",
     "tox-dev/xml-fmt",
     "tox-dev/turbohtml",
     "tox-dev/PyVenvManage",
