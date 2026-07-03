@@ -63,7 +63,7 @@ REPOSITORIES = [
     "pypa/build",
     "pypa/pipx",
     "bloomberg/pytest-memray",
-    "bloomberg/attrs-strict",
+    "tox-dev/velodex",
     "gaborbernat/all-repos-self",
     "gaborbernat/bernat-tech",
     "gaborbernat/cv",
