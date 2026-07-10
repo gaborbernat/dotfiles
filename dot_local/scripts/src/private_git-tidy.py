@@ -182,7 +182,7 @@ def run(console: Console, opts: Options) -> None:
 
     # Now do quick user interaction (no delays)
     branches_to_delete = collect_all_deletion_decisions(
-        console, opts, (gone_branches, merged_branches, stale_branch_data, remote_only_branches)
+        console, opts, default_branch, (gone_branches, merged_branches, stale_branch_data, remote_only_branches)
     )
 
     if not branches_to_delete:
@@ -508,15 +508,24 @@ def show_branches_to_review(
     console.print()
 
 
-def collect_gone_branches(opts: Options, gone_branches: list[str]) -> list[tuple[str, str, bool, bool]]:
-    """Collect gone branches for deletion."""
+def collect_gone_branches(
+    opts: Options, default_branch: str, gone_branches: list[str]
+) -> list[tuple[str, str, bool, bool]]:
+    """Collect gone branches whose tips reached the fetched default branch."""
     branches_to_delete: list[tuple[str, str, bool, bool]] = []
+    base_ref = f"upstream/{default_branch}"
+    if not run_git_ok(["git", "rev-parse", "--verify", base_ref], opts):
+        base_ref = default_branch
     with ThreadPoolExecutor(max_workers=12) as executor:
-        futures = {executor.submit(check_remote_branches, branch, opts): branch for branch in gone_branches}
+        futures = {
+            executor.submit(run_git_ok, ["git", "merge-base", "--is-ancestor", branch, base_ref], opts): branch
+            for branch in gone_branches
+        }
         for future in as_completed(futures):
             branch = futures[future]
-            has_origin, has_upstream = future.result()
-            branches_to_delete.append((branch, "gone", has_origin, has_upstream))
+            if future.result():
+                has_origin, has_upstream = check_remote_branches(branch, opts)
+                branches_to_delete.append((branch, "gone", has_origin, has_upstream))
     return branches_to_delete
 
 
@@ -573,6 +582,7 @@ def collect_remote_only_branches(remote_only_branches: dict[str, list[str]]) -> 
 def collect_all_deletion_decisions(
     console: Console,
     opts: Options,
+    default_branch: str,
     branch_data: tuple[
         list[str], list[str], list[tuple[str, int, str, bool, bool]], dict[str, list[str]]
     ],  # (gone, merged, stale, remote_only)
@@ -582,7 +592,7 @@ def collect_all_deletion_decisions(
 
     branches_to_delete: list[tuple[str, str, bool, bool]] = []
 
-    branches_to_delete.extend(collect_gone_branches(opts, gone_branches))
+    branches_to_delete.extend(collect_gone_branches(opts, default_branch, gone_branches))
     branches_to_delete.extend(collect_merged_branches(opts, merged_branches))
     branches_to_delete.extend(collect_remote_only_branches(remote_only_branches))
     branches_to_delete.extend(collect_stale_branches(console, opts, stale_branch_data))

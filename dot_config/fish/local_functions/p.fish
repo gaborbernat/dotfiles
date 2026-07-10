@@ -1,14 +1,23 @@
 function p -d "Open PyCharm with worktree-aware project name and auto-config" -a path
-    set --local dir (test -n "$path" && realpath "$path" || pwd)
+    set --local dir (pwd)
+    if test -n "$path"
+        set dir (realpath "$path" 2>/dev/null)
+        if test -z "$dir"; or not test -d "$dir"
+            echo "p: no such directory: $path" >&2
+            return 1
+        end
+    end
     set --local project_name (basename "$dir")
-    set --local bare_root (git rev-parse --git-common-dir 2>/dev/null)
+    set --local bare_root (git -C "$dir" rev-parse --git-common-dir 2>/dev/null)
 
     if test -n "$bare_root" -a "$bare_root" != ".git" -a -d "$bare_root"
         set project_name (basename "$bare_root"):(basename "$dir")
     end
 
     mkdir -p "$dir/.idea/inspectionProfiles"
-    echo "$project_name" >"$dir/.idea/.name"
+    if not test -e "$dir/.idea/.name"
+        echo "$project_name" >"$dir/.idea/.name"
+    end
 
     set --local python_sdk ""
     set --local sdk_path ""
@@ -20,8 +29,8 @@ function p -d "Open PyCharm with worktree-aware project name and auto-config" -a
     end
     if test -n "$sdk_path"
         set --local real_path (string replace "~" "$HOME" "$sdk_path")
-        set --local py_ver ($real_path/bin/python --version 2>/dev/null | string replace "Python " "")
-        test -z "$py_ver" && set py_ver "3"
+        set --local py_ver (string match -r '^version = .+$' <"$real_path/pyvenv.cfg" 2>/dev/null | string replace 'version = ' '')
+        test -z "$py_ver" && set py_ver 3
         set python_sdk "Python $py_ver $sdk_path"
     end
 
@@ -35,7 +44,7 @@ function p -d "Open PyCharm with worktree-aware project name and auto-config" -a
         end
     end
 
-    if test -n "$python_sdk"
+    if test -n "$python_sdk"; and not test -e "$dir/.idea/misc.xml"
         printf '<?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ProjectRootManager" version="2" project-jdk-name="%s" project-jdk-type="Python SDK" />
@@ -49,13 +58,15 @@ function p -d "Open PyCharm with worktree-aware project name and auto-config" -a
 ' "$python_sdk" >"$dir/.idea/misc.xml"
     end
 
-    printf '<?xml version="1.0" encoding="UTF-8"?>
+    if not test -e "$dir/.idea/vcs.xml"
+        printf '<?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
   </component>
 </project>
 ' >"$dir/.idea/vcs.xml"
+    end
 
     set --local excludes ""
     for folder in .tox .venv node_modules .lintrunner .cache .ruff_cache .mypy_cache .pytest_cache __pycache__
@@ -75,7 +86,8 @@ function p -d "Open PyCharm with worktree-aware project name and auto-config" -a
         set sources $sources"      <sourceFolder url=\"file://\$MODULE_DIR\$/tests\" isTestSource=\"true\" />\n"
     end
 
-    printf '<?xml version="1.0" encoding="UTF-8"?>
+    if not test -e "$dir/.idea/$project_name.iml"
+        printf '<?xml version="1.0" encoding="UTF-8"?>
 <module type="PYTHON_MODULE" version="4">
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
@@ -88,8 +100,10 @@ function p -d "Open PyCharm with worktree-aware project name and auto-config" -a
   </component>
 </module>
 ' "$sources" "$excludes" >"$dir/.idea/$project_name.iml"
+    end
 
-    printf '<?xml version="1.0" encoding="UTF-8"?>
+    if not test -e "$dir/.idea/modules.xml"
+        printf '<?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
@@ -98,6 +112,7 @@ function p -d "Open PyCharm with worktree-aware project name and auto-config" -a
   </component>
 </project>
 ' "$project_name" "$project_name" >"$dir/.idea/modules.xml"
+    end
 
     set --local version_items ""
     set --local idx 0
@@ -106,7 +121,8 @@ function p -d "Open PyCharm with worktree-aware project name and auto-config" -a
         set idx (math $idx + 1)
     end
 
-    printf '<component name="InspectionProjectProfileManager">
+    if not test -e "$dir/.idea/inspectionProfiles/Project_Default.xml"
+        printf '<component name="InspectionProjectProfileManager">
   <profile version="1.0">
     <option name="myName" value="Project Default" />
     <inspection_tool class="PyCompatibilityInspection" enabled="true" level="WARNING" enabled_by_default="true">
@@ -124,14 +140,17 @@ function p -d "Open PyCharm with worktree-aware project name and auto-config" -a
   </profile>
 </component>
 ' (count $py_versions) "$version_items" >"$dir/.idea/inspectionProfiles/Project_Default.xml"
+    end
 
-    printf '<component name="InspectionProjectProfileManager">
+    if not test -e "$dir/.idea/inspectionProfiles/profiles_settings.xml"
+        printf '<component name="InspectionProjectProfileManager">
   <settings>
     <option name="PROJECT_PROFILE" value="Project Default" />
     <version value="1.0" />
   </settings>
 </component>
 ' >"$dir/.idea/inspectionProfiles/profiles_settings.xml"
+    end
 
     pycharm "$dir" &
 end

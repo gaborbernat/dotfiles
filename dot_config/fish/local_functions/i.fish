@@ -8,22 +8,26 @@ function i -d "Open IntelliJ IDEA with worktree-aware project name" -a path
         end
     end
     set --local project_name (basename "$dir")
-    set --local bare_root (git rev-parse --git-common-dir 2>/dev/null)
+    set --local bare_root (git -C "$dir" rev-parse --git-common-dir 2>/dev/null)
 
     if test -n "$bare_root" -a "$bare_root" != ".git" -a -d "$bare_root"
         set project_name (basename "$bare_root"):(basename "$dir")
     end
 
     mkdir -p "$dir/.idea"
-    echo "$project_name" >"$dir/.idea/.name"
+    if not test -e "$dir/.idea/.name"
+        echo "$project_name" >"$dir/.idea/.name"
+    end
 
-    printf '<?xml version="1.0" encoding="UTF-8"?>
+    if not test -e "$dir/.idea/vcs.xml"
+        printf '<?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="VcsDirectoryMappings">
     <mapping directory="" vcs="Git" />
   </component>
 </project>
 ' >"$dir/.idea/vcs.xml"
+    end
 
     set --local excludes ""
     for folder in .tox .venv node_modules .lintrunner .cache .ruff_cache .mypy_cache .pytest_cache __pycache__ build target
@@ -43,7 +47,8 @@ function i -d "Open IntelliJ IDEA with worktree-aware project name" -a path
         set sources $sources"      <sourceFolder url=\"file://\$MODULE_DIR\$/tests\" isTestSource=\"true\" />\n"
     end
 
-    printf '<?xml version="1.0" encoding="UTF-8"?>
+    if not test -e "$dir/.idea/$project_name.iml"
+        printf '<?xml version="1.0" encoding="UTF-8"?>
 <module type="JAVA_MODULE" version="4">
   <component name="NewModuleRootManager">
     <content url="file://$MODULE_DIR$">
@@ -53,8 +58,10 @@ function i -d "Open IntelliJ IDEA with worktree-aware project name" -a path
   </component>
 </module>
 ' "$sources" "$excludes" >"$dir/.idea/$project_name.iml"
+    end
 
-    printf '<?xml version="1.0" encoding="UTF-8"?>
+    if not test -e "$dir/.idea/modules.xml"
+        printf '<?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
@@ -63,6 +70,7 @@ function i -d "Open IntelliJ IDEA with worktree-aware project name" -a path
   </component>
 </project>
 ' "$project_name" "$project_name" >"$dir/.idea/modules.xml"
+    end
 
     idea "$dir" &
 end

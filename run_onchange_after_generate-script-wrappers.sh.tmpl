@@ -1,5 +1,5 @@
 #!/bin/bash
-# Work scripts hash: {{ glob "dot_local/bin/executable_*" | join "\n" | sha256sum }}
+# Private scripts hash: {{ glob (joinPath .chezmoi.homeDir ".local/share/chezmoi-private/scripts/src/*.py") | join "\n" | sha256sum }}
 set -euo pipefail
 
 if [[ -d "$HOME/.local/share/chezmoi-private/scripts/src" ]]; then
@@ -15,6 +15,12 @@ uv run -- "\$HOME/.local/share/chezmoi-private/scripts/src/$name.py" "\$@"
 EOF
             chmod +x "$wrapper"
             echo "  Created wrapper: $name"
+        fi
+    done
+    for wrapper in "$HOME/.local/bin"/*; do
+        if [[ -f "$wrapper" ]] && grep -qF 'chezmoi-private/scripts/src/' "$wrapper"; then
+            name=$(basename "$wrapper")
+            [[ -f "$HOME/.local/share/chezmoi-private/scripts/src/$name.py" ]] || rm "$wrapper"
         fi
     done
     echo "✅ Private script wrappers generated"

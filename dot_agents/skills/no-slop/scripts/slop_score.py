@@ -48,7 +48,6 @@ _NGRAM_MIN: Final[int] = 4
 _NGRAM_MAX: Final[int] = 8
 _NGRAM_MIN_COUNT: Final[int] = 3
 _PITHY_MAX_WORDS: Final[int] = 6
-_SHORT_TEXT_WORDS: Final[int] = 10
 _MAX_SHOWN: Final[int] = 14
 _REMINDER: Final[str] = (
     "\nThe script is a backstop, not the work: it catches only a fraction of the rules, so passing it is not\n"
@@ -413,7 +412,9 @@ _RULE_OF_THREE: Final[re.Pattern[str]] = re.compile(
     """,
     re.VERBOSE,
 )
-_CONTRACTION: Final[re.Pattern[str]] = re.compile(r"\b\w+'(?:t|s|re|ve|ll|d|m)\b")
+_CONTRACTION: Final[re.Pattern[str]] = re.compile(
+    r"\b(?:it|that|there|what|who|he|she|we|they|you|i|do|does|did|can|could|would|should|will|are|have|has|had|let)'(?:t|s|re|ve|ll|d|m)\b"
+)
 _NUMBER: Final[re.Pattern[str]] = re.compile(r"\b\d[\d,.]*\b")
 _CODE_EXTS: Final[frozenset[str]] = frozenset({
     ".py",
@@ -464,9 +465,6 @@ def report(name: str, text: str) -> bool:
     if pathlib.Path(name).suffix in _CODE_EXTS:
         return code_report(name, text)
     words = _WORD.findall(text.lower())
-    if len(words) < _SHORT_TEXT_WORDS:
-        sys.stdout.write(f"GATE  --/100  {name}  (too short)\n")
-        return False
     gate_hits, gate_penalty = scan(text, _GATE_COMPILED)
     gate = 100 if not gate_hits else score_from_density(gate_penalty, len(words))
     advisory_hits, advisory_penalty = advisory(text, words)
@@ -495,7 +493,7 @@ def code_report(name: str, text: str) -> bool:
 def _voice_line(text: str, words: list[str]) -> str:
     lengths = [count for part in _SENT_SPLIT.split(text) if (count := len(_WORD.findall(part)))]
     cv = statistics.pstdev(lengths) / statistics.fmean(lengths) if len(lengths) >= _RHYTHM_MIN_SENTENCES else 0.0
-    numbers = 1000 * len(_NUMBER.findall(text)) / len(words)
+    numbers = 1000 * len(_NUMBER.findall(text)) / len(words) if words else 0.0
     contractions = len(_CONTRACTION.findall(text))
     em_dash = text.count(chr(0x2014)) + text.count(chr(0x2013))
     off = []
@@ -586,6 +584,8 @@ def _low_rhythm_variance(text: str) -> bool:
 
 
 def _colon_overuse(text: str, words: list[str]) -> bool:
+    if not words:
+        return False
     colons = len(re.findall(r"[a-z]:\s", text, re.IGNORECASE))
     return colons / (len(words) / _COLON_PER_WORDS) > _COLON_THRESHOLD
 
@@ -609,6 +609,8 @@ def _concentrated(count: int) -> float:
 
 
 def score_from_density(penalty: float, word_count: int) -> int:
+    if not word_count:
+        return 100
     density = penalty / (word_count / _DENSITY_BASIS)
     return max(0, min(100, round(100 * math.exp(-_DECAY_LAMBDA * density))))
 

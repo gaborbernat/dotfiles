@@ -30,7 +30,13 @@ if [[ -f "$private_dir/Brewfile.skip" ]]; then
         entry="${entry%%#*}"
         entry="$(echo "$entry" | xargs)"
         [[ -z "$entry" ]] && continue
-        grep -vE "^(brew|cask|mas) \"${entry}\"" "$combined" >"$combined.tmp" && mv "$combined.tmp" "$combined"
+        escaped_entry=$(printf '%s' "$entry" | sed 's/[][\\.^$*+?(){}|]/\\&/g')
+        if grep -vE "^(brew|cask|mas) \"${escaped_entry}\"" "$combined" >"$combined.tmp"; then
+            mv "$combined.tmp" "$combined"
+        else
+            status=$?
+            [[ $status -eq 1 ]] && mv "$combined.tmp" "$combined" || exit "$status"
+        fi
     done <"$private_dir/Brewfile.skip"
 fi
 

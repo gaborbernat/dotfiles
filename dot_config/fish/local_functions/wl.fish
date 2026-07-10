@@ -96,12 +96,19 @@ $legend"
         # one subshell per worktree that sources this file and calls the remover. Args go through
         # $argv (never interpolated) so paths with spaces survive.
         set --local self (status filename)
+        set --local default_branch (git -C "$bare_root" symbolic-ref --short refs/remotes/upstream/HEAD 2>/dev/null)
+        set default_branch (string replace 'upstream/' '' -- "$default_branch")
+        if test -z "$default_branch"
+            set default_branch (git -C "$bare_root" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)
+            set default_branch (string replace 'origin/' '' -- "$default_branch")
+        end
+        test -z "$default_branch"; and set default_branch main
         for selection in $selections
             set --local path (string split \t $selection)[2]
             set --local name (string split ' ' $selection)[1]
             set --local sel_branch (string split \t $selection)[3]
-            fish -c 'source $argv[1]; _wl_remove_worktree $argv[2] $argv[3] $argv[4] $argv[5]' \
-                "$self" "$bare_root" "$path" "$name" "$sel_branch" &
+            fish -c 'source $argv[1]; _wl_remove_worktree $argv[2] $argv[3] $argv[4] $argv[5] $argv[6]' \
+                "$self" "$bare_root" "$path" "$name" "$sel_branch" "$default_branch" &
         end
         wait
         wl
@@ -110,7 +117,7 @@ $legend"
     end
 end
 
-function _wl_remove_worktree -a bare_root wt_path wt_name branch
+function _wl_remove_worktree -a bare_root wt_path wt_name branch default_branch
     set --local start_time (gdate +%s.%N 2>/dev/null; or date +%s)
     echo "Removing worktree '$wt_name'..."
 
@@ -130,20 +137,23 @@ function _wl_remove_worktree -a bare_root wt_path wt_name branch
         git -C "$bare_root" worktree unlock "$wt_path" 2>/dev/null
     end
 
+    set --local worktree_status (git -C "$wt_path" status --porcelain --untracked-files=all 2>/dev/null)
+    if test -d "$wt_path"; and test (count $worktree_status) -gt 0
+        printf "⚠ Kept %s: worktree has uncommitted or untracked files\n" "$wt_name"
+        return 1
+    end
+
     if not begin
             git -C "$bare_root" worktree remove "$wt_path" 2>/dev/null
-            or git -C "$bare_root" worktree remove --force "$wt_path" 2>/dev/null
             or _wl_prune_worktree "$bare_root" "$wt_path"
         end
         printf "Failed to remove %s (%.2fs)\n" "$wt_name" (math (gdate +%s.%N 2>/dev/null; or date +%s) - "$start_time")
         return 1
     end
 
-    # Detached worktrees report no branch, so touch neither branch nor remote. Delete the remote copy
-    # only when the local safe-delete (branch -d) succeeded — i.e. the branch was merged — so unmerged
-    # work pushed to origin is never destroyed.
     if test -n "$branch"
-        if git -C "$bare_root" branch -d "$branch" 2>/dev/null
+        if git -C "$bare_root" merge-base --is-ancestor "$branch" "$default_branch" 2>/dev/null
+            and git -C "$bare_root" branch -d "$branch" 2>/dev/null
             echo "Deleted local branch $branch"
             if git -C "$bare_root" rev-parse --verify "origin/$branch" &>/dev/null
                 if git -C "$bare_root" push origin --delete "$branch" 2>/dev/null
@@ -153,7 +163,7 @@ function _wl_remove_worktree -a bare_root wt_path wt_name branch
                 end
             end
         else
-            echo "⚠ Kept branch $branch (unmerged; use 'git branch -D $branch' to force)"
+            echo "⚠ Kept branch $branch (not merged into $default_branch)"
         end
     end
     printf "Removed %s (%.2fs)\n" "$wt_name" (math (gdate +%s.%N 2>/dev/null; or date +%s) - "$start_time")
@@ -167,10 +177,8 @@ function _wl_lock_reason -a bare_root wt_path
 end
 
 function _wl_prune_worktree -a bare_root wt_path
-    # Reap a worktree whose git link is gone (prunable): remove/--force both refuse it, only prune clears it.
     git -C "$bare_root" worktree prune 2>/dev/null
-    test -e "$wt_path"; and not test -e "$wt_path/.git"; and rm -rf "$wt_path"
-    not test -e "$wt_path"
+    not git -C "$bare_root" worktree list --porcelain 2>/dev/null | string match -q -- "worktree $wt_path"
 end
 
 function _wl_open_pr -a bare_root pr_number

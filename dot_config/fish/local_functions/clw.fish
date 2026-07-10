@@ -66,8 +66,10 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
     set name (string split / $repo)[2]
 
     set target_dir $name
-    set default_branch_dir $name-$default_branch
-    set branch_dir $name-$branch
+    set safe_default_branch (string replace -ra '[^A-Za-z0-9._-]' '-' -- $default_branch)
+    set safe_branch (string replace -ra '[^A-Za-z0-9._-]' '-' -- $branch)
+    set default_branch_dir $name-$safe_default_branch
+    set branch_dir $name-$safe_branch
 
     echo "Upstream repo : $repo"
     echo "Default branch: $default_branch"
@@ -121,6 +123,18 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
         echo "Cloning bare repo..."
         git clone --bare $upstream_url $target_dir; or return $status
     else
+        if not git -C "$target_dir" rev-parse --is-bare-repository 2>/dev/null | string match -q true
+            echo "error: $target_dir exists but is not the expected bare repository"
+            return 2
+        end
+        set existing_remote (git -C "$target_dir" remote get-url upstream 2>/dev/null)
+        if test -z "$existing_remote"
+            set existing_remote (git -C "$target_dir" remote get-url origin 2>/dev/null)
+        end
+        if test -z "$existing_remote"; or not string match -q "*$repo*" -- "$existing_remote"
+            echo "error: $target_dir does not point to $repo"
+            return 2
+        end
         echo "Bare repo already exists, skipping clone"
     end
 
@@ -166,7 +180,11 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
     if not test -d $branch_dir
         if git show-ref --verify --quiet refs/remotes/origin/$branch
             echo "Branch exists on origin: $branch"
-            git worktree add $branch_dir origin/$branch
+            if git show-ref --verify --quiet refs/heads/$branch
+                git worktree add $branch_dir $branch
+            else
+                git worktree add --track -b $branch $branch_dir origin/$branch
+            end
         else
             echo "Creating new branch from upstream/$default_branch: $branch"
             git worktree add -b $branch $branch_dir upstream/$default_branch

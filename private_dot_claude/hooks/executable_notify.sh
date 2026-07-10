@@ -9,9 +9,13 @@ event=$1
 emoji=$2
 sound=$3
 
-printf '%s %s\n' "$(date '+%H:%M:%S.%N')" "$event" >> /tmp/claude-hooks.log
+if command -v logger >/dev/null 2>&1; then
+    printf '%s %s\n' "$(date '+%H:%M:%S.%N')" "$event" | logger -t claude-hooks
+fi
 
-title=$(printf '\033]2;%s %s Claude\007' "$emoji" "$(basename "$PWD")")
+safe_emoji=$(printf '%s' "$emoji" | sed 's/[[:cntrl:]]//g')
+safe_dir=$(basename "$PWD" | sed 's/[[:cntrl:]]//g')
+title=$(printf '\033]2;%s %s Claude\007' "$safe_emoji" "$safe_dir")
 
 if ! { printf '%s' "$title" > /dev/tty; } 2>/dev/null; then
     pid=$PPID
