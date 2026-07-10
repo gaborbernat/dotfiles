@@ -1,5 +1,12 @@
 function i -d "Open IntelliJ IDEA with worktree-aware project name" -a path
-    set --local dir (test -n "$path" && realpath "$path" || pwd)
+    set --local dir (pwd)
+    if test -n "$path"
+        set dir (realpath "$path" 2>/dev/null)
+        if test -z "$dir"; or not test -e "$dir"
+            echo "i: no such path: $path" >&2
+            return 1
+        end
+    end
     set --local project_name (basename "$dir")
     set --local bare_root (git rev-parse --git-common-dir 2>/dev/null)
 
