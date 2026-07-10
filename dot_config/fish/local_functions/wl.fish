@@ -15,40 +15,50 @@ function wl -d "List worktrees for bare repo (interactive: enter=cd, ctrl-d=dele
     git -C "$bare_root" config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*" 2>/dev/null
     git -C "$bare_root" config remote.upstream.fetch "+refs/heads/*:refs/remotes/upstream/*" 2>/dev/null
 
-    # Build worktree list
+    # Build the list from porcelain: paths with spaces stay intact and the branch (empty for a
+    # detached worktree) comes straight from git. Emit each entry when the next 'worktree' header
+    # — or the trailing sentinel — arrives, skipping the bare entry.
     set --local entries
-    for wt in (git -C "$bare_root" worktree list | string match -v '*(bare)')
-        set --local wt_path (echo $wt | awk '{print $1}')
-        set --local wt_name (basename "$wt_path")
-        set --local branch (git -C "$wt_path" symbolic-ref --short HEAD 2>/dev/null)
-        set --local last_commit (git -C "$wt_path" log -1 --format="%cr" 2>/dev/null)
-        set --local last_ts (git -C "$wt_path" log -1 --format="%ct" 2>/dev/null)
-        test -z "$last_ts"; and set last_ts 0
-        set --local upstream_info ""
+    set --local wt_path ""
+    set --local branch ""
+    set --local is_bare 0
+    for line in (git -C "$bare_root" worktree list --porcelain) "worktree "
+        switch $line
+            case 'worktree *'
+                if test -n "$wt_path"; and test "$is_bare" = 0
+                    set --local wt_name (basename "$wt_path")
+                    set --local last_commit (git -C "$wt_path" log -1 --format="%cr" 2>/dev/null)
+                    set --local last_ts (git -C "$wt_path" log -1 --format="%ct" 2>/dev/null)
+                    test -z "$last_ts"; and set last_ts 0
 
-        set --local remote_ref ""
-        if git -C "$bare_root" rev-parse "origin/$branch" &>/dev/null
-            set remote_ref "origin/$branch"
+                    set --local upstream_info local
+                    if test -n "$branch"; and git -C "$bare_root" rev-parse "origin/$branch" &>/dev/null
+                        set --local counts (git -C "$wt_path" rev-list --count --left-right "origin/$branch"...HEAD 2>/dev/null)
+                        set --local behind (echo $counts | awk '{print $1}')
+                        set --local ahead (echo $counts | awk '{print $2}')
+                        test -z "$behind"; and set behind 0
+                        test -z "$ahead"; and set ahead 0
+                        if test "$behind" -gt 0 -a "$ahead" -gt 0
+                            set upstream_info "↓$behind ↑$ahead"
+                        else if test "$behind" -gt 0
+                            set upstream_info "↓$behind"
+                        else if test "$ahead" -gt 0
+                            set upstream_info "↑$ahead"
+                        else
+                            set upstream_info "✓"
+                        end
+                    end
+
+                    set --append entries (printf "%s\t%-24s %-15s %s\t%s\t%s" "$last_ts" "$wt_name" "$last_commit" "$upstream_info" "$wt_path" "$branch")
+                end
+                set wt_path (string replace 'worktree ' '' -- $line)
+                set branch ""
+                set is_bare 0
+            case 'branch refs/heads/*'
+                set branch (string replace 'branch refs/heads/' '' -- $line)
+            case bare
+                set is_bare 1
         end
-
-        if test -n "$remote_ref"
-            set --local counts (git -C "$wt_path" rev-list --count --left-right "$remote_ref"...HEAD 2>/dev/null)
-            set --local behind (echo $counts | awk '{print $1}')
-            set --local ahead (echo $counts | awk '{print $2}')
-            if test "$behind" -gt 0 -a "$ahead" -gt 0
-                set upstream_info "↓$behind ↑$ahead"
-            else if test "$behind" -gt 0
-                set upstream_info "↓$behind"
-            else if test "$ahead" -gt 0
-                set upstream_info "↑$ahead"
-            else
-                set upstream_info "✓"
-            end
-        else
-            set upstream_info local
-        end
-
-        set --append entries (printf "%s\t%-24s %-15s %s\t%s\t%s" "$last_ts" "$wt_name" "$last_commit" "$upstream_info" "$wt_path" "$branch")
     end
 
     # Sort by last commit (most recent first), then drop the sort-key column
@@ -101,12 +111,11 @@ $legend"
 end
 
 function _wl_remove_worktree -a bare_root wt_path wt_name branch
-    test -z "$branch" && set branch $wt_name
     set --local start_time (gdate +%s.%N 2>/dev/null; or date +%s)
     echo "Removing worktree '$wt_name'..."
 
-    # A claude-agent lock held by a live process is a worktree in use: warn and skip it.
-    # A dead pid (or a broken worktree) is stale, so unlock and force through below.
+    # Only reap a lock we can prove is stale: a live-pid agent lock means the tree is in use, and a
+    # lock without a pid that isn't a claude agent is a deliberate hold. Warn and skip both.
     set --local lock_reason (_wl_lock_reason "$bare_root" "$wt_path")
     if test -n "$lock_reason"
         set --local lock_pid (string replace -rf '.*pid ([0-9]+).*' '$1' -- "$lock_reason")
@@ -114,23 +123,40 @@ function _wl_remove_worktree -a bare_root wt_path wt_name branch
             printf "⚠ Skipping %s: locked by live agent (pid %s)\n" "$wt_name" "$lock_pid"
             return 1
         end
+        if test -z "$lock_pid"; and not string match -q '*claude agent*' -- "$lock_reason"
+            printf "⚠ Skipping %s: locked (%s)\n" "$wt_name" "$lock_reason"
+            return 1
+        end
         git -C "$bare_root" worktree unlock "$wt_path" 2>/dev/null
     end
 
-    if git -C "$bare_root" worktree remove "$wt_path" 2>/dev/null
-        or git -C "$bare_root" worktree remove --force "$wt_path" 2>/dev/null
-        or _wl_prune_worktree "$bare_root" "$wt_path"
-        git -C "$bare_root" branch -d "$branch" 2>/dev/null
-        if git -C "$bare_root" rev-parse --verify "origin/$branch" &>/dev/null
-            git -C "$bare_root" push origin --delete "$branch" 2>/dev/null
-            and echo "Deleted remote branch origin/$branch"
+    if not begin
+            git -C "$bare_root" worktree remove "$wt_path" 2>/dev/null
+            or git -C "$bare_root" worktree remove --force "$wt_path" 2>/dev/null
+            or _wl_prune_worktree "$bare_root" "$wt_path"
         end
-        set --local end_time (gdate +%s.%N 2>/dev/null; or date +%s)
-        printf "Deleted branch %s (%.2fs)\n" "$branch" (math "$end_time - $start_time")
-    else
-        set --local end_time (gdate +%s.%N 2>/dev/null; or date +%s)
-        printf "Failed to remove %s (%.2fs)\n" "$wt_name" (math "$end_time - $start_time")
+        printf "Failed to remove %s (%.2fs)\n" "$wt_name" (math (gdate +%s.%N 2>/dev/null; or date +%s) - "$start_time")
+        return 1
     end
+
+    # Detached worktrees report no branch, so touch neither branch nor remote. Delete the remote copy
+    # only when the local safe-delete (branch -d) succeeded — i.e. the branch was merged — so unmerged
+    # work pushed to origin is never destroyed.
+    if test -n "$branch"
+        if git -C "$bare_root" branch -d "$branch" 2>/dev/null
+            echo "Deleted local branch $branch"
+            if git -C "$bare_root" rev-parse --verify "origin/$branch" &>/dev/null
+                if git -C "$bare_root" push origin --delete "$branch" 2>/dev/null
+                    echo "Deleted remote branch origin/$branch"
+                else
+                    echo "⚠ Could not delete remote origin/$branch"
+                end
+            end
+        else
+            echo "⚠ Kept branch $branch (unmerged; use 'git branch -D $branch' to force)"
+        end
+    end
+    printf "Removed %s (%.2fs)\n" "$wt_name" (math (gdate +%s.%N 2>/dev/null; or date +%s) - "$start_time")
 end
 
 function _wl_lock_reason -a bare_root wt_path
