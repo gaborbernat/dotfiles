@@ -82,12 +82,16 @@ $legend"
         git -C "$bare_root" fetch upstream --quiet 2>/dev/null
         wl
     else if test "$key" = d
-        cd "$bare_root"
+        # fish only runs external processes in parallel, not backgrounded functions, so fan out
+        # one subshell per worktree that sources this file and calls the remover. Args go through
+        # $argv (never interpolated) so paths with spaces survive.
+        set --local self (status filename)
         for selection in $selections
             set --local path (string split \t $selection)[2]
             set --local name (string split ' ' $selection)[1]
             set --local sel_branch (string split \t $selection)[3]
-            _wl_remove_worktree "$bare_root" "$path" "$name" "$sel_branch" &
+            fish -c 'source $argv[1]; _wl_remove_worktree $argv[2] $argv[3] $argv[4] $argv[5]' \
+                "$self" "$bare_root" "$path" "$name" "$sel_branch" &
         end
         wait
         wl
