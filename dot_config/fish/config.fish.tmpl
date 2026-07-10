@@ -33,6 +33,17 @@ set -gx PATH \
     $HOME/go/bin \
     $PATH
 
+# `mise activate` (below) rebuilds $PATH system-first on every cd, which buries these GNU tool dirs
+# behind the macOS BSD equivalents. fish_user_paths survives that reconstruction, so register them
+# there too; keeps `rm`, `sed`, `awk`, etc. resolving to the GNU builds no matter what mise does.
+fish_add_path --prepend --move \
+    /opt/homebrew/opt/coreutils/libexec/gnubin \
+    /opt/homebrew/opt/gnu-sed/libexec/gnubin \
+    /opt/homebrew/opt/gawk/libexec/gnubin \
+    /opt/homebrew/opt/gnu-indent/libexec/gnubin \
+    /opt/homebrew/opt/findutils/libexec/gnubin \
+    /opt/homebrew/opt/make/libexec/gnubin
+
 # bb-homebrew
 set -gx PKG_CONFIG_PATH \
     /opt/homebrew/opt/openssl@1.1/lib/pkgconfig \
