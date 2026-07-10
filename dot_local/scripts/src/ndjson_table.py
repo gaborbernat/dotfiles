@@ -40,17 +40,19 @@ def ndjson_table(  # noqa: C901, PLR0912, PLR0915
     if filepath is None:
         lines: list[str] = list(sys.stdin)
     else:
-        path = Path(filepath)
-        lines: list[str] = path.read_text().splitlines()
+        try:
+            lines = Path(filepath).read_text(encoding="utf-8").splitlines()
+        except OSError as exc:
+            console.print(f"[bold red]Error:[/bold red] Cannot read {filepath}: {exc}")
+            return
 
     if not lines:
         console.print("[bold red]Error:[/bold red] Empty input.")
         return
 
-    try:
-        first_obj: dict[str, object] = json.loads(lines[0])
-    except json.JSONDecodeError:
-        console.print("[bold red]Error:[/bold red] First line is not valid JSON.")
+    first_obj = parse_json_object(lines[0])
+    if first_obj is None:
+        console.print("[bold red]Error:[/bold red] First line is not a JSON object.")
         return
 
     def flatten(obj: dict[str, object], parent_key: str = "") -> dict[str, object]:
@@ -68,33 +70,40 @@ def ndjson_table(  # noqa: C901, PLR0912, PLR0915
     flat_first_obj = flatten(first_obj)
     all_headers: list[str] = list(flat_first_obj.keys())
     headers: list[str] = selected_columns or all_headers
-    type_map: dict[str, type] = {key: type(flat_first_obj[key]) for key in headers}
+    type_map: dict[str, type] = {key: type(flat_first_obj[key]) for key in headers if key in flat_first_obj}
+
+    try:
+        patterns = [re.compile(pattern) for pattern in search or []]
+    except re.error as exc:
+        console.print(f"[bold red]Error:[/bold red] Invalid --search regex: {exc}")
+        return
 
     # Collect all flattened rows
     flat_rows: list[dict[str, object]] = []
-    patterns = [re.compile(pattern) for pattern in search or []]
     for line in lines:
-        try:
-            obj = json.loads(line)
-            flat_obj = flatten(obj)
-            search_values = (
-                [str(flat_obj.get(col, "")) for col in headers]
-                if selected_columns
-                else [str(v) for v in flat_obj.values()]
-            )
-            if patterns and not all(any(pat.search(v) for v in search_values) for pat in patterns):
-                continue
-            flat_rows.append(flat_obj)
-        except json.JSONDecodeError:
-            console.print(f"[yellow]Skipping invalid JSON line:[/yellow] {line.strip()}")
+        if not line.strip():
             continue
+        obj = parse_json_object(line)
+        if obj is None:
+            console.print(f"[yellow]Skipping non-object JSON line:[/yellow] {line.strip()}")
+            continue
+        flat_obj = flatten(obj)
+        search_values = (
+            [str(flat_obj.get(col, "")) for col in headers] if selected_columns else [str(v) for v in flat_obj.values()]
+        )
+        if patterns and not all(any(pat.search(v) for v in search_values) for pat in patterns):
+            continue
+        flat_rows.append(flat_obj)
 
-    # Filter out columns that are all zero or empty string
+    # Filter out columns that are entirely empty: None, "", or numeric zero (but never boolean False)
     def is_empty_column(key: str) -> bool:
         for row in flat_rows:
-            value = row.get(key, None)
-            if value not in (0, "", None):
-                return False
+            value = row.get(key)
+            if value is None or value == "":
+                continue
+            if isinstance(value, (int, float)) and not isinstance(value, bool) and value == 0:
+                continue
+            return False
         return True
 
     filtered_headers: list[str] = [key for key in headers if not is_empty_column(key)]
@@ -118,6 +127,15 @@ def ndjson_table(  # noqa: C901, PLR0912, PLR0915
             table.add_row(col, *values)
 
     console.print(table)
+
+
+def parse_json_object(line: str) -> dict[str, object] | None:
+    """Parse an NDJSON line, returning the object or None if it is invalid or not a JSON object."""
+    try:
+        obj = json.loads(line)
+    except json.JSONDecodeError:
+        return None
+    return obj if isinstance(obj, dict) else None
 
 
 def human_readable_size(size: float) -> str:

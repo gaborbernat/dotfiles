@@ -131,7 +131,9 @@ def bulk_inspect(image_ids: list[str]) -> dict[str, tuple[set[str], datetime | N
         image_id, _, rest = line.partition("\t")
         digests_json, _, rest = rest.partition("\t")
         created, _, image_platform = rest.partition("\t")
-        inspected[image_id] = (set(json.loads(digests_json or "[]")), parse_created(created), image_platform)
+        # {{json .RepoDigests}} emits "null" for a nil slice, which json.loads -> None; coerce to empty.
+        digests = json.loads(digests_json) if digests_json.strip() else []
+        inspected[image_id] = (set(digests or []), parse_created(created), image_platform)
     return inspected
 
 
@@ -195,10 +197,18 @@ def update_registry_images(images: list[ImageStatus]) -> None:
         Live(render(images, lock), console=_CONSOLE, refresh_per_second=12, transient=True) as live,
         ThreadPoolExecutor() as executor,
     ):
-        futures = [executor.submit(process_image, status, lock) for status in images]
+        futures = {executor.submit(process_image, status, lock): status for status in images}
         while any(not future.done() for future in futures):
             live.update(render(images, lock))
             time.sleep(0.1)
+    # Surface worker exceptions instead of leaving the image stuck at "checking" with no error.
+    for future, status in futures.items():
+        try:
+            future.result()
+        except Exception as exc:  # noqa: BLE001
+            with lock:
+                status.state = "error"
+                status.detail = str(exc)
     _CONSOLE.print(render(images, lock))
 
 

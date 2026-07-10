@@ -38,31 +38,27 @@ def main() -> None:
 
 
 def extract_pep723_deps(pyfile: Path) -> list[str]:
-    deps = []
-    in_block = False
-    in_deps = False
-    with pyfile.open(encoding="utf-8") as f:
-        for line in f:
-            if re.match(r"#\s*///\s*script", line):
-                in_block = True
-            elif in_block and re.match(r"#\s*///", line):
-                in_block = False
-            elif in_block and re.match(r"#\s*dependencies\s*=\s*\[", line):
-                in_deps = True
-            elif in_deps and "]" in line:
-                in_deps = False
-            elif in_deps and (match := re.search(r'"([^"]+)"', line)):
-                deps.append(match.group(1))
-    return deps
+    # The PEP 723 block is TOML behind `# ` comment prefixes; parse it as TOML rather than by hand so
+    # extras (rich[jupyter]) and single-line arrays are handled correctly.
+    if not (match := re.search(r"(?m)^# /// script$\s(?P<body>(?:^#.*$\s)*?)^# ///$", pyfile.read_text("utf-8"))):
+        return []
+    body = "\n".join(line[2:] if line.startswith("# ") else line[1:] for line in match["body"].splitlines())
+    try:
+        data = tomllib.loads(body)
+    except tomllib.TOMLDecodeError:
+        return []
+    return [dep for dep in data.get("dependencies", []) if isinstance(dep, str)]
 
 
 def extract_pyproject_deps(pyproject: Path) -> list[str]:
-    deps: list[str] = []
     with pyproject.open("rb") as f:
         data = tomllib.load(f)
-    groups = data.get("dependency-groups", {})
-    for group in groups.values():
-        deps.extend(group)
+    project = data.get("project", {})
+    deps: list[str] = list(project.get("dependencies", []))
+    for extra in project.get("optional-dependencies", {}).values():
+        deps.extend(d for d in extra if isinstance(d, str))
+    for group in data.get("dependency-groups", {}).values():
+        deps.extend(d for d in group if isinstance(d, str))
     return deps
 
 

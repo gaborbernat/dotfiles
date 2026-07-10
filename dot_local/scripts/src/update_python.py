@@ -59,10 +59,17 @@ def main() -> None:
 
             if already_installed := latest in currently_installed:
                 status = "[green]Already installed[/]"
+            elif dry_run:
+                install_python(latest, dry_run=dry_run)
+                status = "[green](Dry run) Would install[/]"
             else:
                 with console.status(f"[bold blue]⬇️  Installing Python variant: {latest}..."):
-                    install_python(latest, dry_run=dry_run)
-                status = "[green]Installed[/]" if not dry_run else "[green](Dry run) Would install[/]"
+                    installed_ok = install_python(latest)
+                if installed_ok:
+                    status = "[green]Installed[/]"
+                else:
+                    status = "[red]Install failed[/]"
+                    installed_versions.discard(latest)
 
             results.append((version, latest, status, installed_for_minor))
 
@@ -129,12 +136,12 @@ def find_installed_for_minor(installed: set[str], version: Version, variant: Lit
     return ", ".join(matches) if matches else "-"
 
 
-def install_python(key: str, *, dry_run: bool = False) -> None:
+def install_python(key: str, *, dry_run: bool = False) -> bool:
     cmd = ["uv", "python", "install", key]
     if dry_run:
         console.print(f"[blue]DRY RUN:[/] {' '.join(cmd)}")
-    else:
-        run_uv_command(cmd)
+        return True
+    return run_uv_command(cmd) is not None
 
 
 def upgrade_tools(version: str, *, dry_run: bool = False) -> None:
@@ -147,15 +154,18 @@ def upgrade_tools(version: str, *, dry_run: bool = False) -> None:
     console.print(f"[green]🔧 Tools upgraded for Python {version}[/]")
 
 
-def run_uv_command(cmd: list[str]) -> str:
+def run_uv_command(cmd: list[str]) -> str | None:
     try:
-        result = subprocess.run(cmd, capture_output=True, check=True, text=True)
+        result = subprocess.run(cmd, capture_output=True, check=True, text=True, timeout=1800)
         return result.stdout  # noqa: TRY300
     except subprocess.CalledProcessError as e:
         console.print(f"[red]Command failed:[/] {' '.join(cmd)}")
         if e.stderr:
             console.print(f"[red]{e.stderr.strip()}[/]")
-        return ""
+        return None
+    except subprocess.TimeoutExpired:
+        console.print(f"[red]Command timed out:[/] {' '.join(cmd)}")
+        return None
 
 
 if __name__ == "__main__":
