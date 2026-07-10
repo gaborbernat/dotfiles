@@ -14,18 +14,9 @@ function $_bgp_context --on-variable $_bgp_context
     commandline --function repaint
 end
 
-# PWD formatting - full git root, single letter for all other dirs, bold basename
+# PWD formatting - pure string work only (no git calls), so `cd` never blocks on the filesystem.
+# Whether we are in a repo is decided by the async git block below, which resolves to empty if not.
 function _bgp_pwd --on-variable PWD
-    set --local git_root (command git --no-optional-locks rev-parse --show-toplevel 2>/dev/null)
-
-    if set --query git_root[1]
-        set --erase _bgp_skip_git_prompt
-    else if command git --no-optional-locks rev-parse --is-bare-repository 2>/dev/null | string match -q true
-        set --erase _bgp_skip_git_prompt
-    else
-        set --global _bgp_skip_git_prompt
-    end
-
     set --local plain_result (_bgp_pwd_plain $PWD)
 
     # Bold the components kept full (git root, basename); they are the only
@@ -107,9 +98,8 @@ function _bgp_prompt --on-event fish_prompt
     # Always clear context before re-detecting (handles nvm use, pyenv, etc.)
     set --erase $_bgp_context
 
-    # Async git info
-    if not set --query _bgp_skip_git_prompt
-        fish --private --command "
+    # Async git info (self-detects whether we are in a repo; sets empty when not)
+    fish --private --command "
             set branch (
                 command git symbolic-ref --short HEAD 2>/dev/null ||
                 command git describe --tags --exact-match HEAD 2>/dev/null ||
@@ -164,10 +154,7 @@ function _bgp_prompt --on-event fish_prompt
                 set --universal $_bgp_git \"\$branch\$info\$upstream\"
             end
         " &
-        set --global _bgp_last_git_pid $last_pid
-    else
-        set $_bgp_git ""
-    end
+    set --global _bgp_last_git_pid $last_pid
 
     # Async context detection (node/python/go/rust versions - supports multiple)
     # Explicitly pass PATH to preserve nvm/pyenv/etc changes

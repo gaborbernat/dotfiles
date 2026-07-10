@@ -73,10 +73,10 @@ REPOSITORIES = [
     "gaborbernat/gaborbernat",
 ]
 
-# Automation accounts whose green PRs are safe to auto-merge. github-actions[bot] is intentionally
-# excluded: any workflow can open a PR as that author and self-report its own checks green, so it is
-# not a trustworthy signal for unattended merging.
-BOT_AUTHORS = frozenset({"dependabot[bot]", "pre-commit-ci[bot]"})
+# Automation accounts whose green PRs are safe to auto-merge. Note: github-actions[bot] is only as
+# trustworthy as the workflows in each repo — any workflow can open a PR as that author and report
+# its own checks green — so keep it here only for repos whose workflows you control.
+BOT_AUTHORS = frozenset({"dependabot[bot]", "pre-commit-ci[bot]", "github-actions[bot]"})
 
 
 def main() -> None:
