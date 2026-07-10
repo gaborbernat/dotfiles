@@ -87,8 +87,9 @@ $legend"
             set --local path (string split \t $selection)[2]
             set --local name (string split ' ' $selection)[1]
             set --local sel_branch (string split \t $selection)[3]
-            _wl_remove_worktree "$bare_root" "$path" "$name" "$sel_branch"
+            _wl_remove_worktree "$bare_root" "$path" "$name" "$sel_branch" &
         end
+        wait
         wl
     else
         cd "$wt_path"
@@ -99,21 +100,47 @@ function _wl_remove_worktree -a bare_root wt_path wt_name branch
     test -z "$branch" && set branch $wt_name
     set --local start_time (gdate +%s.%N 2>/dev/null; or date +%s)
     echo "Removing worktree '$wt_name'..."
-    if git -C "$bare_root" worktree remove "$wt_path" 2>&1
-        or git -C "$bare_root" worktree remove --force "$wt_path" 2>&1
+
+    # A claude-agent lock held by a live process is a worktree in use: warn and skip it.
+    # A dead pid (or a broken worktree) is stale, so unlock and force through below.
+    set --local lock_reason (_wl_lock_reason "$bare_root" "$wt_path")
+    if test -n "$lock_reason"
+        set --local lock_pid (string replace -rf '.*pid ([0-9]+).*' '$1' -- "$lock_reason")
+        if test -n "$lock_pid"; and kill -0 $lock_pid 2>/dev/null
+            printf "⚠ Skipping %s: locked by live agent (pid %s)\n" "$wt_name" "$lock_pid"
+            return 1
+        end
+        git -C "$bare_root" worktree unlock "$wt_path" 2>/dev/null
+    end
+
+    if git -C "$bare_root" worktree remove "$wt_path" 2>/dev/null
+        or git -C "$bare_root" worktree remove --force "$wt_path" 2>/dev/null
+        or _wl_prune_worktree "$bare_root" "$wt_path"
         git -C "$bare_root" branch -d "$branch" 2>/dev/null
         if git -C "$bare_root" rev-parse --verify "origin/$branch" &>/dev/null
             git -C "$bare_root" push origin --delete "$branch" 2>/dev/null
             and echo "Deleted remote branch origin/$branch"
         end
         set --local end_time (gdate +%s.%N 2>/dev/null; or date +%s)
-        set --local elapsed (math "$end_time - $start_time")
-        printf "Deleted branch %s (%.2fs)\n" "$branch" "$elapsed"
+        printf "Deleted branch %s (%.2fs)\n" "$branch" (math "$end_time - $start_time")
     else
         set --local end_time (gdate +%s.%N 2>/dev/null; or date +%s)
-        set --local elapsed (math "$end_time - $start_time")
-        printf "Failed to remove %s (%.2fs)\n" "$wt_name" "$elapsed"
+        printf "Failed to remove %s (%.2fs)\n" "$wt_name" (math "$end_time - $start_time")
     end
+end
+
+function _wl_lock_reason -a bare_root wt_path
+    git -C "$bare_root" worktree list --porcelain 2>/dev/null | awk -v p="$wt_path" '
+        /^worktree /{ cur = substr($0, 10) }
+        /^locked/{ if (cur == p) { line = $0; sub(/^locked ?/, "", line); print line } }
+    '
+end
+
+function _wl_prune_worktree -a bare_root wt_path
+    # Reap a worktree whose git link is gone (prunable): remove/--force both refuse it, only prune clears it.
+    git -C "$bare_root" worktree prune 2>/dev/null
+    test -e "$wt_path"; and not test -e "$wt_path/.git"; and rm -rf "$wt_path"
+    not test -e "$wt_path"
 end
 
 function _wl_open_pr -a bare_root pr_number
