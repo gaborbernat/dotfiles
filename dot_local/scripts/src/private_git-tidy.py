@@ -15,7 +15,6 @@ import subprocess
 from argparse import ArgumentParser, Namespace
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime, timedelta
-from pathlib import Path
 from typing import TYPE_CHECKING
 
 from github import Github
@@ -29,7 +28,6 @@ from rich_argparse import RichHelpFormatter
 from truststore import inject_into_ssl
 
 if TYPE_CHECKING:
-    from github.PullRequest import PullRequest
     from github.Repository import Repository
     from rich.progress import Progress as ProgressType
     from rich.progress import TaskID
@@ -74,9 +72,9 @@ def parse_cli() -> Options:
 
 def get_remote_only_branches(default_branch: str, opts: Options) -> dict[str, list[str]]:
     """Get branches that exist on remotes but not locally."""
-    # Get all local branches
-    local_output = run_git(["git", "branch"], opts, capture=True)
-    local_branches = {b.strip().lstrip("*").strip() for b in local_output.strip().split("\n") if b.strip()}
+    # Get all local branches (%(refname:short) yields clean names, no * / + worktree markers)
+    local_output = run_git(["git", "branch", "--format=%(refname:short)"], opts, capture=True)
+    local_branches = {b for b in local_output.splitlines() if b}
 
     # Get all remote branches
     remote_output = run_git(["git", "branch", "-r"], opts, capture=True)
@@ -112,24 +110,28 @@ def load_all_data(
 
         progress.update(task, description="Loading branch information...")
 
-        # Get gone branches
-        output = run_git(["git", "branch", "-vv"], opts, capture=True)
+        # Get gone branches (upstream tracking deleted); tab-delimited so branch names are safe
+        output = run_git(
+            ["git", "for-each-ref", "--format=%(refname:short)%09%(upstream:track)", "refs/heads/"],
+            opts,
+            capture=True,
+        )
         gone_branches: list[str] = []
-        for line in output.strip().split("\n"):
-            if "[gone]" in line:
-                parts = line.strip().split()
-                branch = parts[0].lstrip("*").strip()
-                if branch:
-                    gone_branches.append(branch)
+        for line in output.splitlines():
+            name, _, track = line.partition("\t")
+            if name and "[gone]" in track:
+                gone_branches.append(name)
 
-        # Get merged branches
+        # Fetch merged-PR head refs once, reused for local and remote-only classification
+        merged_pr_refs = find_merged_pr_refs(github_repo, opts, console) if github_repo else {}
+
+        # Get merged branches (name match AND tip SHA match, so a reused branch name is not deleted)
         merged_branches: list[str] = []
         if github_repo:
             progress.update(task, description="Checking for merged PRs...")
-            output = run_git(["git", "branch"], opts, capture=True)
-            all_branches = [b.strip().lstrip("*").strip() for b in output.strip().split("\n") if b.strip()]
-            all_branches = [b for b in all_branches if b and b != default_branch]
-            merged_branches = find_merged_branches(github_repo, all_branches, opts, console)
+            output = run_git(["git", "branch", "--format=%(refname:short)"], opts, capture=True)
+            all_branches = [b for b in output.splitlines() if b and b != default_branch]
+            merged_branches = [b for b in all_branches if is_ref_merged(b, merged_pr_refs, b, opts)]
 
         # Get stale branches with all their data (excluding gone and merged branches)
         progress.update(task, description="Analyzing stale branches...")
@@ -143,22 +145,20 @@ def load_all_data(
         progress.update(task, description="Checking remote-only branches...")
         remote_only_branches = get_remote_only_branches(default_branch, opts)
 
-        # Filter remote-only branches to only include merged ones
+        # Filter remote-only branches to only include merged ones (verify the remote tip SHA too)
         if github_repo:
             merged_remote_branches: dict[str, list[str]] = {"origin": [], "upstream": []}
-            merged_branch_names = find_merged_branches(
-                github_repo, remote_only_branches["origin"] + remote_only_branches["upstream"], opts, console
-            )
-            merged_set = set(merged_branch_names)
             for remote in ("origin", "upstream"):
-                merged_remote_branches[remote] = [b for b in remote_only_branches[remote] if b in merged_set]
+                merged_remote_branches[remote] = [
+                    b for b in remote_only_branches[remote] if is_ref_merged(f"{remote}/{b}", merged_pr_refs, b, opts)
+                ]
             remote_only_branches = merged_remote_branches
 
     return gone_branches, merged_branches, stale_branch_data, remote_only_branches
 
 
 def run(console: Console, opts: Options) -> None:
-    if not Path(".git").exists():
+    if not run_git(["git", "rev-parse", "--git-dir"], opts, capture=True, check=False).strip():
         console.print("[red]Error: Not a git repository[/red]")
         raise SystemExit(1)
 
@@ -267,9 +267,9 @@ def get_github_repo(console: Console, opts: Options) -> Repository | None:
 
 
 def get_default_branch(console: Console, opts: Options) -> str:
-    result = run_git(["git", "symbolic-ref", "refs/remotes/origin/HEAD"], opts, capture=True)
+    result = run_git(["git", "symbolic-ref", "refs/remotes/origin/HEAD"], opts, capture=True, check=False).strip()
     if result:
-        return result.strip().split("/")[-1]
+        return result.split("/")[-1]
     console.print("[yellow]Warning: Could not detect default branch, using 'main'[/yellow]")
     return "main"
 
@@ -278,68 +278,75 @@ def sync_default_branch(console: Console, opts: Options, default_branch: str) ->
     console.print(f"[bold]Syncing {default_branch} with upstream...[/bold]")
 
     current_branch = run_git(["git", "rev-parse", "--abbrev-ref", "HEAD"], opts, capture=True).strip()
+    # A detached HEAD reports "HEAD"; remember the actual commit so we can return to it exactly.
+    original_ref = (
+        current_branch
+        if current_branch != "HEAD"
+        else run_git(["git", "rev-parse", "HEAD"], opts, capture=True).strip()
+    )
+    on_default = current_branch == default_branch
 
-    # Check if upstream remote exists
-    remotes = run_git(["git", "remote"], opts, capture=True).strip().split("\n")
-    has_upstream = "upstream" in remotes
-
+    has_upstream = "upstream" in run_git(["git", "remote"], opts, capture=True).split()
     upstream_ref = f"upstream/{default_branch}" if has_upstream else f"origin/{default_branch}"
 
-    # Check if working directory is dirty and stash if needed
-    status = run_git(["git", "status", "--porcelain"], opts, capture=True).strip()
+    # Stash whenever the tree is dirty (including while already on the default branch).
     stashed = False
-    if status and current_branch != default_branch:
+    if run_git(["git", "status", "--porcelain"], opts, capture=True).strip():
         console.print("[yellow]Working directory has uncommitted changes, stashing...[/yellow]")
         run_git(["git", "stash", "push", "-u", "-m", "git-tidy auto-stash"], opts)
         stashed = True
 
-    # Switch to default branch if not already on it
-    if current_branch != default_branch:
-        console.print(f"[dim]Switching to {default_branch}[/dim]")
-        run_git(["git", "checkout", default_branch], opts)
+    try:
+        if not on_default:
+            console.print(f"[dim]Switching to {default_branch}[/dim]")
+            run_git(["git", "checkout", default_branch], opts)
+        _update_default_branch(console, opts, default_branch, upstream_ref)
+    finally:
+        if not on_default:
+            console.print(f"[dim]Switching back to {original_ref}[/dim]")
+            run_git(["git", "checkout", original_ref], opts)
+        if stashed:
+            console.print("[yellow]Restoring stashed changes...[/yellow]")
+            if not run_git_ok(["git", "stash", "pop"], opts):
+                console.print("[yellow]⚠ Could not pop stash automatically; run 'git stash pop' by hand[/yellow]")
 
-    # Check if local is behind upstream
+    console.print()
+
+
+def _update_default_branch(console: Console, opts: Options, default_branch: str, upstream_ref: str) -> None:
     local_commit = run_git(["git", "rev-parse", default_branch], opts, capture=True).strip()
     upstream_commit = run_git(["git", "rev-parse", upstream_ref], opts, capture=True).strip()
 
     if local_commit == upstream_commit:
         console.print(f"[green]✓ {default_branch} is up to date with {upstream_ref}[/green]")
-    else:
-        # Check if can fast-forward
-        merge_base = run_git(["git", "merge-base", default_branch, upstream_ref], opts, capture=True).strip()
+        return
 
-        if merge_base == local_commit:
-            console.print(f"[yellow]Fast-forwarding {default_branch} to {upstream_ref}[/yellow]")
-            run_git(["git", "merge", "--ff-only", upstream_ref], opts)
-            console.print(f"[green]✓ {default_branch} fast-forwarded[/green]")
+    merge_base = run_git(["git", "merge-base", default_branch, upstream_ref], opts, capture=True).strip()
+    if merge_base == local_commit:
+        console.print(f"[yellow]Fast-forwarding {default_branch} to {upstream_ref}[/yellow]")
+        run_git(["git", "merge", "--ff-only", upstream_ref], opts)
+        console.print(f"[green]✓ {default_branch} fast-forwarded[/green]")
+        return
+
+    local_changes = run_git(
+        ["git", "log", f"{upstream_ref}..{default_branch}", "--oneline"], opts, capture=True
+    ).strip()
+    if not local_changes:
+        console.print(f"[yellow]Fast-forwarding {default_branch} to {upstream_ref}[/yellow]")
+        run_git(["git", "merge", "--ff-only", upstream_ref], opts)
+        console.print(f"[green]✓ {default_branch} fast-forwarded[/green]")
+        return
+
+    console.print(f"[yellow]Local {default_branch} has diverged from {upstream_ref}[/yellow]")
+    if opts.dry_run:
+        console.print(f"[dim][DRY RUN] Would rebase {default_branch} onto {upstream_ref}[/dim]")
+    elif Confirm.ask(f"Rebase {default_branch} onto {upstream_ref}?"):
+        # On a rebase conflict, abort so we never leave a half-finished rebase for the finally block.
+        if run_git_ok(["git", "rebase", upstream_ref], opts):
+            console.print(f"[green]✓ {default_branch} rebased onto {upstream_ref}[/green]")
         else:
-            local_changes = run_git(
-                ["git", "log", f"{upstream_ref}..{default_branch}", "--oneline"], opts, capture=True
-            ).strip()
-
-            if local_changes:
-                console.print(f"[yellow]Local {default_branch} has diverged from {upstream_ref}[/yellow]")
-                if opts.dry_run:
-                    console.print(f"[dim][DRY RUN] Would rebase {default_branch} onto {upstream_ref}[/dim]")
-                elif Confirm.ask(f"Rebase {default_branch} onto {upstream_ref}?"):
-                    run_git(["git", "rebase", upstream_ref], opts)
-                    console.print(f"[green]✓ {default_branch} rebased onto {upstream_ref}[/green]")
-            else:
-                console.print(f"[yellow]Fast-forwarding {default_branch} to {upstream_ref}[/yellow]")
-                run_git(["git", "merge", "--ff-only", upstream_ref], opts)
-                console.print(f"[green]✓ {default_branch} fast-forwarded[/green]")
-
-    # Switch back to original branch
-    if current_branch != default_branch:
-        console.print(f"[dim]Switching back to {current_branch}[/dim]")
-        run_git(["git", "checkout", current_branch], opts)
-
-    # Restore stashed changes if we stashed them
-    if stashed:
-        console.print("[yellow]Restoring stashed changes...[/yellow]")
-        run_git(["git", "stash", "pop"], opts)
-
-    console.print()
+            run_git(["git", "rebase", "--abort"], opts, check=False)
+            console.print(f"[red]✗ Rebase hit conflicts; aborted, {default_branch} left unchanged[/red]")
 
 
 def check_remote_branches(branch: str, opts: Options) -> tuple[bool, bool]:
@@ -354,56 +361,36 @@ def check_remote_branches(branch: str, opts: Options) -> tuple[bool, bool]:
     return has_origin, has_upstream
 
 
-def log_pr_debug_info(console: Console, pr_count: int, pr: PullRequest, opts: Options) -> None:
-    if opts.verbose and pr_count <= 10:
-        head_ref = pr.head.ref if pr.head else "None"
-        console.print(f"[dim]PR #{pr.number}: merged={pr.merged}, head.ref={head_ref}[/dim]")
-
-
-def log_merged_summary(
-    console: Console, pr_count: int, all_branches: list[str], merged_branch_names: set[str], opts: Options
-) -> None:
-    if not opts.verbose:
-        return
-    console.print(f"[dim]Checked {pr_count} closed PRs[/dim]")
-    console.print(f"[dim]Local branches: {all_branches}[/dim]")
-    console.print(f"[dim]Merged branch names from PRs: {merged_branch_names}[/dim]")
-
-
-def find_merged_branches(
-    github_repo: Repository, all_branches: list[str], opts: Options, console: Console
-) -> list[str]:
+def find_merged_pr_refs(github_repo: Repository, opts: Options, console: Console) -> dict[str, set[str]]:
+    """Map each merged PR head-ref name to the set of head SHAs it was merged at (single API pass)."""
     try:
-        merged_branch_names: set[str] = set()
-
         if opts.verbose:
             console.print(f"[dim]Fetching closed PRs from {github_repo.full_name}...[/dim]")
-
-        prs = github_repo.get_pulls(state="closed", sort="created", direction="desc")
-
+        refs: dict[str, set[str]] = {}
+        count = 0
+        for pr in github_repo.get_pulls(state="closed", sort="created", direction="desc"):
+            count += 1
+            if pr.merged and pr.head and pr.head.ref and pr.head.sha:
+                refs.setdefault(pr.head.ref, set()).add(pr.head.sha)
         if opts.verbose:
-            console.print("[dim]Got PR iterator, starting iteration...[/dim]")
-
-        pr_list = list(prs)
-
-        if opts.verbose:
-            console.print(f"[dim]Converted to list: {len(pr_list)} PRs[/dim]")
-
-        for pr_count, pr in enumerate(pr_list, 1):
-            log_pr_debug_info(console, pr_count, pr, opts)
-
-            if pr.merged and pr.head.ref:
-                merged_branch_names.add(pr.head.ref)
-                if opts.verbose:
-                    console.print(f"[dim]  → Added merged branch: {pr.head.ref}[/dim]")
-
-        log_merged_summary(console, len(pr_list), all_branches, merged_branch_names, opts)
-
-        return [branch for branch in all_branches if branch in merged_branch_names]
+            console.print(f"[dim]Checked {count} closed PRs; {len(refs)} merged head refs[/dim]")
     except GithubException as e:
         if opts.verbose:
             console.print(f"[yellow]GitHub API error: {e}[/yellow]")
-        return []
+        return {}
+    return refs
+
+
+def is_ref_merged(ref: str, merged_pr_refs: dict[str, set[str]], name: str, opts: Options) -> bool:
+    """True only if ``ref``'s tip SHA matches a merged PR that used the branch name ``name``.
+
+    Guards against deleting a branch that merely reuses the name of a historically merged PR: the
+    local/remote tip must actually be the SHA that got merged.
+    """
+    if not (shas := merged_pr_refs.get(name)):
+        return False
+    tip = run_git(["git", "rev-parse", "--verify", ref], opts, capture=True, check=False).strip()
+    return bool(tip) and tip in shas
 
 
 def switch_if_current_branch(branch: str, default_branch: str, opts: Options, console: Console) -> None:
@@ -414,7 +401,7 @@ def switch_if_current_branch(branch: str, default_branch: str, opts: Options, co
 
 def get_stale_branches(default_branch: str, stale_days: int, opts: Options) -> list[tuple[str, int]]:
     output = run_git(
-        ["git", "for-each-ref", "--format=%(refname:short)|%(committerdate:iso8601)", "refs/heads/"],
+        ["git", "for-each-ref", "--format=%(refname:short)%09%(committerdate:iso8601)", "refs/heads/"],
         opts,
         capture=True,
     )
@@ -422,11 +409,11 @@ def get_stale_branches(default_branch: str, stale_days: int, opts: Options) -> l
     stale_branches = []
     cutoff_date = datetime.now(UTC) - timedelta(days=stale_days)
 
-    for line in output.strip().split("\n"):
-        if "|" not in line or line.split("|", 1)[0] == default_branch:
+    for line in output.splitlines():
+        if "\t" not in line or line.split("\t", 1)[0] == default_branch:
             continue
 
-        branch, date_str = line.split("|", 1)
+        branch, date_str = line.split("\t", 1)
         commit_date = datetime.fromisoformat(date_str.replace(" ", "T"))
 
         if commit_date < cutoff_date:
@@ -446,13 +433,13 @@ def delete_branch_and_remotes(
 
     delete_origin, delete_upstream = remotes
 
-    if delete_origin:
-        run_git(["git", "push", "origin", "--delete", branch], opts, check=False)
-        console.print(f"[green]✓ Deleted remote branch origin/{branch}[/green]")
-
-    if delete_upstream:
-        run_git(["git", "push", "upstream", "--delete", branch], opts, check=False)
-        console.print(f"[green]✓ Deleted remote branch upstream/{branch}[/green]")
+    for remote, wanted in (("origin", delete_origin), ("upstream", delete_upstream)):
+        if not wanted:
+            continue
+        if run_git_ok(["git", "push", remote, "--delete", branch], opts):
+            console.print(f"[green]✓ Deleted remote branch {remote}/{branch}[/green]")
+        else:
+            console.print(f"[yellow]⚠ Could not delete remote branch {remote}/{branch}[/yellow]")
 
 
 def get_branch_commits(branch: str, default_branch: str, opts: Options) -> str:
@@ -631,13 +618,13 @@ def delete_remote_only_branch(branch: str, opts: Options, console: Console, remo
     """Delete a branch that only exists on remotes."""
     has_origin, has_upstream = remotes
 
-    if has_origin:
-        run_git(["git", "push", "origin", "--delete", branch], opts, check=False)
-        console.print(f"[green]✓ Deleted remote branch origin/{branch}[/green]")
-
-    if has_upstream:
-        run_git(["git", "push", "upstream", "--delete", branch], opts, check=False)
-        console.print(f"[green]✓ Deleted remote branch upstream/{branch}[/green]")
+    for remote, wanted in (("origin", has_origin), ("upstream", has_upstream)):
+        if not wanted:
+            continue
+        if run_git_ok(["git", "push", remote, "--delete", branch], opts):
+            console.print(f"[green]✓ Deleted remote branch {remote}/{branch}[/green]")
+        else:
+            console.print(f"[yellow]⚠ Could not delete remote branch {remote}/{branch}[/yellow]")
 
 
 def execute_all_deletions(
@@ -674,7 +661,7 @@ def show_remaining_branches_summary(
         [
             "git",
             "for-each-ref",
-            "--format=%(refname:short)|%(committerdate:relative)|%(subject)",
+            "--format=%(refname:short)%09%(committerdate:relative)%09%(subject)",
             "--sort=-committerdate",
             "refs/heads/",
         ],
@@ -689,11 +676,11 @@ def show_remaining_branches_summary(
 
     current_branch = run_git(["git", "rev-parse", "--abbrev-ref", "HEAD"], opts, capture=True).strip()
 
-    for line in output.strip().split("\n"):
-        if not line or "|" not in line:
+    for line in output.splitlines():
+        if not line or "\t" not in line:
             continue
 
-        parts = line.split("|", 2)
+        parts = line.split("\t", 2)
         if len(parts) != 3:
             continue
 
@@ -708,13 +695,19 @@ def show_remaining_branches_summary(
     console.print(table)
 
 
+_READONLY_GIT = frozenset({"rev-parse", "symbolic-ref", "remote", "for-each-ref", "ls-remote", "log", "merge-base"})
+_BRANCH_MUTATORS = frozenset({"-d", "-D", "--delete", "-m", "-M", "--move", "-c", "-C", "--copy"})
+
+
+def _is_readonly_git(cmd: list[str]) -> bool:
+    if cmd[1] in _READONLY_GIT:
+        return True
+    # `git branch` lists (read) unless a mutating flag is present
+    return cmd[1] == "branch" and _BRANCH_MUTATORS.isdisjoint(cmd[2:])
+
+
 def run_git(cmd: list[str], opts: Options, *, capture: bool = False, check: bool = True) -> str:
-    if (
-        opts.dry_run
-        and not capture
-        and cmd[1]
-        not in ("rev-parse", "symbolic-ref", "branch", "remote", "for-each-ref", "ls-remote", "log", "merge-base")
-    ):
+    if opts.dry_run and not capture and not _is_readonly_git(cmd):
         return ""
 
     result = subprocess.run(cmd, capture_output=True, text=True, check=check)
@@ -723,6 +716,13 @@ def run_git(cmd: list[str], opts: Options, *, capture: bool = False, check: bool
         return result.stdout
 
     return ""
+
+
+def run_git_ok(cmd: list[str], opts: Options) -> bool:
+    """Run a mutating git command, returning whether it succeeded (True in dry-run)."""
+    if opts.dry_run:
+        return True
+    return subprocess.run(cmd, capture_output=True, text=True, check=False).returncode == 0
 
 
 if __name__ == "__main__":
