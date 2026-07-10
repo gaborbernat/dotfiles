@@ -73,9 +73,10 @@ REPOSITORIES = [
     "gaborbernat/gaborbernat",
 ]
 
-# Automation accounts whose green PRs are safe to auto-merge; collected from a month of GitHub notifications.
-# Drop github-actions[bot] if you don't want workflow-authored PRs merged unattended.
-BOT_AUTHORS = frozenset({"dependabot[bot]", "pre-commit-ci[bot]", "github-actions[bot]"})
+# Automation accounts whose green PRs are safe to auto-merge. github-actions[bot] is intentionally
+# excluded: any workflow can open a PR as that author and self-report its own checks green, so it is
+# not a trustworthy signal for unattended merging.
+BOT_AUTHORS = frozenset({"dependabot[bot]", "pre-commit-ci[bot]"})
 
 
 def main() -> None:
@@ -88,10 +89,9 @@ def main() -> None:
         raise SystemExit(1)
 
     inject_into_ssl()
-    github = Github(auth=Token(token))
 
     try:
-        run(console, github, opts)
+        run(console, token, opts)
     except KeyboardInterrupt:
         console.print("[red]Interrupted by user (Ctrl+C)[/red]")
     except GithubException as exc:
@@ -116,11 +116,11 @@ def parse_cli() -> Options:
     return opts
 
 
-def run(console: Console, github: Github, opts: Options) -> None:
+def run(console: Console, token: str, opts: Options) -> None:
     """Main execution function."""
     console.print("[bold cyan]🔍 Scanning repositories for open PRs...[/bold cyan]")
 
-    mergeable_prs, failed_prs = scan_repositories(console, github)
+    mergeable_prs, failed_prs = scan_repositories(console, token)
 
     console.print()
     console.print(f"[bold]Found {len(mergeable_prs)} mergeable PRs and {len(failed_prs)} failed PRs[/bold]")
@@ -140,7 +140,7 @@ def run(console: Console, github: Github, opts: Options) -> None:
 
 
 def scan_repositories(
-    console: Console, github: Github
+    console: Console, token: str
 ) -> tuple[list[tuple[str, PullRequest]], list[tuple[str, PullRequest, str]]]:
     """Scan all repositories for open PRs and categorize them."""
     mergeable_prs: list[tuple[str, PullRequest]] = []
@@ -155,7 +155,7 @@ def scan_repositories(
 
         with ThreadPoolExecutor(max_workers=10) as executor:
             future_to_repo = {
-                executor.submit(scan_single_repository, github, repo_path): repo_path for repo_path in REPOSITORIES
+                executor.submit(scan_single_repository, token, repo_path): repo_path for repo_path in REPOSITORIES
             }
 
             for future in as_completed(future_to_repo):
@@ -171,7 +171,7 @@ def scan_repositories(
                         for title in pr_titles:
                             console.print(f"  [dim]{title}[/dim]")
 
-                except GithubException as e:
+                except (GithubException, OSError, ValueError) as e:
                     console.print(f"[yellow]⚠ {repo_path}: Could not fetch PRs ({e})[/yellow]")
 
                 progress.advance(task)
@@ -180,10 +180,10 @@ def scan_repositories(
 
 
 def scan_single_repository(
-    github: Github, repo_path: str
+    token: str, repo_path: str
 ) -> tuple[list[tuple[str, PullRequest]], list[tuple[str, PullRequest, str]], list[str], str]:
-    """Scan a single repository for PRs."""
-    repo = github.get_repo(repo_path)
+    """Scan a single repository for PRs. Uses a per-thread client (PyGithub sessions aren't shared-safe)."""
+    repo = Github(auth=Token(token)).get_repo(repo_path)
     repo_name = repo.name
     prs = repo.get_pulls(state="open", sort="created", direction="asc")
 
@@ -257,7 +257,7 @@ def open_failed_prs(console: Console, failed_prs: list[tuple[str, PullRequest, s
         webbrowser.open(pr.html_url)
 
 
-def check_pr_status(pr: PullRequest) -> tuple[str, str]:  # noqa: C901, PLR0911
+def check_pr_status(pr: PullRequest) -> tuple[str, str]:  # noqa: PLR0911
     """
     Check if a PR is ready to merge.
 
@@ -267,19 +267,14 @@ def check_pr_status(pr: PullRequest) -> tuple[str, str]:  # noqa: C901, PLR0911
 
     The reason provides details when status is "failed".
     """
-    if pr.mergeable is False:
-        return "failed", "Has merge conflicts"
+    # mergeable is True/False/None; None means GitHub hasn't computed it yet, so don't act on stale data.
+    if pr.mergeable is not True or pr.mergeable_state in ("unknown", "dirty"):
+        return "failed", f"Not mergeable (mergeable={pr.mergeable}, state={pr.mergeable_state})"
 
-    if pr.mergeable_state == "dirty":
-        return "failed", "Has merge conflicts"
-
-    if not (commits := list(pr.get_commits())):
-        return "failed", "No commits found"
-
-    latest_commit = commits[-1]
-
-    combined_status = latest_commit.get_combined_status()
-    check_runs = latest_commit.get_check_runs()
+    # Evaluate CI on the true head commit, not get_commits()[-1] (truncated past 250 commits).
+    head_commit = pr.base.repo.get_commit(pr.head.sha)
+    combined_status = head_commit.get_combined_status()
+    check_runs = head_commit.get_check_runs()
 
     legacy_statuses = combined_status.statuses
     check_run_list = list(check_runs)
