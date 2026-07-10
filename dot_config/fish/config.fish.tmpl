@@ -17,25 +17,19 @@ set -gx PATH \
     $HOME/.local/sbin \
     $HOME/.local/bin \
     $HOME/.cargo/bin \
-    /opt/homebrew/opt/gnu-sed/libexec/gnubin \
-    /opt/homebrew/opt/gawk/libexec/gnubin \
-    /opt/homebrew/opt/gnu-indent/libexec/gnubin \
-    /opt/homebrew/opt/coreutils/libexec/gnubin \
     /opt/homebrew/sbin \
     /opt/homebrew/bin/ \
     /usr/local/bin \
     /opt/homebrew/opt/ed/bin \
-    /opt/homebrew/opt/findutils/libexec/gnubin \
     /opt/homebrew/opt/flex/bin \
-    /opt/homebrew/opt/make/libexec/gnubin \
     /opt/homebrew/opt/zip/bin \
     /Applications/Docker.app/Contents/Resources/bin \
     $HOME/go/bin \
     $PATH
 
-# `mise activate` (below) rebuilds $PATH system-first on every cd, which buries these GNU tool dirs
-# behind the macOS BSD equivalents. fish_user_paths survives that reconstruction, so register them
-# there too; keeps `rm`, `sed`, `awk`, etc. resolving to the GNU builds no matter what mise does.
+# The GNU tool dirs go through fish_user_paths, not the plain PATH above: `mise activate` (below)
+# rebuilds $PATH system-first on every cd, burying them behind the macOS BSD equivalents, but fish
+# re-applies fish_user_paths on top of whatever mise produces. Keeps rm/sed/awk resolving to GNU.
 fish_add_path --prepend --move \
     /opt/homebrew/opt/coreutils/libexec/gnubin \
     /opt/homebrew/opt/gnu-sed/libexec/gnubin \
