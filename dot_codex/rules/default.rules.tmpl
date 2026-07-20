@@ -41,3 +41,4 @@ prefix_rule(pattern = ["xargs"], decision = "allow")
 prefix_rule(pattern = ["yq"], decision = "allow")
 prefix_rule(pattern = ["python", "-m", "pytest"], decision = "allow")
 prefix_rule(pattern = ["uv", "pip", "install"], decision = "allow")
+{{ output "sh" "-c" `kept=$(grep '^prefix_rule(pattern=\[' "$HOME/.codex/rules/default.rules" 2>/dev/null); test -n "$kept" && printf '%s\n' "$kept" || true` -}}
