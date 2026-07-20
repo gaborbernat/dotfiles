@@ -62,7 +62,7 @@
     ],
     "defaultMode": "acceptEdits"
   },
-  "model": "claude-opus-4-8[1m]",
+  "model": {{ output "sh" "-c" `jq -r '.model // "opus[1m]"' "$HOME/.claude/settings.json" 2>/dev/null || echo 'opus[1m]'` | trim | quote }},
   "hooks": {
     "SessionStart": [
       {
@@ -156,5 +156,6 @@
     "type": "command",
     "command": "ccstatusline"
   },
+  "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true
 }
