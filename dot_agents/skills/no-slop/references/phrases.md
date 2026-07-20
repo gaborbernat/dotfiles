@@ -36,19 +36,19 @@ These add no meaning. Delete them.
 
 Replace with plain language.
 
-| Avoid | Use instead |
-|-------|-------------|
-| Navigate (challenges) | Handle, address |
-| Unpack (analysis) | Explain, examine |
-| Lean into | Accept, embrace |
-| Landscape (context) | Situation, field |
-| Game-changer | Significant, important |
-| Double down | Commit, increase |
-| Deep dive | Analysis, examination |
-| Take a step back | Reconsider |
-| Moving forward | Next, from now |
-| Circle back | Return to, revisit |
-| On the same page | Aligned, agreed |
+| Avoid                 | Use instead            |
+| --------------------- | ---------------------- |
+| Navigate (challenges) | Handle, address        |
+| Unpack (analysis)     | Explain, examine       |
+| Lean into             | Accept, embrace        |
+| Landscape (context)   | Situation, field       |
+| Game-changer          | Significant, important |
+| Double down           | Commit, increase       |
+| Deep dive             | Analysis, examination  |
+| Take a step back      | Reconsider             |
+| Moving forward        | Next, from now         |
+| Circle back           | Return to, revisit     |
+| On the same page      | Aligned, agreed        |
 
 ## Adverbs
 
@@ -89,6 +89,7 @@ Remove self-referential asides. The essay should move, not announce its own stru
 - "Hint:"
 - "Plot twist:" / "Spoiler:"
 - "You already know this, but"
+- "You already know the answer" / "You already know what to do" / a bare "You already know."
 - "But that's another post"
 - "X is a feature, not a bug"
 - "Dressed up as"
@@ -105,6 +106,12 @@ False intimacy or manufactured sincerity:
 - "creeps in"
 - "I promise"
 - "They exist, I promise"
+- "Sit with that." / "Sit with it for a moment."
+- "That's not nothing."
+- "It's worth naming that"
+- "The X is real, and"
+
+See Therapist Voice in [structures.md](structures.md) for the full register.
 
 ## Telling Instead of Showing
 
@@ -125,4 +132,5 @@ Sentences that announce importance without naming the specific thing. Kill these
 - "The stakes are high"
 - "The consequences are real"
 
-If a sentence says something is important/deep/structural without showing the specific thing, cut it or replace it with the specific thing.
+If a sentence says something is important/deep/structural without showing the specific thing, cut it or replace it with
+the specific thing.

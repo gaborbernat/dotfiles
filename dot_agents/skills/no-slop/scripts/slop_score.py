@@ -55,6 +55,9 @@ _REMINDER: Final[str] = (
     "code.md - then resolve each ADVISORY finding above. Re-read any reference you skipped.\n"
 )
 
+_APOS: Final[str] = r"['\u2019]"
+_TOTALIZING_NOUNS: Final[str] = r"(?:point|game|thing|idea|premise|argument|joke|trick|business model)"
+
 _Spec = tuple[str, int, bool, tuple[str, ...]]
 _CompiledSpec = tuple[str, int, bool, re.Pattern[str]]
 
@@ -106,6 +109,29 @@ _GATE: Final[tuple[_Spec, ...]] = (
             r"\bnot because\b[^.?!]{0,40}\bbecause\b",
             r"\bgoes beyond\b[^.?!]{0,30}\bto\b",
             r"\bmore than just\b",
+            # "Don't call it X. Call it Y." - same verb negated, then repeated.
+            r"\b(?:do not|don'?t) (?:just |simply |merely )?(\w+) it\b[^.!?\n]{0,60}[.!?;,:]\s*"
+            r"(?:just |simply )?\1 it\b",
+            r"\bno \w+, no \w+, no \w+",
+            r"\b(?:did not|didn'?t) \w+[^.?!\n]{0,40}, (?:did not|didn'?t) \w+[^.?!\n]{0,40}, "
+            r"(?:did not|didn'?t)\b",
+        ),
+    ),
+    (
+        "therapist",
+        -3,
+        True,
+        (
+            r"\bsit(?:s|ting)? with (?:that|this|it)\b",
+            r"\bsit(?:s|ting)? with (?:the|your) (?:discomfort|feelings?|tension|weight|uncertainty"
+            r"|ambiguity|grief|silence|unease)\b",
+            rf"\b(?:that|this|it|which)(?:{_APOS}s| is| was) not nothing\b",
+            r"\b(?:is|are|was|were|feels?|seems?)(?: \w+){0,2}? worth naming\b",
+            r"\bworth naming:",
+            r"\bis real,? (?:and|but|not)\b",
+            # Bare wh-words stay out: "you already know how to run the tests" is ordinary writing.
+            r"\byou already know (?:the answer|what to do)\b",
+            r"\byou already know\b(?![ \t]+\w)",
         ),
     ),
     (
@@ -116,7 +142,7 @@ _GATE: Final[tuple[_Spec, ...]] = (
             r"\bwhat if\b[^?]{0,60}\?",
             r"\bhere'?s what i mean\b",
             r"\bthink about it\b",
-            r"\band that'?s okay\b",
+            r"\band that'?s (?:okay|allowed|fine)\b",
             r"\bhere'?s the thing\b",
         ),
     ),
@@ -193,6 +219,11 @@ _GATE: Final[tuple[_Spec, ...]] = (
             r"\bevolving landscape\b",
             r"\b(?:marks|represents) a (?:shift|turning)\b",
             r"\bis a reminder\b",
+            # Totalizing closers. The noun list keeps "the entire system is down" out.
+            rf"\b(?:that|this)(?:{_APOS}s| is| was) the whole {_TOTALIZING_NOUNS}\b",
+            rf"(?:\bis|\bwas|\bare|\bwere|{_APOS}s) the entire {_TOTALIZING_NOUNS}\b",
+            rf"\bthe entire {_TOTALIZING_NOUNS}(?: \w+){{0,3}}? (?:is|was)\b",
+            r"\bthe punchline(?: (?:is|was)\b|\s*[:?])",
         ),
     ),
     (
