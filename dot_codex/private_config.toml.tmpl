@@ -1,5 +1,5 @@
 {{- $work := joinPath .chezmoi.homeDir ".local/share/chezmoi-private/codex_work.toml" -}}
-model_reasoning_effort = "xhigh"
+model_reasoning_effort = "high"
 suppress_unstable_features_warning = true
 
 # ─── Approvals ───────────────────────────────────────────────────────────────
@@ -13,7 +13,7 @@ commit_attribution = ""
 
 # ─── Permissions (parity with Claude Code — read all, write workspace, network on) ──
 default_permissions = "dev"
-
+{{ output "sh" "-c" `grep -m1 '^model = ' "$HOME/.codex/config.toml" 2>/dev/null || true` }}
 [permissions.dev.filesystem]
 ":root" = "read"
 ":workspace_roots" = "write"
@@ -21,4 +21,4 @@ default_permissions = "dev"
 [permissions.dev.network]
 enabled = true
 {{ if stat $work }}{{ output "cat" $work }}{{ end -}}
-{{ output "sh" "-c" `awk '/^\[/{f=($0 ~ /^\[tui\.model_availability_nux\]/)} f' "$HOME/.codex/config.toml" 2>/dev/null || true` -}}
+{{ output "sh" "-c" `kept=$(awk '/^\[/{f=($0 ~ /^\[(tui\.model_availability_nux\]|projects\.|notice\])/)} f' "$HOME/.codex/config.toml" 2>/dev/null); test -n "$kept" && printf '\n%s\n\n' "$kept" || true` -}}
