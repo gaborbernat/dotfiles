@@ -149,3 +149,8 @@ if test -d "$HOME/.bun"
     set --export BUN_INSTALL "$HOME/.bun"
     set --export PATH $BUN_INSTALL/bin $PATH
 end
+
+# Rust build speed: shrink dev target (DWARF debug info is the main size driver) while keeping
+# incremental compilation and panic backtraces (file:line). Delete this line to restore full
+# debug info for lldb variable inspection. Applies to every project/worktree.
+set -gx CARGO_PROFILE_DEV_DEBUG line-tables-only
