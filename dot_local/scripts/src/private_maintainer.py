@@ -29,7 +29,8 @@ if TYPE_CHECKING:
     from github.PullRequest import PullRequest
 
 # Mirrors the primary and maintenance projects in bernat-tech/data/projects.yaml (presentations excluded);
-# keep both in sync. Monorepo components are covered by their parent repo (tox-dev/toml-fmt).
+# keep both in sync. toml-fmt covers its monorepo components; pyproject-fmt and tox-toml-fmt are listed
+# separately because the pre-commit hook mirrors are their own repos and get their own bot PRs.
 REPOSITORIES = [
     "tox-dev/platformdirs",
     "tox-dev/filelock",
@@ -56,15 +57,15 @@ REPOSITORIES = [
     "gaborbernat/bump-deps-index",
     "gaborbernat/pypi-changes",
     "gaborbernat/mdformat-hugo",
-    "tox-dev/mdformat-zola",
     "tox-dev/xml-fmt",
     "tox-dev/turbohtml",
+    "tox-dev/peryx",
+    "tox-dev/mdformat-zola",
     "tox-dev/PyVenvManage",
     "tox-dev/jetbrains-fish",
     "pypa/build",
     "pypa/pipx",
     "bloomberg/pytest-memray",
-    "tox-dev/velodex",
     "gaborbernat/all-repos-self",
     "gaborbernat/bernat-tech",
     "gaborbernat/cv",
