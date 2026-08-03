@@ -137,33 +137,29 @@ function _wl_remove_worktree -a bare_root wt_path wt_name branch default_branch
         git -C "$bare_root" worktree unlock "$wt_path" 2>/dev/null
     end
 
-    set --local worktree_status (git -C "$wt_path" status --porcelain --untracked-files=all 2>/dev/null)
-    if test -d "$wt_path"; and test (count $worktree_status) -gt 0
-        printf "⚠ Kept %s: worktree has uncommitted or untracked files\n" "$wt_name"
-        return 1
-    end
-
+    # --force is what a selection means here: git refuses a plain remove both for uncommitted or
+    # untracked files and for any tree containing submodules, and neither is a reason to keep it.
     if not begin
-            git -C "$bare_root" worktree remove "$wt_path" 2>/dev/null
-            or _wl_prune_worktree "$bare_root" "$wt_path"
+            git -C "$bare_root" worktree remove --force "$wt_path" 2>/dev/null
+            or _wl_force_remove "$bare_root" "$wt_path"
         end
         printf "Failed to remove %s (%.2fs)\n" "$wt_name" (math (gdate +%s.%N 2>/dev/null; or date +%s) - "$start_time")
         return 1
     end
 
     if test -n "$branch"
-        if git -C "$bare_root" merge-base --is-ancestor "$branch" "$default_branch" 2>/dev/null
-            and git -C "$bare_root" branch -d "$branch" 2>/dev/null
-            echo "Deleted local branch $branch"
-            if git -C "$bare_root" rev-parse --verify "origin/$branch" &>/dev/null
-                if git -C "$bare_root" push origin --delete "$branch" 2>/dev/null
-                    echo "Deleted remote branch origin/$branch"
-                else
-                    echo "⚠ Could not delete remote origin/$branch"
-                end
+        set --local merged (git -C "$bare_root" merge-base --is-ancestor "$branch" "$default_branch" 2>/dev/null; and echo 1)
+        set --local has_remote (git -C "$bare_root" rev-parse --verify "origin/$branch" &>/dev/null; and echo 1)
+        git -C "$bare_root" branch -D "$branch" 2>/dev/null; and echo "Deleted local branch $branch"
+        if test -n "$has_remote"
+            # A force-deleted local branch is still in the reflog; a deleted remote one is not.
+            if test -z "$merged"
+                echo "⚠ Kept remote origin/$branch (not merged into $default_branch)"
+            else if git -C "$bare_root" push origin --delete "$branch" 2>/dev/null
+                echo "Deleted remote branch origin/$branch"
+            else
+                echo "⚠ Could not delete remote origin/$branch"
             end
-        else
-            echo "⚠ Kept branch $branch (not merged into $default_branch)"
         end
     end
     printf "Removed %s (%.2fs)\n" "$wt_name" (math (gdate +%s.%N 2>/dev/null; or date +%s) - "$start_time")
@@ -176,7 +172,9 @@ function _wl_lock_reason -a bare_root wt_path
     '
 end
 
-function _wl_prune_worktree -a bare_root wt_path
+function _wl_force_remove -a bare_root wt_path
+    test -n "$wt_path"; or return 1
+    rm -rf "$wt_path"
     git -C "$bare_root" worktree prune 2>/dev/null
     not git -C "$bare_root" worktree list --porcelain 2>/dev/null | string match -q -- "worktree $wt_path"
 end
