@@ -1,0 +1,28 @@
+#!/bin/bash
+# apt packages hash: {{ include "dot_apt_packages.txt" | sha256sum }}
+set -euo pipefail
+
+if [[ "${SKIP_APT_INSTALL:-}" == "1" ]]; then
+    echo "⏭️  Skipping apt packages (SKIP_APT_INSTALL=1)"
+    exit 0
+fi
+
+if ! command -v apt-get >/dev/null 2>&1; then
+    echo "⚠️  apt-get not found, skipping apt packages"
+    exit 0
+fi
+
+mapfile -t packages < <(grep -vE '^\s*(#|$)' "$HOME/.apt_packages.txt")
+
+echo "📦 Installing apt packages (sudo required)..."
+sudo apt-get update
+sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "${packages[@]}"
+
+# Debian/Ubuntu ship fd-find's binary as fdfind to avoid a name clash; alias it to fd to match
+# every other platform (and this dotfiles repo's own references to the `fd` command).
+if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then
+    mkdir -p "$HOME/.local/bin"
+    ln -sf "$(command -v fdfind)" "$HOME/.local/bin/fd"
+fi
+
+echo "✅ apt packages installed"

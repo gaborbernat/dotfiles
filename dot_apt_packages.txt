@@ -1,0 +1,54 @@
+# apt packages installed on Linux. Mirrors the CLI tools in dot_Brewfile.tmpl; GUI apps, Mac App
+# Store entries, and macOS-only tools (mas, duti, pinentry-mac) have no Linux equivalent here.
+# rustup, uv, and mise are installed separately via their own official installers, not apt.
+# No apt package exists for: crane, prek, yamlfmt, googleworkspace-cli, anomalyco/tap/opencode.
+
+# Core tools
+build-essential  # C toolchain (gcc, make, libc headers) — needed to build Rust crates with C deps
+atuin
+bat
+direnv
+fd-find
+fish
+fzf
+gh
+git
+git-delta
+git-lfs
+glow
+gping
+htop
+lsd
+mprocs
+tig
+tmux
+tree
+universal-ctags
+wget
+yq
+zoxide
+
+# Build & document tools
+aria2
+cmake
+graphviz
+hugo
+hyperfine
+gdu
+jq
+llvm
+maven
+meson
+ncdu
+pandoc
+pkg-config
+poppler-utils
+ripgrep
+shellcheck
+shfmt
+sqlite3
+sshpass
+texlive
+tokei
+yamllint
+zbar-tools
