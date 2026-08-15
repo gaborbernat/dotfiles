@@ -9,4 +9,4 @@ set commit-order = default
 set ignore-case = smart-case
 set refresh-mode = auto
 set main-view-date = relative
-bind generic Y @sh -c "printf '%s' %(commit) | pbcopy"
+bind generic Y @sh -c "printf '%s' %(commit) | { pbcopy || wl-copy || xclip -selection clipboard || xsel --clipboard --input; } 2>/dev/null"
