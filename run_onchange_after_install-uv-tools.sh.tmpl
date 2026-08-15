@@ -4,6 +4,17 @@ set -euo pipefail
 
 export PATH="$HOME/.local/bin:$PATH"
 
+# Some package builds (e.g. taplo, pulled in by mdformat-config) shell out to Python's httpx/certifi
+# instead of the OS trust store. On networks that intercept TLS with a corporate CA (already trusted
+# by curl/git via the OS store), that fails unless Python is pointed at the same bundle explicitly.
+for bundle in /etc/ssl/cert.pem /etc/ssl/certs/ca-certificates.crt /etc/pki/tls/certs/ca-bundle.crt; do
+    if [[ -f "$bundle" ]]; then
+        export SSL_CERT_FILE="$bundle"
+        export REQUESTS_CA_BUNDLE="$bundle"
+        break
+    fi
+done
+
 install_tools() {
     local file="$1"
     local default_python=""
@@ -28,11 +39,16 @@ install_tools() {
 }
 
 echo "📦 Installing uv tools..."
-install_tools "$HOME/.uv_tools.txt"
+any_failed=0
+install_tools "$HOME/.uv_tools.txt" || any_failed=1
 
 if [[ -f "$HOME/.local/share/chezmoi-private/uv_tools_work.txt" ]]; then
     echo "📦 Installing work uv tools..."
-    install_tools "$HOME/.local/share/chezmoi-private/uv_tools_work.txt"
+    install_tools "$HOME/.local/share/chezmoi-private/uv_tools_work.txt" || any_failed=1
 fi
 
-echo "✅ uv tools installed"
+if [[ "$any_failed" == "1" ]]; then
+    echo "⚠️  uv tools installed, with failures above (see 'uv tool list' / rerun to retry)"
+else
+    echo "✅ uv tools installed"
+fi
