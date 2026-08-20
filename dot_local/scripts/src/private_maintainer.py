@@ -39,7 +39,6 @@ REPOSITORIES = [
     "tox-dev/tox",
     "tox-dev/pyproject-api",
     "pytest-dev/pytest-env",
-    "koxudaxi/datamodel-code-generator",
     "tox-dev/pipdeptree",
     "tox-dev/sphinx-autodoc-typehints",
     "tox-dev/pre-commit-uv",
