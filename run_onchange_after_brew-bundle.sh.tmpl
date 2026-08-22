@@ -40,6 +40,9 @@ if [[ -f "$private_dir/Brewfile.skip" ]]; then
     done <"$private_dir/Brewfile.skip"
 fi
 
+# Install only what is missing; upgrades belong to the `u` function's brew stage.
+# Homebrew's formula locks are non-blocking, so a bundle upgrade racing `u` fails
+# instantly rather than waiting.
 echo "🍺 Installing Homebrew packages..."
-brew bundle --file="$combined"
+brew bundle install --no-upgrade --file="$combined"
 echo "✅ Homebrew packages installed"
