@@ -48,6 +48,7 @@ resize-overlay = never
 macos-option-as-alt = true
 quit-after-last-window-closed = true
 confirm-close-surface = false
+undo-timeout = 1m
 
 keybind = global:super+grave_accent=toggle_quick_terminal
 keybind = shift+enter=text:\x1b\r
