@@ -2,6 +2,7 @@ README.md
 pyproject.toml
 .pre-commit-config.yaml
 .setup-gpg-key.sh
+.cargo-build-jobs.sh
 **/.venv
 **/__pycache__
 **/.ruff_cache

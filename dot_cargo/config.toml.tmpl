@@ -1,0 +1,38 @@
+{{- $jobs := output (joinPath .chezmoi.sourceDir ".cargo-build-jobs.sh") | trim -}}
+{{- $sccache := lookPath "sccache" -}}
+{{- $lld := lookPath "ld64.lld" -}}
+[build]
+{{ if stat "/Volumes/OWC" -}}
+# One shared build directory for every Rust project instead of a target/ per
+# worktree. Dependencies compile once and are reused across all worktrees, which
+# is the bulk of the build time and disk. Kept on the OWC (external) by choice.
+target-dir = "/Volumes/OWC/cargo-target"
+
+{{ end -}}
+{{ if $sccache -}}
+# target-dir above is only a default: an explicit --target-dir or CARGO_TARGET_DIR
+# overrides it, and a task that does so pays a full cold dependency build. sccache
+# keys on the compilation itself rather than the directory, so those builds hit the
+# cache regardless of where they write.
+rustc-wrapper = {{ $sccache | quote }}
+
+# sccache cannot cache incremental compilation units, and cargo defaults incremental
+# on for debug builds — leaving it on means every debug build silently misses.
+incremental = false
+
+{{ end -}}
+# Derived per machine by .cargo-build-jobs.sh at apply time rather than pinned,
+# since the ceiling is a property of the hardware. That script carries the why.
+jobs = {{ $jobs }}
+{{ if and $lld (eq .chezmoi.os "darwin") (eq .chezmoi.arch "arm64") }}
+# lld links noticeably faster than the default; absolute path so cc finds it
+# regardless of PATH.
+[target.aarch64-apple-darwin]
+rustflags = ["-C", "link-arg=-fuse-ld={{ $lld }}"]
+{{ end }}
+# cargo-hawk's driver links rustc internals behind #![feature(rustc_private)]. The
+# crate ships a .cargo/config.toml setting this, but `cargo install` reads only this
+# file, so `cargo install-update` fails without it. Scoped to the driver crate by
+# name, so no other build gains nightly features.
+[env]
+RUSTC_BOOTSTRAP = "cargo_hawk_driver"
