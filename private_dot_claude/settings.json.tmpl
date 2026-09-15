@@ -72,6 +72,15 @@
             "command": "~/.claude/hooks/notify.sh SessionStart '✨'"
           }
         ]
+      },
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "~/.claude/hooks/prune-versions.sh",
+            "async": true
+          }
+        ]
       }
     ],
     "SessionEnd": [
@@ -156,6 +165,12 @@
     "type": "command",
     "command": "ccstatusline"
   },
+  "modelSettings": {
+    "claude-fable-5-1": {
+      "effortLevel": "medium"
+    }
+  },
   "tui": "fullscreen",
-  "skipWorkflowUsageWarning": true
+  "skipWorkflowUsageWarning": true,
+  "agentPushNotifEnabled": true
 }
