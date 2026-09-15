@@ -1,5 +1,5 @@
 {
-  "version": 3,
+  "version": 4,
   "lines": [
     [
       {"id":"cwd","type":"custom-command","commandPath":"fish -c '_bgp_pwd_statusline 40'","color":"green","timeout":2000},
@@ -35,13 +35,13 @@
       {"id":"er","type":"extra-usage-remaining","color":"green","rawValue":true,"metadata":{"hideIfDisabled":"true"}}
 {{- end }}
       ,{"id":"sg0","type":"separator","character":" · ","color":"brightBlack"},
-      {"id":"gb","type":"git-branch","color":"magenta","rawValue":true,"metadata":{"hideNoGit":"true"}},
+      {"id":"gb","type":"git-branch","color":"magenta","rawValue":true,"metadata":{"hide":"no-git"}},
       {"id":"sg1","type":"separator","character":" ","color":"brightBlack"},
-      {"id":"gc","type":"git-changes","color":"yellow","rawValue":true,"metadata":{"hideNoGit":"true"}},
+      {"id":"gc","type":"git-changes","color":"yellow","rawValue":true,"metadata":{"hide":"no-git"}},
       {"id":"sg2","type":"separator","character":" ","color":"brightBlack"},
-      {"id":"ab","type":"git-ahead-behind","color":"magenta","metadata":{"hideNoGit":"true"}},
+      {"id":"ab","type":"git-ahead-behind","color":"magenta","metadata":{"hide":"no-git,no-upstream,zero"}},
       {"id":"sg3","type":"separator","character":" ","color":"brightBlack"},
-      {"id":"pr","type":"git-pr","color":"magenta","rawValue":true,"metadata":{"hideNoGit":"true","hideTitle":"true"}}
+      {"id":"pr","type":"git-pr","color":"magenta","rawValue":true,"metadata":{"hide":"no-git,no-data,title"}}
     ]
   ],
   "flexMode":"full-until-compact","compactThreshold":60,"colorLevel":3,
