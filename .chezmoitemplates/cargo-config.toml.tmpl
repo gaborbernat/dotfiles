@@ -1,5 +1,6 @@
 {{- $jobs := output (joinPath .chezmoi.sourceDir ".cargo-build-jobs.sh") | trim -}}
-{{- $sccache := lookPath "sccache" -}}
+{{- /* Skip mise shims: a shim outlives its tool, and an orphaned one fails every rustc call. */ -}}
+{{- $sccache := output "sh" "-c" `PATH=$(printf %s "$PATH" | tr : "\n" | grep -v /mise/shims | paste -sd : -) command -v sccache || true` | trim -}}
 {{- $lld := lookPath "ld64.lld" -}}
 [build]
 {{ if stat "/Volumes/OWC" -}}
