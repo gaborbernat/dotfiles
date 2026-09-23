@@ -1,0 +1,34 @@
+{{ if and (eq .chezmoi.os "darwin") (stat "/Volumes/OWC") -}}
+#!/bin/bash
+# The 229 GB internal disk fills up from toolchains and caches, so they live on the external volume and the home
+# paths are symlinks to it. This runs before the rustup bootstrap so a fresh machine installs into the link, not a
+# real ~/.cargo.
+set -euo pipefail
+
+external=/Volumes/OWC
+
+link() {
+    local home_path="$1" target="$2"
+    if [ -L "$home_path" ]; then
+        return
+    fi
+    mkdir -p "$target" "$(dirname "$home_path")"
+    # A real directory keeps its contents: they move to the external copy before it is replaced.
+    if [ -d "$home_path" ]; then
+        cp -Rp "$home_path/." "$target/"
+        rm -rf "$home_path"
+    fi
+    ln -s "$target" "$home_path"
+    echo "linked $home_path -> $target"
+}
+
+link "$HOME/.rustup" "$external/.rustup"
+link "$HOME/.cargo" "$external/.cargo"
+link "$HOME/.cache" "$external/.cache"
+link "$HOME/.npm" "$external/caches/npm"
+link "$HOME/.gradle" "$external/caches/gradle"
+link "$HOME/Library/Caches/Homebrew" "$external/caches/homebrew"
+link "$HOME/Library/Caches/pip" "$external/caches/pip"
+link "$HOME/Library/Caches/grype" "$external/caches/grype"
+link "$HOME/Library/Caches/ms-playwright" "$external/caches/ms-playwright"
+{{ end -}}

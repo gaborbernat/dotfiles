@@ -123,4 +123,4 @@ The brew-bundle runner merges the public Brewfile with the private additions and
 | `private_Library/`           | Stream Deck profiles                                                                 |
 | `create_private_dot_secrets` | Template creating `~/.secrets` (never committed)                                     |
 | `run_once_*`                 | One-time setup (uv, rustup, Ghostty symlink)                                         |
-| `run_onchange_*`             | On-change scripts (brew, cargo, fisher, uv tools, duti, wrappers, agent-skill links) |
+| `run_onchange_*`             | On-change scripts (brew, cargo, fisher, uv tools, duti, wrappers, skill/cache links) |
