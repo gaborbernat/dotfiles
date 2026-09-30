@@ -8,7 +8,7 @@ function u -d "Update all development tools (one mprocs tab per tool)"
         set --append cmds "fish -lc 'source $stagefile; _u_stage $s'"
     end
 
-    mprocs --proc-list-title "Upgrade packages" --names (string join , $stages) $cmds
+    dekit --proc-list-title "Upgrade packages" --names (string join , $stages) $cmds
 
     set -l npass 0
     set -l nfail 0
