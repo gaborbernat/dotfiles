@@ -3,7 +3,9 @@ function _u_stage -a name -d "Run one upgrade stage for u (one mprocs tab)"
     switch $name
         case brew
             _u_run brew upgrade --greedy --yes
-            and _u_run brew cleanup
+            set -l ok $status
+            _u_run brew cleanup
+            test $ok -eq 0
         case uv
             _u_run uv self update
             and _u_run update_python
