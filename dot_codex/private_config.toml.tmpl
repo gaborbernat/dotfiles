@@ -21,4 +21,4 @@ default_permissions = "dev"
 [permissions.dev.network]
 enabled = true
 {{ if stat $work }}{{ output "cat" $work }}{{ end -}}
-{{ output "sh" "-c" `kept=$(awk '/^\[/{f=($0 ~ /^\[(tui\.model_availability_nux\]|projects\.|notice\]|desktop\]|marketplaces\.|plugins\.|mcp_servers\.)/)} f' "$HOME/.codex/config.toml" 2>/dev/null); test -n "$kept" && printf '\n%s\n\n' "$kept" || true` -}}
+{{ output "sh" "-c" `kept=$(awk '/^\[/{f=($0 ~ /^\[(tui\.model_availability_nux\]|projects\.|notice\]|desktop\]|marketplaces\.|plugins\.)/)} f' "$HOME/.codex/config.toml" 2>/dev/null); test -n "$kept" && printf '\n%s\n\n' "$kept" || true` -}}
