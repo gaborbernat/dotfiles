@@ -31,4 +31,12 @@ link "$HOME/Library/Caches/Homebrew" "$external/caches/homebrew"
 link "$HOME/Library/Caches/pip" "$external/caches/pip"
 link "$HOME/Library/Caches/grype" "$external/caches/grype"
 link "$HOME/Library/Caches/ms-playwright" "$external/caches/ms-playwright"
+link "$HOME/.local/share/uv/python" "$external/caches/uv/python"
+link "$HOME/.local/share/uv/tools" "$external/caches/uv/tools"
+link "$HOME/.local/share/mise/installs" "$external/caches/mise/installs"
+link "$HOME/.local/share/mise/http-tarballs" "$external/caches/mise/http-tarballs"
+link "$HOME/Library/Developer/Toolchains" "$external/developer/Toolchains"
+
+# The Cellar stays on the internal disk: a symlinked keg makes brew report "not
+# inside a keg", which fails brew bundle on every apply.
 {{ end -}}
