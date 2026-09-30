@@ -22,6 +22,22 @@ link() {
     echo "linked $home_path -> $target"
 }
 
+link_file() {
+    local home_path="$1" target="$2"
+    if [ -L "$home_path" ]; then
+        return
+    fi
+    mkdir -p "$(dirname "$target")"
+    # The -wal and -shm siblings belong to the same database and follow it.
+    for suffix in "" -wal -shm; do
+        if [ -f "$home_path$suffix" ]; then
+            mv "$home_path$suffix" "$target$suffix"
+            ln -s "$target$suffix" "$home_path$suffix"
+            echo "linked $home_path$suffix -> $target$suffix"
+        fi
+    done
+}
+
 link "$HOME/.rustup" "$external/.rustup"
 link "$HOME/.cargo" "$external/.cargo"
 link "$HOME/.cache" "$external/.cache"
@@ -36,6 +52,12 @@ link "$HOME/.local/share/uv/tools" "$external/caches/uv/tools"
 link "$HOME/.local/share/mise/installs" "$external/caches/mise/installs"
 link "$HOME/.local/share/mise/http-tarballs" "$external/caches/mise/http-tarballs"
 link "$HOME/Library/Developer/Toolchains" "$external/developer/Toolchains"
+link "$HOME/.codex/sessions" "$external/caches/codex/sessions"
+
+# Codex keeps its transcripts and logs in SQLite beside its config, so the files
+# move individually; the config itself stays managed by chezmoi.
+link_file "$HOME/.codex/thread_history_1.sqlite" "$external/caches/codex/thread_history_1.sqlite"
+link_file "$HOME/.codex/logs_2.sqlite" "$external/caches/codex/logs_2.sqlite"
 
 # The Cellar stays on the internal disk: a symlinked keg makes brew report "not
 # inside a keg", which fails brew bundle on every apply.
