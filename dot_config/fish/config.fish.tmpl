@@ -130,7 +130,7 @@ if status --is-interactive
     function dbr -a val
         docker compose build $val && docker compose run --rm $val
     end
-    command -q direnv && eval (direnv hook fish)
+    command -q direnv && direnv hook fish | source
 
     # Source work-specific config if exists
     if test -f "$HOME/.local/share/chezmoi-private/fish_work.fish"
