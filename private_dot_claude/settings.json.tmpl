@@ -61,7 +61,7 @@
       "Skill(claude-in-chrome)",
       "WebSearch"
     ],
-    "defaultMode": "acceptEdits"
+    "defaultMode": "auto"
   },
   "model": {{ output "sh" "-c" `jq -r '.model // "opus[1m]"' "$HOME/.claude/settings.json" 2>/dev/null || echo 'opus[1m]'` | trim | quote }},
   "hooks": {
