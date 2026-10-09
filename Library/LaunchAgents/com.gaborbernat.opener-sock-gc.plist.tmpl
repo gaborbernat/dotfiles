@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!-- A dropped opener tunnel leaves ~/.opener.sock behind, and sshd refuses to
+     rebind over it (StreamLocalBindUnlink no). Remove it once no process holds
+     it so the laptop's tunnel can reconnect. lsof avoids connecting, which
+     would reach opener on the laptop when the tunnel is up. -->
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.gaborbernat.opener-sock-gc</string>
+
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/sh</string>
+        <string>-c</string>
+        <string>s={{ .chezmoi.homeDir }}/.opener.sock; if [ -S "$s" ] &amp;&amp; ! /usr/sbin/lsof -t "$s" >/dev/null; then rm -f "$s"; fi</string>
+    </array>
+
+    <key>StartInterval</key>
+    <integer>30</integer>
+    <key>RunAtLoad</key>
+    <true/>
+</dict>
+</plist>

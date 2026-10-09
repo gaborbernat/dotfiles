@@ -1,0 +1,8 @@
+#!/bin/bash
+# Plist hash: {{ include "Library/LaunchAgents/com.gaborbernat.opener-sock-gc.plist.tmpl" | sha256sum }}
+set -euo pipefail
+
+plist="$HOME/Library/LaunchAgents/com.gaborbernat.opener-sock-gc.plist"
+launchctl bootout "gui/$(id -u)" "$plist" 2>/dev/null || true
+launchctl bootstrap "gui/$(id -u)" "$plist"
+echo "✅ opener socket cleaner loaded"

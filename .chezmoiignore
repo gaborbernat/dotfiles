@@ -19,3 +19,8 @@ brew-bundle.sh
 .local/bin/open
 Library
 {{ end }}
+{{ if ne .chezmoi.hostname "Bernats-Mac-mini" }}
+# Only mini receives the opener tunnel from the laptop
+Library/LaunchAgents/com.gaborbernat.opener-sock-gc.plist
+load-opener-sock-gc.sh
+{{ end }}
