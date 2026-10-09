@@ -16,7 +16,7 @@ brew-bundle.sh
 .duti
 .Brewfile
 .config/ghostty
-.local/bin/open
+.local/libexec/et-open
 Library
 {{ end }}
 {{ if ne .chezmoi.hostname "Bernats-Mac-mini" }}

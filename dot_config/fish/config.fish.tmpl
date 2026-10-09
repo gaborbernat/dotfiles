@@ -4,7 +4,7 @@ set -gx EDITOR code
 set -gx VISUAL code
 set -gx SHELL /opt/homebrew/bin/fish
 # Tools that honor BROWSER skip `open`; route them through the et-aware wrapper too.
-set -q ET_VERSION; and set -gx BROWSER $HOME/.local/bin/open
+set -q ET_VERSION; and set -gx BROWSER $HOME/.local/libexec/et-open/open
 {{- else }}
 set -gx EDITOR vi
 set -gx VISUAL vi
@@ -39,6 +39,9 @@ fish_add_path --prepend --move \
     /opt/homebrew/opt/gnu-indent/libexec/gnubin \
     /opt/homebrew/opt/findutils/libexec/gnubin \
     /opt/homebrew/opt/make/libexec/gnubin
+# Same reason for the et-aware `open` wrapper, kept in its own dir so the rest of ~/.local/bin
+# keeps its place. Outside et sessions it hands straight to /usr/bin/open.
+fish_add_path --prepend --move $HOME/.local/libexec/et-open
 
 # bb-homebrew
 set -gx PKG_CONFIG_PATH \
