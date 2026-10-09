@@ -3,6 +3,8 @@
 set -gx EDITOR code
 set -gx VISUAL code
 set -gx SHELL /opt/homebrew/bin/fish
+# Tools that honor BROWSER skip `open`; route them through the et-aware wrapper too.
+set -q ET_VERSION; and set -gx BROWSER $HOME/.local/bin/open
 {{- else }}
 set -gx EDITOR vi
 set -gx VISUAL vi

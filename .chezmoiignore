@@ -16,5 +16,6 @@ brew-bundle.sh
 .duti
 .Brewfile
 .config/ghostty
+.local/bin/open
 Library
 {{ end }}

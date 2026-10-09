@@ -1,0 +1,14 @@
+#!/bin/bash
+set -euo pipefail
+
+# In an et session, send web links to the connecting machine's opener daemon
+# over the forwarded socket. A reattached session loses its forwards, so print
+# the link for a terminal click instead. Everyone else gets macOS open.
+if [[ -n "${ET_VERSION:-}" && $# -eq 1 && "$1" =~ ^https?:// ]]; then
+  if [[ -S "$HOME/.opener.sock" ]] && printf '%s\n' "$1" | nc -U -w 2 "$HOME/.opener.sock" 2>/dev/null; then
+    exit 0
+  fi
+  echo "$1"
+  exit 0
+fi
+exec /usr/bin/open "$@"
