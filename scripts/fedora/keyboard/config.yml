@@ -1,14 +1,26 @@
 ---
 keymap:
+  - name: Chrome quit
+    application:
+      only: /google-chrome|chromium/
+    remap:
+      Super-Q: [Alt-F, X]
+  - name: JetBrains quit
+    application:
+      only: /(?i:jetbrains|idea|pycharm|clion|webstorm|goland|rider)/
+    remap:
+      Super-Q: Alt-F4
   - name: Mac application shortcuts
     # Ghostty handles Super shortcuts itself, including terminal copy and paste.
     application:
       not: /ghostty/
     remap:
       Super-C: Ctrl-C
+      Super-A: Ctrl-A
       Super-V: Ctrl-V
       Super-X: Ctrl-X
       Super-Z: Ctrl-Z
+      Super-Q: Ctrl-Q
       Super-T: Ctrl-T
       Super-W: Ctrl-W
       Super-1: Ctrl-1

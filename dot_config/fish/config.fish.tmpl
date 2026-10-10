@@ -114,6 +114,7 @@ if status --is-interactive
     abbr --add cl 'claude --continue'
     abbr --add pcu 'prek autoupdate -j 12'
     abbr --add pcr 'prek run --all-files'
+    bind super-a beginning-of-buffer begin-selection end-of-buffer fish_clipboard_copy
 
     # load tools
     command -q zoxide && zoxide init fish | source
