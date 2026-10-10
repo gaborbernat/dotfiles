@@ -1,36 +1,32 @@
 #!/bin/sh
-# Single skill store is ~/.agents/skills. Symlink every skill into each agent's
-# own skills dir so claude and codex share one copy instead of duplicating it.
-# Re-runs whenever the store changes:
 # store: {{ output "sh" "-c" "ls -1 \"$HOME/.agents/skills\" 2>/dev/null | sort | tr '\\n' ',' || true" }}
 set -eu
 
 store="$HOME/.agents/skills"
-[ -d "$store" ] || exit 0
+[ -d "$store" ] || { echo "Skill store missing: $store" >&2; exit 1; }
 
-agent_dirs="$HOME/.claude/skills $HOME/.codex/skills"
-[ -n "${CLAUDE_CONFIG_DIR:-}" ] && agent_dirs="$agent_dirs $CLAUDE_CONFIG_DIR/skills"
-
-for agent_dir in $agent_dirs; do
+for agent_dir in "$HOME/.claude/skills" "$HOME/.codex/skills" "${CLAUDE_CONFIG_DIR:+$CLAUDE_CONFIG_DIR/skills}"; do
+    [ -n "$agent_dir" ] || continue
     mkdir -p "$agent_dir"
 
-    # Link every store skill into the agent dir (never touch codex's own .system).
     for dir in "$store"/*/; do
         [ -d "$dir" ] || continue
         name=$(basename "$dir")
         [ "$name" = ".system" ] && continue
         target="$agent_dir/$name"
         if [ -L "$target" ]; then
-            ln -sfn "$store/$name" "$target"
+            case "$(readlink "$target")" in
+                "$store"/*) ln -sfn "$store/$name" "$target" ;;
+                *) echo "Skill path is not managed by chezmoi: $target" >&2; exit 1 ;;
+            esac
         elif [ -e "$target" ]; then
-            rm -rf "$target"          # stale real copy from the old per-agent layout
-            ln -s "$store/$name" "$target"
+            echo "Skill path is not managed by chezmoi: $target" >&2
+            exit 1
         else
             ln -s "$store/$name" "$target"
         fi
     done
 
-    # Prune dead links that point into the store.
     for link in "$agent_dir"/*; do
         [ -L "$link" ] || continue
         case "$(readlink "$link")" in
