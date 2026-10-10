@@ -20,6 +20,9 @@ fi
 gsettings set org.gnome.shell.extensions.dash-to-panel multi-monitors true
 current=$(gsettings get org.gnome.shell enabled-extensions)
 extensions=(dash-to-panel@jderose9.github.com)
+if [[ -d /usr/share/gnome-shell/extensions/appindicatorsupport@rgcjonas.gmail.com ]]; then
+    extensions+=(appindicatorsupport@rgcjonas.gmail.com)
+fi
 if [[ -d "$HOME/.local/share/gnome-shell/extensions/monitor@astraext.github.io" ]]; then
     extensions+=(monitor@astraext.github.io)
 fi

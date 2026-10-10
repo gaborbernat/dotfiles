@@ -18,9 +18,9 @@ for app in "${apps[@]}"; do
     fi
 done
 
-if ((${#missing[@]} == 0)); then
-    exit 0
+if ((${#missing[@]} > 0)); then
+    sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
+    sudo flatpak install --system -y flathub "${missing[@]}"
 fi
 
-sudo flatpak remote-add --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-sudo flatpak install --system -y flathub "${missing[@]}"
+flatpak permission-set background background app.bluebubbles.BlueBubbles yes

@@ -46,6 +46,8 @@ install-bazecor.sh
 install-ccstatusline.sh
 .config/distrobox
 .local/share/applications/bazecor.desktop
+.config/autostart/bluebubbles-hidden.desktop
+.local/bin/bluebubbles-start-hidden
 {{ end }}
 {{ if and (eq .chezmoi.os "linux") (ne .chezmoi.osRelease.id "fedora") }}
 .config/ghostty

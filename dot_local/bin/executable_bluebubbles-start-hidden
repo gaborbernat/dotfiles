@@ -1,0 +1,119 @@
+#!/usr/bin/python3
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+import time
+from pathlib import Path
+from typing import Any, Final
+
+from gi.repository import Gio, GLib
+
+__all__ = ["main"]
+
+_APP_ID: Final = "app.bluebubbles.BlueBubbles"
+_WATCHER: Final = "org.kde.StatusNotifierWatcher"
+_GET_PROPERTY: Final = ("org.freedesktop.DBus.Properties", "Get")
+_GET_LAYOUT: Final = ("com.canonical.dbusmenu", "GetLayout")
+_MENU_EVENT: Final = ("com.canonical.dbusmenu", "Event")
+
+
+def main() -> None:
+    preferences: Final = Path.home() / f".var/app/{_APP_ID}/data/bluebubbles/shared_preferences.json"
+    try:
+        configured = json.loads(preferences.read_text()).get("finishedSetup", False)
+    except FileNotFoundError, json.JSONDecodeError:
+        configured = False
+
+    # Flutter aborts when the window is hidden before its first frame on Wayland.
+    client: Final = subprocess.Popen(
+        ["flatpak", "run", _APP_ID],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        start_new_session=True,
+    )
+    if not configured:
+        return
+
+    bus: Final = Gio.bus_get_sync(Gio.BusType.SESSION)
+    deadline: Final = time.monotonic() + 60
+    while time.monotonic() < deadline and client.poll() is None:
+        try:
+            hidden = hide(bus)
+        except GLib.Error:
+            hidden = False
+        if hidden:
+            return
+        time.sleep(0.5)
+    sys.stderr.write("BlueBubbles tray did not appear\n")
+    raise SystemExit(1)
+
+
+def hide(bus: Gio.DBusConnection) -> bool:
+    items = call(
+        bus,
+        _WATCHER,
+        "/StatusNotifierWatcher",
+        _GET_PROPERTY,
+        GLib.Variant("(ss)", (_WATCHER, "RegisteredStatusNotifierItems")),
+    )[0]
+    for item in items:
+        if "@" not in item:
+            continue
+        service, path = item.split("@", 1)
+        title = call(
+            bus,
+            service,
+            path,
+            _GET_PROPERTY,
+            GLib.Variant("(ss)", ("org.kde.StatusNotifierItem", "Title")),
+        )[0]
+        if title.casefold() != "bluebubbles":
+            continue
+        menu = call(
+            bus,
+            service,
+            path,
+            _GET_PROPERTY,
+            GLib.Variant("(ss)", ("org.kde.StatusNotifierItem", "Menu")),
+        )[0]
+        children = call(
+            bus,
+            service,
+            menu,
+            _GET_LAYOUT,
+            GLib.Variant("(iias)", (0, -1, ["label"])),
+        )[1][2]
+        for item_id, properties, _ in children:
+            if properties.get("label") == "Show App":
+                return True
+            if properties.get("label") == "Hide App":
+                call(
+                    bus,
+                    service,
+                    menu,
+                    _MENU_EVENT,
+                    GLib.Variant("(isvu)", (item_id, "clicked", GLib.Variant("s", ""), 0)),
+                )
+                return True
+    return False
+
+
+def call(
+    bus: Gio.DBusConnection,
+    service: str,
+    path: str,
+    method: tuple[str, str],
+    parameters: GLib.Variant,
+) -> tuple[Any, ...]:
+    response = bus.call_sync(service, path, *method, parameters, None, Gio.DBusCallFlags.NONE, 1000, None)
+    if response is None:
+        sys.stderr.write(f"{service}.{method[1]} returned no response\n")
+        raise SystemExit(1)
+    return response.unpack()
+
+
+if __name__ == "__main__":
+    main()

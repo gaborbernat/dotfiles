@@ -81,7 +81,9 @@ game.
 
 For iMessage on Fedora, [BlueBubbles](https://bluebubbles.app/install/) needs its server running on an awake Mac signed
 in to Messages. Complete the server's Full Disk Access, notification, and connection setup on the Mac, then connect the
-Fedora app. The optional Private API requires a separate macOS setup.
+Fedora app. GNOME starts the client at login and hides it in the top bar after the tray appears; closing its window
+keeps it running. Leave BlueBubbles' own startup option off to avoid a second instance. The optional Private API
+requires a separate macOS setup.
 
 For graphical access to the Mac mini on the local network, enable macOS
 [Screen Sharing](https://support.apple.com/guide/mac-help/mh11848/mac) and open `vnc://Bernats-Mac-mini.local:5900` in

@@ -18,6 +18,7 @@ flatpak
 fedora-workstation-repositories
 fzf
 fuse-libs
+gnome-shell-extension-appindicator
 gnome-shell-extension-dash-to-panel
 gh
 git
@@ -81,6 +82,7 @@ ncurses
 nmap-ncat
 nvtop
 pinentry-gnome3
+python3-gobject
 pipewire-utils
 poppler-utils
 ShellCheck
