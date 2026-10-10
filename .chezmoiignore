@@ -1,5 +1,7 @@
 README.md
 pyproject.toml
+docs/
+scripts/
 .pre-commit-config.yaml
 .setup-gpg-key.sh
 .cargo-build-jobs.sh
@@ -15,15 +17,40 @@ apply-duti.sh
 brew-bundle.sh
 .duti
 .Brewfile
-.config/ghostty
 Library
 {{ end }}
-# Only mini and pc receive the opener tunnel from the laptop
+{{ if and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "fedora") }}
+# Fedora installs these with DNF rather than the apt installer.
+install-apt-packages.sh
+.apt_packages.txt
+{{ else }}
+.dnf_packages.txt
+install-dnf-packages.sh
+install-astra-monitor.sh
+install-ddc-brightness.sh
+enable-vscode-repo.sh
+configure-fedora-keyboard.sh
+configure-fedora-gamemode.sh
+configure-fedora-panel.sh
+configure-fedora-sudo-timeout.sh
+enable-fedora-docker.sh
+enable-fedora-remote-shells.sh
+set-fedora-fish-shell.sh
+install-boatswain.sh
+install-kooha.sh
+install-jetbrains-toolbox.sh
+install-bazecor.sh
+install-ccstatusline.sh
+.local/share/applications/bazecor.desktop
+{{ end }}
+{{ if and (eq .chezmoi.os "linux") (ne .chezmoi.osRelease.id "fedora") }}
+.config/ghostty
+{{ end }}
 {{ if ne .chezmoi.hostname "Bernats-Mac-mini" }}
 Library/LaunchAgents/com.gaborbernat.opener-sock-gc.plist
 load-opener-sock-gc.sh
 {{ end }}
-{{ if ne .chezmoi.hostname "pc" }}
+{{ if not (and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "fedora")) }}
 .config/systemd
 enable-opener-sock-gc-timer.sh
 {{ end }}

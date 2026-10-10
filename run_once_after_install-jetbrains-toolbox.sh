@@ -1,0 +1,62 @@
+#!/bin/bash
+set -euo pipefail
+
+if [[ "${SKIP_JETBRAINS_TOOLBOX:-}" == 1 ]]; then
+    exit 0
+fi
+
+if [[ -x "$HOME/.local/opt/jetbrains-toolbox/bin/jetbrains-toolbox" ]]; then
+    exit 0
+fi
+
+case $(uname -m) in
+    x86_64) platform=linux ;;
+    aarch64) platform=linuxARM64 ;;
+    *) echo "JetBrains Toolbox has no Linux build for $(uname -m)" >&2; exit 1 ;;
+esac
+
+metadata=$(mktemp)
+archive=$(mktemp --suffix=.tar.gz)
+checksum=$(mktemp)
+staging=$(mktemp -d)
+trap 'rm -f "$metadata" "$archive" "$checksum"; rm -rf "$staging"' EXIT
+
+curl -fLsS --retry 3 -o "$metadata" 'https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release'
+curl -fLsS --retry 3 -o "$archive" \
+    "$(jq -er --arg platform "$platform" '.TBA[0].downloads[$platform].link' "$metadata")"
+curl -fLsS --retry 3 -o "$checksum" \
+    "$(jq -er --arg platform "$platform" '.TBA[0].downloads[$platform].checksumLink' "$metadata")"
+printf '%s  %s\n' "$(awk 'NR == 1 { print $1 }' "$checksum")" "$archive" | sha256sum -c -
+
+tar -xzf "$archive" -C "$staging"
+distribution=$(find "$staging" -mindepth 1 -maxdepth 1 -type d -name 'jetbrains-toolbox-*' -print -quit)
+if [[ -z "$distribution" || ! -x "$distribution/bin/jetbrains-toolbox" ]]; then
+    echo "JetBrains Toolbox executable missing from archive" >&2
+    exit 1
+fi
+
+install_dir="$HOME/.local/opt/jetbrains-toolbox"
+mkdir -p "$HOME/.local/opt"
+if [[ -e "$install_dir" ]]; then
+    echo "JetBrains Toolbox install directory already exists" >&2
+    exit 1
+fi
+mv "$distribution" "$install_dir"
+launcher="$HOME/.local/share/applications/jetbrains-toolbox.desktop"
+if [[ ! -e "$launcher" ]]; then
+    mkdir -p "$(dirname "$launcher")"
+    cat > "$launcher" <<EOF
+[Desktop Entry]
+Type=Application
+Name=JetBrains Toolbox
+Exec=$install_dir/bin/jetbrains-toolbox
+TryExec=$install_dir/bin/jetbrains-toolbox
+Icon=$install_dir/bin/toolbox-tray-color.png
+Terminal=false
+Categories=Development;
+EOF
+fi
+if [[ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ]]; then
+    "$install_dir/bin/jetbrains-toolbox" >/dev/null 2>&1 &
+fi
+echo "JetBrains Toolbox installed"

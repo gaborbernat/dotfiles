@@ -1,6 +1,14 @@
 function _u_stage -a name -d "Run one upgrade stage for u (one mprocs tab)"
     set -l t0 (date +%s)
     switch $name
+        case dnf
+            _u_run sudo dnf upgrade --refresh -y
+        case flatpak
+            _u_run sudo flatpak update --system -y
+            set -l system_status $status
+            _u_run flatpak update --user -y
+            set -l user_status $status
+            test $system_status -eq 0 -a $user_status -eq 0
         case brew
             _u_run brew upgrade --greedy --yes
             set -l ok $status
@@ -31,26 +39,7 @@ function _u_stage -a name -d "Run one upgrade stage for u (one mprocs tab)"
         case fisher
             _u_run fisher update
         case docker
-            if not docker info >/dev/null 2>&1
-                if test (uname) = Darwin
-                    echo "Docker is not running — starting Docker Desktop…"
-                    _u_run open -a Docker
-                    set -l waited 0
-                    while not docker info >/dev/null 2>&1
-                        sleep 2
-                        set waited (math $waited + 2)
-                        if test $waited -ge 120
-                            echo "Docker did not become ready within 120s" >&2
-                            return 1
-                        end
-                    end
-                    echo "Docker is ready (after "$waited"s)"
-                else
-                    echo "Docker is not running — start it (e.g. 'sudo systemctl start docker') and re-run" >&2
-                    return 1
-                end
-            end
-            _u_run update_docker_images
+            _u_docker
         case '*'
             echo "unknown upgrade stage: $name" >&2
             return 2
@@ -64,6 +53,45 @@ function _u_stage -a name -d "Run one upgrade stage for u (one mprocs tab)"
         echo $dur >$_U_STATUS_DIR/$name.time
     end
     return $rc
+end
+
+function _u_docker
+    if test (uname) = Darwin
+        if not docker info >/dev/null 2>&1
+            echo "Docker is not running — starting Docker Desktop…"
+            _u_run open -a Docker; or return $status
+            set -l waited 0
+            while not docker info >/dev/null 2>&1
+                sleep 2
+                set waited (math $waited + 2)
+                if test $waited -ge 120
+                    echo "Docker did not become ready within 120s" >&2
+                    return 1
+                end
+            end
+            echo "Docker is ready (after "$waited"s)"
+        end
+        _u_run update_docker_images
+        return $status
+    end
+
+    if not systemctl is-active --quiet docker
+        _u_run sudo systemctl start docker; or return $status
+    end
+    if docker info >/dev/null 2>&1
+        _u_run update_docker_images
+        return $status
+    end
+
+    # A new docker-group membership does not reach shells opened before login refresh.
+    set -l docker_group (getent group docker)
+    if test -n "$docker_group"; and contains (id -un) (string split , (string split -f4 : $docker_group))
+        _u_run sg docker -c update_docker_images
+        return $status
+    end
+
+    docker info >&2
+    return 1
 end
 
 function _u_run -d "Echo a command (▶ prefix), then run it"

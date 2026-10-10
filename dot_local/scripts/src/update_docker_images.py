@@ -10,8 +10,8 @@ Classification is by reference: an image whose repo carries a registry host (the
 before the first "/" contains "." or ":", or is localhost) is registry-backed; anything
 else is a local build, including ones carrying a hostless RepoDigest from a mirror push.
 Inspection is keyed by image id, which always resolves — inspecting by tag intermittently
-reports "no such object". Registry images are always kept and refreshed via `crane digest`
-(daemon-free, reuses docker credentials); only those whose digest moved are pulled. Local
+reports "no such object". Registry images are kept and checked with crane or skopeo
+(daemon-free, reuses Docker credentials); only those whose digest moved are pulled. Local
 images are pruned only once dormant for two weeks — by container last-run time, falling back
 to build time when no run was recorded. The table flags a platform differing from the host arch.
 """
@@ -23,6 +23,7 @@ import os
 import platform
 import pty
 import re
+import shutil
 import subprocess
 import threading
 import time
@@ -214,7 +215,7 @@ def update_registry_images(images: list[ImageStatus]) -> None:
 
 def process_image(status: ImageStatus, lock: threading.Lock) -> None:
     started: float = time.monotonic()
-    remote, reason = crane_digest(status.image)
+    remote, reason = registry_digest(status.image)
     if remote is None:
         finish(status, lock, "unreachable", started, reason)
         return
@@ -232,16 +233,19 @@ def process_image(status: ImageStatus, lock: threading.Lock) -> None:
     )
 
 
-def crane_digest(image: str) -> tuple[str | None, str]:
-    try:
-        result: subprocess.CompletedProcess[str] = subprocess.run(
-            ["crane", "digest", image],
-            check=False,
-            capture_output=True,
-            text=True,
-        )
-    except FileNotFoundError:
-        return None, "crane not installed"
+def registry_digest(image: str) -> tuple[str | None, str]:
+    if shutil.which("crane"):
+        command = ["crane", "digest", image]
+    elif shutil.which("skopeo"):
+        command = ["skopeo", "inspect", "--format", "{{.Digest}}", f"docker://{image}"]
+    else:
+        return None, "crane or skopeo not installed"
+    result: subprocess.CompletedProcess[str] = subprocess.run(
+        command,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
     if result.returncode == 0 and (digest := result.stdout.strip()):
         return digest, ""
     if any(token in result.stderr.lower() for token in ("unauthorized", "401", "denied", "403", "forbidden")):

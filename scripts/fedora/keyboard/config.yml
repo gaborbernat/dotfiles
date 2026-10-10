@@ -1,0 +1,22 @@
+---
+keymap:
+  - name: Mac application shortcuts
+    # Ghostty handles Super shortcuts itself, including terminal copy and paste.
+    application:
+      not: /ghostty/
+    remap:
+      Super-C: Ctrl-C
+      Super-V: Ctrl-V
+      Super-X: Ctrl-X
+      Super-Z: Ctrl-Z
+      Super-T: Ctrl-T
+      Super-W: Ctrl-W
+      Super-1: Ctrl-1
+      Super-2: Ctrl-2
+      Super-3: Ctrl-3
+      Super-4: Ctrl-4
+      Super-5: Ctrl-5
+      Super-6: Ctrl-6
+      Super-7: Ctrl-7
+      Super-8: Ctrl-8
+      Super-9: Ctrl-9

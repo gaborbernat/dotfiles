@@ -1,0 +1,34 @@
+#!/bin/bash
+# Fedora RPM baseline hash: {{ include "dot_dnf_packages.txt" | sha256sum }}
+# Insync repository hash: {{ include "scripts/fedora/install-insync.sh" | sha256sum }}
+set -euo pipefail
+
+if [[ "${SKIP_DNF_INSTALL:-}" == "1" ]]; then
+    echo "Skipping Fedora RPMs (SKIP_DNF_INSTALL=1)"
+    exit 0
+fi
+
+if ! command -v dnf >/dev/null 2>&1; then
+    echo "dnf not found; skipping Fedora RPMs"
+    exit 0
+fi
+
+# Fedora lacks suitable Ghostty and xremap RPMs; COPR keeps both in DNF updates.
+if ! dnf copr --help >/dev/null 2>&1; then
+    sudo dnf install -y dnf5-plugins
+fi
+sudo dnf copr enable -y scottames/ghostty
+sudo dnf copr enable -y blakegardner/xremap
+sudo dnf copr enable -y jdxcode/mise
+sudo dnf install -y fedora-workstation-repositories
+sudo dnf config-manager enable rpmfusion-nonfree-steam
+sudo bash {{ joinPath .chezmoi.sourceDir "scripts/fedora/install-insync.sh" | quote }}
+
+mapfile -t packages < <(sed -e 's/#.*//' -e '/^[[:space:]]*$/d' {{ joinPath .chezmoi.sourceDir "dot_dnf_packages.txt" | quote }})
+sudo dnf install -y "${packages[@]}"
+
+if [[ -e "$HOME/.local/bin/mise" || -L "$HOME/.local/bin/mise" ]]; then
+    ln -sfn /usr/bin/mise "$HOME/.local/bin/mise"
+fi
+
+echo "Fedora RPMs installed"

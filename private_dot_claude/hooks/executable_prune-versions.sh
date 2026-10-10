@@ -14,7 +14,16 @@ app_binary="$HOME/.local/share/claude/ClaudeCode.app/Contents/MacOS/claude"
 # it, or ClaudeCode.app hardlinks it for the bundle-scoped TCC identity.
 pinned=$(
     readlink "$HOME/.local/bin/claude"
-    ps -axo comm= | grep "^$versions_dir/"
+    if [ "$(uname)" = Linux ]; then
+        for exe in /proc/[0-9]*/exe; do
+            path=$(readlink "$exe" 2>/dev/null) || continue
+            case "$path" in
+                "$versions_dir"/*) printf '%s\n' "$path" ;;
+            esac
+        done
+    else
+        ps -axo comm= | grep "^$versions_dir/"
+    fi
     if [ -e "$app_binary" ]; then
         app_inode=$(ls -i "$app_binary" | awk '{print $1}')
         ls -i "$versions_dir"/* | awk -v inode="$app_inode" '$1 == inode {print $NF}'
@@ -23,9 +32,11 @@ pinned=$(
 protected=$(printf '%s\n' "$pinned" | sed 's|.*/||'; ls -t "$versions_dir" | head -n "$keep")
 
 pruned=""
-for version in $(ls "$versions_dir"); do
+for path in "$versions_dir"/*; do
+    [ -f "$path" ] || continue
+    version=${path##*/}
     printf '%s\n' "$protected" | grep -qxF "$version" && continue
-    rm -f "$versions_dir/$version" && pruned="$pruned $version"
+    rm -f "$path" && pruned="$pruned $version"
 done
 
 if [ -n "$pruned" ] && command -v logger >/dev/null 2>&1; then

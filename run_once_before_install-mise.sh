@@ -1,6 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
+if [[ -f /etc/fedora-release ]]; then
+    exit 0
+fi
+
 if command -v mise >/dev/null 2>&1; then
     echo "✅ mise already installed: $(mise --version)"
     exit 0
