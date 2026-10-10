@@ -1,11 +1,14 @@
+{{- if ne (env "SKIP_DOCKER_ENABLE") "1" -}}
 #!/bin/bash
 set -euo pipefail
 
-if [[ "${SKIP_DOCKER_ENABLE:-}" == "1" ]]; then
-    exit 0
+if ! command -v systemctl >/dev/null 2>&1 ||
+    ! systemctl list-unit-files docker.service --no-legend 2>/dev/null | grep -q '^docker.service'; then
+    echo "docker.service is required before enabling Docker" >&2
+    exit 1
 fi
-if command -v systemctl >/dev/null 2>&1 && systemctl list-unit-files docker.service --no-legend 2>/dev/null | grep -q '^docker.service'; then
-    sudo systemctl enable --now docker.service
-    sudo usermod -aG docker "$(id -un)"
-    echo "Docker service enabled and started"
-fi
+
+sudo systemctl enable --now docker.service
+sudo usermod -aG docker "$(id -un)"
+echo "Docker service enabled and started"
+{{ end -}}

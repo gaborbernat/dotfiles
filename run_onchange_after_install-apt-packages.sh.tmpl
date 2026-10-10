@@ -1,15 +1,11 @@
+{{- if ne (env "SKIP_APT_INSTALL") "1" -}}
 #!/bin/bash
 # apt packages hash: {{ include "dot_apt_packages.txt" | sha256sum }}
 set -euo pipefail
 
-if [[ "${SKIP_APT_INSTALL:-}" == "1" ]]; then
-    echo "⏭️  Skipping apt packages (SKIP_APT_INSTALL=1)"
-    exit 0
-fi
-
 if ! command -v apt-get >/dev/null 2>&1; then
-    echo "⚠️  apt-get not found, skipping apt packages"
-    exit 0
+    echo "apt-get is required to install the package manifest" >&2
+    exit 1
 fi
 
 mapfile -t packages < <(grep -vE '^\s*(#|$)' "$HOME/.apt_packages.txt")
@@ -26,3 +22,4 @@ if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then
 fi
 
 echo "✅ apt packages installed"
+{{ end -}}

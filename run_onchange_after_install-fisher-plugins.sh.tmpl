@@ -17,5 +17,6 @@ if command -v fish >/dev/null 2>&1; then
     '
     echo "✅ Fisher plugins installed"
 else
-    echo "⚠️  Fish not found, skipping Fisher setup"
+    echo "fish is required to install Fisher plugins" >&2
+    exit 1
 fi

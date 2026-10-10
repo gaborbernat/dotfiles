@@ -1,9 +1,6 @@
+{{- if ne (env "SKIP_FEDORA_REMOTE_SHELLS") "1" -}}
 #!/bin/bash
 set -euo pipefail
-
-if [[ "${SKIP_FEDORA_REMOTE_SHELLS:-}" == "1" ]]; then
-    exit 0
-fi
 
 # Both clients authenticate over SSH; ET also keeps a TCP listener, while
 # Mosh starts a per-session UDP listener on demand.
@@ -18,3 +15,4 @@ if systemctl is-active --quiet firewalld.service; then
 fi
 
 echo "SSH and Eternal Terminal servers enabled; Mosh is ready for SSH-initiated sessions"
+{{ end -}}

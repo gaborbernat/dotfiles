@@ -1,11 +1,7 @@
+{{- if ne (env "SKIP_CARGO_INSTALL") "1" -}}
 #!/bin/bash
 # cargo packages hash: {{ include "dot_cargo_packages.txt.tmpl" | sha256sum }}
 set -euo pipefail
-
-if [[ "${SKIP_CARGO_INSTALL:-}" == "1" ]]; then
-    echo "⏭️  Skipping cargo packages (SKIP_CARGO_INSTALL=1)"
-    exit 0
-fi
 
 export PATH="$HOME/.cargo/bin:$PATH"
 
@@ -14,7 +10,8 @@ if [ -d /opt/bb/lib/pkgconfig ]; then
 fi
 
 if ! command -v cargo >/dev/null 2>&1; then
-    exit 0
+    echo "cargo is required to install the package manifest" >&2
+    exit 1
 fi
 
 echo "📦 Installing cargo packages..."
@@ -35,3 +32,4 @@ fi
 {{- end }}
 
 echo "✅ cargo packages installed"
+{{ end -}}

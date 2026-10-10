@@ -48,7 +48,7 @@ if [[ -f "$HOME/.local/share/chezmoi-private/uv_tools_work.txt" ]]; then
 fi
 
 if [[ "$any_failed" == "1" ]]; then
-    echo "⚠️  uv tools installed, with failures above (see 'uv tool list' / rerun to retry)"
-else
-    echo "✅ uv tools installed"
+    echo "uv tool installation failed; chezmoi will retry on the next apply" >&2
+    exit 1
 fi
+echo "✅ uv tools installed"

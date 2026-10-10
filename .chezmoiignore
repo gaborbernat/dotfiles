@@ -13,7 +13,7 @@ Library/Preferences/*.plist
 {{ if ne .chezmoi.os "darwin" }}
 # macOS-only configs and tooling
 setup-ghostty-symlink.sh
-apply-duti.sh
+set-file-associations.sh
 brew-bundle.sh
 .duti
 .Brewfile

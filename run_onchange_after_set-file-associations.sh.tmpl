@@ -7,5 +7,6 @@ if command -v duti >/dev/null 2>&1; then
     duti "$HOME/.duti"
     echo "File associations applied"
 else
-    echo "duti not found, skipping file associations"
+    echo "duti is required to apply file associations" >&2
+    exit 1
 fi

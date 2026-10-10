@@ -1,9 +1,6 @@
+{{- if ne (env "SKIP_JETBRAINS_TOOLBOX") "1" -}}
 #!/bin/bash
 set -euo pipefail
-
-if [[ "${SKIP_JETBRAINS_TOOLBOX:-}" == 1 ]]; then
-    exit 0
-fi
 
 if [[ -x "$HOME/.local/opt/jetbrains-toolbox/bin/jetbrains-toolbox" ]]; then
     exit 0
@@ -60,3 +57,4 @@ if [[ -n "${WAYLAND_DISPLAY:-}${DISPLAY:-}" ]]; then
     "$install_dir/bin/jetbrains-toolbox" >/dev/null 2>&1 &
 fi
 echo "JetBrains Toolbox installed"
+{{ end -}}
