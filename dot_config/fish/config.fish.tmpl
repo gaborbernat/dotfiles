@@ -113,13 +113,17 @@ if status --is-interactive
             set -l project (basename $git_root)
             test "$project" != "$cwd" && set cwd "$project/$cwd"
         end
+        set -l title $cwd
         if test "$cmd" = ssh -o "$cmd" = tsh
-            echo "$cmd: $cwd"
+            set title "$cmd: $cwd"
         else if test -n "$cmd" -a "$cmd" != fish
-            echo "$cwd: $cmd"
-        else
-            echo "$cwd"
+            set title "$cwd: $cmd"
         end
+        # ssh, tsh, and mosh shells inherit SSH_CONNECTION; et sets ET_VERSION.
+        if set -q SSH_CONNECTION; or set -q ET_VERSION
+            set title (prompt_hostname)": $title"
+        end
+        echo $title
     end
 
     function dbu -a val
