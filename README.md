@@ -82,6 +82,84 @@ The [Brewfile](dot_Brewfile.tmpl) installs CLI tools, apps, fonts, and Mac App S
 file associations and Stream Deck profiles; it configures the opener socket LaunchAgent where needed. Docker Desktop is
 installed separately because its cask asks for sudo on updates.
 
+## Software
+
+The manifests above are the install sources. These links cover the desktop apps and frequently used CLI tools.
+
+### Desktop apps
+
+- **Terminal:** [Ghostty](https://ghostty.org/) on both systems.
+- **Editors:** [VS Code](https://code.visualstudio.com/) and [JetBrains Toolbox](https://www.jetbrains.com/toolbox-app/)
+  on both systems.
+- **Containers:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) on macOS;
+  [Moby Engine](https://mobyproject.org/) and [Distrobox](https://distrobox.it/) on Fedora.
+- **Drive sync:** [Google Drive](https://www.google.com/drive/) on macOS; [Insync](https://www.insynchq.com/linux) on
+  Fedora.
+- **Video:** [IINA](https://iina.io/) on macOS; [Celluloid](https://celluloid-player.github.io/) on Fedora.
+- **Screen recording:** [Gifox](https://gifox.io/) on macOS; [Kooha](https://github.com/SeaDve/Kooha) and
+  [OBS Studio](https://obsproject.com/) on Fedora.
+- **Stream Deck:** [Elgato Stream Deck](https://www.elgato.com/us/en/s/stream-deck) on macOS;
+  [Boatswain](https://apps.gnome.org/Boatswain/) on Fedora.
+- **Logitech devices:** [Logi Options+](https://www.logitech.com/en-us/software/logi-options-plus.html) on macOS;
+  [Solaar](https://pwr-solaar.github.io/Solaar/) on Fedora.
+- **External displays:** [BetterDisplay](https://betterdisplay.pro/) on macOS; [ddcutil](https://www.ddcutil.com/) on
+  Fedora.
+
+The macOS Brewfile also installs [BetterCmdTab](https://bettercmdtab.app/), [Discord](https://discord.com/),
+[Element](https://element.io/), [Insta360 Link Controller](https://www.insta360.com/),
+[LaunchControl](https://www.soma-zone.com/LaunchControl/), [Legcord](https://github.com/Legcord/Legcord),
+[Path Finder](https://www.cocoatech.io/), [RØDE Central](https://rode.com/en-us/apps/RODE-central),
+[Simple Comic](https://github.com/MaddTheSane/Simple-Comic),
+[Keystroke Pro](https://appahead.studio/apps/keystroke-pro/), and [Magnet](https://magnet.crowdcafe.com/).
+
+Both systems use [JetBrains Mono](https://www.jetbrains.com/lp/mono/) fonts.
+
+Fedora adds [Astra Monitor](https://github.com/AstraExt/astra-monitor),
+[Dash to Panel](https://extensions.gnome.org/extension/1160/dash-to-panel/),
+[Copyous](https://extensions.gnome.org/extension/8834/copyous/), [LocalSend](https://localsend.org/),
+[Gradia](https://apps.gnome.org/Gradia/), [Bazecor](https://github.com/Dygmalab/Bazecor),
+[OpenRGB](https://openrgb.org/), and [xremap](https://github.com/xremap/xremap). Gaming uses
+[Steam](https://store.steampowered.com/about/), [GameMode](https://github.com/FeralInteractive/gamemode),
+[MangoHud](https://github.com/flightlessmango/MangoHud), [Gamescope](https://github.com/ValveSoftware/gamescope), and
+[ProtonPlus](https://github.com/Vysp3r/ProtonPlus).
+
+### Command-line tools
+
+**Shell and prompt** — [Fish](https://fishshell.com/) · [fisher](https://github.com/jorgebucaran/fisher) ·
+[Atuin](https://atuin.sh/) · [zoxide](https://github.com/ajeetdsouza/zoxide) · [direnv](https://direnv.net/) ·
+[mise](https://mise.jdx.dev/)
+
+**Git** — [Git](https://git-scm.com/) · [GitHub CLI](https://cli.github.com/) · [tig](https://jonas.github.io/tig/) ·
+[delta](https://dandavison.github.io/delta/) · [Git LFS](https://git-lfs.com/)
+
+**Files and search** — [ripgrep](https://github.com/BurntSushi/ripgrep) · [fd](https://github.com/sharkdp/fd) ·
+[fzf](https://github.com/junegunn/fzf) · [bat](https://github.com/sharkdp/bat) · [lsd](https://github.com/lsd-rs/lsd) ·
+[glow](https://github.com/charmbracelet/glow) · [gdu](https://github.com/dundee/gdu)
+
+**Languages and build** — [rustup](https://rust-lang.github.io/rustup/) ·
+[GNU Parallel](https://www.gnu.org/software/parallel/) · [uv](https://docs.astral.sh/uv/) ·
+[ruff](https://docs.astral.sh/ruff/) · [ty](https://github.com/astral-sh/ty) · [tox](https://tox.wiki/) ·
+[prek](https://github.com/j178/prek)
+
+**Packages** — [Homebrew](https://brew.sh/) · [DNF](https://dnf5.readthedocs.io/) · [Flatpak](https://flatpak.org/) ·
+[Cargo](https://doc.rust-lang.org/cargo/)
+
+**Editors and multiplexers** — [Neovim](https://neovim.io/) · [tmux](https://github.com/tmux/tmux/wiki) ·
+[mprocs](https://github.com/pvolok/mprocs)
+
+**Data** — [jq](https://jqlang.github.io/jq/) · [yq](https://mikefarah.gitbook.io/yq/)
+
+**Remote access** — [OpenSSH](https://www.openssh.com/) · [Mosh](https://mosh.org/) ·
+[Eternal Terminal](https://eternalterminal.dev/)
+
+**Cloud** — [Google Cloud CLI](https://cloud.google.com/sdk/docs/install)
+
+**macOS integration** — [duti](https://github.com/moretension/duti) · [mas](https://github.com/mas-cli/mas)
+
+**AI** — [Claude Code](https://docs.claude.com/en/docs/claude-code) ·
+[ccstatusline](https://github.com/sirmalloc/ccstatusline) · [Codex](https://github.com/openai/codex) ·
+[OpenCode](https://opencode.ai/)
+
 ## Updating
 
 ```bash
