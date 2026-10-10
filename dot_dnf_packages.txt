@@ -63,6 +63,7 @@ aria2
 celluloid
 chatgpt
 gdu
+gnome-connections
 graphviz
 gsound
 gnupg2

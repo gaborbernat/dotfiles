@@ -10,7 +10,6 @@ apps=(
     be.alexandervanhee.gradia
     com.vysp3r.ProtonPlus
     app.bluebubbles.BlueBubbles
-    com.rustdesk.RustDesk
 )
 missing=()
 for app in "${apps[@]}"; do
