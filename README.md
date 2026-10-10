@@ -1,155 +1,122 @@
 # Dotfiles
 
-Personal dotfiles managed with [chezmoi](https://chezmoi.io/).
+Personal dotfiles for macOS and Fedora Workstation, managed with [chezmoi](https://www.chezmoi.io/). Other Linux systems
+get a smaller apt-based CLI setup.
 
-## Prerequisites
+## Install
 
-- macOS with [Homebrew](https://brew.sh/) installed, or Fedora Workstation
-- GPG key configured for commit signing where used
-
-## Installation
+On macOS, install [Homebrew](https://brew.sh/) first:
 
 ```bash
-sh -c "$(curl -fsLS get.chezmoi.io)" -- init --apply gaborbernat/dotfiles
+brew install chezmoi git
+chezmoi init --apply gaborbernat/dotfiles
 ```
 
-On Fedora Workstation, use its packaged Chezmoi:
+On Fedora Workstation:
 
 ```bash
 sudo dnf install chezmoi git
-chezmoi init gaborbernat/dotfiles
-chezmoi apply
+chezmoi init --apply gaborbernat/dotfiles
 ```
 
-The [RPM manifest](dot_dnf_packages.txt) covers tools available through DNF. Fedora uses uv's
-[standalone installer](https://docs.astral.sh/uv/getting-started/installation/) so Fish `u` can update uv's bundled
-Python release catalog. Chezmoi enables the Ghostty, xremap, and mise COPRs; the VS Code and Insync HTTPS repositories;
-and Fedora Workstation's Steam repository before installing it. Boatswain and Kooha use Flatpak. Bazecor and JetBrains
-Toolbox use checksum-checked upstream releases because their selected Linux builds lack suitable RPMs. Run
-`chezmoi update` for dotfiles and Fish `u` for package updates.
+On an apt-based Linux system, install `chezmoi` and `git` with that distribution's package manager, then run
+`chezmoi init --apply gaborbernat/dotfiles`. The [apt manifest](dot_apt_packages.txt) covers CLI tools; the Fedora
+GNOME, hardware, and gaming setup only runs on Fedora.
 
-The first apply changes the login shell, configures GNOME extensions, and adds the account to the `docker` and
-`gamemode` groups. Log out and back in to activate those changes. The `docker` group grants
-[root-level access](https://docs.docker.com/engine/install/linux-postinstall/). Fish `u` authenticates sudo once before
-starting parallel updates; its 30-minute sudo ticket is shared across this account's terminals.
+If the repo is already checked out, point chezmoi at that checkout. Put `sourceDir` before any `[data]` section in
+`~/.config/chezmoi/chezmoi.toml`:
 
-The Antec Flux Pro display uses a [separate community driver](scripts/fedora/flux-pro/setup.sh). Review its
-[machine-specific sensor settings](scripts/fedora/flux-pro/config.conf), then install it with:
+```toml
+sourceDir = "/home/you/git/dotfiles"
+```
+
+Use the checkout's absolute path, then run `chezmoi source-path` to check it and `chezmoi apply` to install the files.
+Keep that checkout on the branch you want `chezmoi update` to pull. The default source directory is
+`~/.local/share/chezmoi`; running `chezmoi` from a different checkout does not select it automatically.
+
+## Platform setup
+
+| Area     | macOS                  | Fedora Workstation         | Other apt-based Linux |
+| -------- | ---------------------- | -------------------------- | --------------------- |
+| Packages | Homebrew and App Store | DNF, Flatpak, vendor tools | apt CLI tools         |
+| Desktop  | duti and LaunchAgent   | GNOME and keyboard setup   | Shared shell config   |
+| Hardware | Stream Deck profiles   | Peripheral tools           | None                  |
+
+Shared configuration includes Fish, Ghostty, Git, Atuin, mise, uv tools, Cargo tools, and the `~/.agents/skills` store
+linked into Codex and Claude Code. The Fish `u` command updates the installed toolchains and package managers; the
+stages depend on the host OS.
+
+### Fedora
+
+Chezmoi enables the configured Ghostty, xremap, and mise COPRs; the VS Code and Insync RPM repositories; and Fedora
+Workstation's Steam repository before installing the [RPM manifest](dot_dnf_packages.txt). Fedora's Moby packages
+provide Docker, and Distrobox uses that daemon. Membership in the `docker` group grants
+[root-level access](https://docs.docker.com/engine/install/linux-postinstall/).
+
+Boatswain, Kooha, LocalSend, Gradia, and ProtonPlus install as system Flatpaks. Copyous comes from the GNOME Extensions
+release compatible with the running Shell. Bazecor uses a pinned upstream AppImage and checksum; JetBrains Toolbox
+verifies the vendor's checksum for the current release. uv uses its
+[standalone installer](https://docs.astral.sh/uv/getting-started/installation/) so `uv self update` works.
+
+GNOME setup covers Dash to Panel on every monitor, Astra Monitor, Copyous, DDC brightness, and xremap for selected
+Super-key application shortcuts. Ghostty handles its own Super-key shortcuts. The `agent-awake` user service inhibits
+suspend while a Codex, Claude, or ChatGPT client is open; it leaves display blanking available. The first apply also
+sets Fish as the login shell, enables SSH, Mosh, and Eternal Terminal, and adds the account to the `docker` and
+`gamemode` groups. Log out and back in for the group, shell, and newly installed GNOME extension changes.
+
+The Antec Flux Pro display needs a [separate community driver](scripts/fedora/flux-pro/setup.sh). Review its
+[sensor configuration](scripts/fedora/flux-pro/config.conf) for this machine, then install it with:
 
 ```bash
 bash "$(chezmoi source-path)/scripts/fedora/flux-pro/setup.sh"
 ```
 
 Sign in to Insync and select the Google Drive folders to sync. Sign in to Steam and enable Steam Play in its
-Compatibility settings if you want Windows games. Steam launch options can use `gamemoderun %command%` for GameMode,
-`mangohud %command%` for frame times, or `gamescope -w 1920 -h 1080 -W 3840 -H 2160 -f -- %command%` to scale a game
-from 1080p to a 4K fullscreen window. Set these per game.
+Compatibility settings for Windows games. GameMode, MangoHud, and Gamescope are installed; add their launch options per
+game.
 
-## Post-Installation
+### macOS
 
-Run `gh auth login` for Git operations. Fish sources `~/.secrets` for optional machine-specific variables; Chezmoi does
-not commit that file. `maintainer` requires `GITHUB_TOKEN`, while `git-tidy` skips PR checks when it is unset.
+The [Brewfile](dot_Brewfile.tmpl) installs CLI tools, apps, fonts, and Mac App Store entries. Chezmoi also applies duti
+file associations and Stream Deck profiles; it configures the opener socket LaunchAgent where needed. Docker Desktop is
+installed separately because its cask asks for sudo on updates.
 
 ## Updating
 
 ```bash
+chezmoi status
 chezmoi update
 ```
 
-## What's Included
+`chezmoi update` pulls the configured source checkout and applies it. A separate `chezmoi apply` is only needed after
+local edits or a partial apply. `--init` reloads the chezmoi config template; it does not create a missing source
+checkout. Run Fish `u` for package and tool updates.
 
-- **Shell** — [Fish](https://fishshell.com/docs/current/) with a custom async prompt, functions, completions, and
-  [fisher](https://github.com/jorgebucaran/fisher) plugins; [atuin](https://docs.atuin.sh/) history,
-  [zoxide](https://github.com/ajeetdsouza/zoxide), [direnv](https://direnv.net/), and [mise](https://mise.jdx.dev/) for
-  language runtimes
-- **Git** — GPG-signed config with [delta](https://dandavison.github.io/delta/) as the diff pager,
-  [tig](https://jonas.github.io/tig/), [git-lfs](https://git-lfs.com/), and a global gitignore
-- **Terminal** — [Ghostty](https://ghostty.org/docs) configuration
-- **Package managers:** [Homebrew](https://brew.sh/) Brewfile on macOS, DNF RPM manifest on Fedora,
-  [uv](https://docs.astral.sh/uv/) Python tools, Cargo packages, and [mise](https://mise.jdx.dev/) runtimes
-- **Utilities** — Atuin shell history, duti file associations, [gdu](https://github.com/dundee/gdu) disk usage config
-- **Scripts** — custom CLI tools in `~/.local/bin/` backed by uv-managed Python scripts
-- **Stream Deck** — Elgato Stream Deck profiles (v2 and v3)
-- **AI tooling** — [Claude Code](https://docs.claude.com/en/docs/claude-code) settings, hooks, sounds, and skills with a
-  custom [ccstatusline](https://github.com/sirmalloc/ccstatusline) status line; [Codex](https://github.com/openai/codex)
-  config; and shared agent skill definitions (e.g. `simp`) linked into Codex and Claude Code
+## Local configuration
 
-## Tools
+Run `gh auth login` for GitHub operations. Fish reads `~/.secrets` when it exists; that file is never committed.
+`maintainer` needs `GITHUB_TOKEN`, while `git-tidy` skips PR checks without it.
 
-Documentation for the notable tools in the macOS Brewfile and Fedora RPM manifest.
+Optional machine-local files live in `~/.local/share/chezmoi-private`. Public scripts read them directly:
 
-**Shell & prompt** — [fish](https://fishshell.com/docs/current/) · [fisher](https://github.com/jorgebucaran/fisher) ·
-[atuin](https://docs.atuin.sh/) · [zoxide](https://github.com/ajeetdsouza/zoxide) · [direnv](https://direnv.net/) ·
-[mise](https://mise.jdx.dev/)
+| File                           | Use                                         |
+| ------------------------------ | ------------------------------------------- |
+| `Brewfile` and `Brewfile.skip` | Add or omit Homebrew entries on one machine |
+| `fish_work.fish`               | Work-specific Fish settings                 |
+| `gitconfig_work`               | Work Git identity and settings              |
+| `uv_tools_work.txt`            | Private uv tools                            |
+| `codex_work.toml`              | Private Codex config                        |
+| `ai_instructions_work.md`      | Private agent instructions                  |
 
-**Terminal** — [Ghostty](https://ghostty.org/docs)
+## Source layout
 
-**Git** — [git](https://git-scm.com/doc) · [gh](https://cli.github.com/manual/) · [tig](https://jonas.github.io/tig/) ·
-[git-delta](https://dandavison.github.io/delta/) · [git-lfs](https://git-lfs.com/)
-
-**Files & search** — [ripgrep](https://github.com/BurntSushi/ripgrep) · [fd](https://github.com/sharkdp/fd) ·
-[fzf](https://github.com/junegunn/fzf) · [bat](https://github.com/sharkdp/bat) · [lsd](https://github.com/lsd-rs/lsd) ·
-[glow](https://github.com/charmbracelet/glow) · [gdu](https://github.com/dundee/gdu)
-
-**Languages & build** — [mise](https://mise.jdx.dev/) · [rustup](https://rust-lang.github.io/rustup/) ·
-[GNU parallel](https://www.gnu.org/software/parallel/)
-
-**Python** — [uv](https://docs.astral.sh/uv/) · [ruff](https://docs.astral.sh/ruff/) ·
-[ty](https://github.com/astral-sh/ty) · [tox](https://tox.wiki/) · [prek](https://github.com/j178/prek)
-
-**Editors & multiplexers** — [neovim](https://neovim.io/doc/) · [tmux](https://github.com/tmux/tmux/wiki) ·
-[mprocs](https://github.com/pvolok/mprocs)
-
-**Data** — [jq](https://jqlang.github.io/jq/manual/) · [yq](https://mikefarah.gitbook.io/yq/)
-
-**AI** — [Claude Code](https://docs.claude.com/en/docs/claude-code) ·
-[ccstatusline](https://github.com/sirmalloc/ccstatusline) · [Codex](https://github.com/openai/codex) ·
-[opencode](https://opencode.ai/)
-
-## Private overlay
-
-A downstream private chezmoi source can be layered on top of this public one:
-
-```bash
-chezmoi apply --source ~/.local/share/chezmoi-private
-```
-
-When present it augments the public config without forking it:
-
-| Private file                                    | Effect                                              |
-| ----------------------------------------------- | --------------------------------------------------- |
-| `~/.local/share/chezmoi-private/Brewfile`       | Adds private-only Homebrew installs                 |
-| `~/.local/share/chezmoi-private/Brewfile.skip`  | Drops named public Brewfile entries on that machine |
-| `~/.local/share/chezmoi-private/fish_work.fish` | Sourced by fish for work-specific shell config      |
-| `~/.local/share/chezmoi-private/gitconfig_work` | Included by git for work identity/settings          |
-
-The brew-bundle runner merges the public Brewfile with the private additions and applies the skip-list.
-
-## Structure
-
-| Path                          | Description                                                                          |
-| ----------------------------- | ------------------------------------------------------------------------------------ |
-| `.chezmoitemplates/`          | Shared template fragments (AI instructions)                                          |
-| `dot_agents/`                 | Shared agent skill definitions (linked into Claude Code and Codex)                   |
-| `dot_codex/`                  | Codex CLI config, AGENTS.md, and rules                                               |
-| `dot_config/atuin/`           | Atuin shell history config                                                           |
-| `dot_config/ccstatusline/`    | ccstatusline (Claude Code status line) config                                        |
-| `dot_config/fish/`            | Fish shell config, prompt, functions, and completions                                |
-| `dot_config/ghostty/`         | Ghostty terminal config                                                              |
-| `dot_config/ruff/`            | Global ruff (Python lint/format) config                                              |
-| `dot_config/tig/`             | Tig git interface config                                                             |
-| `dot_local/bin/`              | Executable wrapper scripts for CLI tools                                             |
-| `dot_local/scripts/`          | Python source for CLI tools (uv-managed)                                             |
-| `dot_Brewfile.tmpl`           | Homebrew packages (public baseline)                                                  |
-| `dot_cargo_packages.txt.tmpl` | Cargo packages, including Fedora fallbacks                                           |
-| `dot_dnf_packages.txt`        | Fedora RPM manifest                                                                  |
-| `dot_duti`                    | Default application associations                                                     |
-| `dot_gdu.yaml`                | gdu disk usage config                                                                |
-| `dot_gitconfig.tmpl`          | Git configuration                                                                    |
-| `dot_gitignore_global`        | Global gitignore                                                                     |
-| `dot_uv_tools.txt.tmpl`       | uv Python tools                                                                      |
-| `private_dot_claude/`         | Claude Code settings, hooks, sounds, and skills                                      |
-| `private_Library/`            | Stream Deck profiles                                                                 |
-| `create_private_dot_secrets`  | Template creating `~/.secrets` (never committed)                                     |
-| `run_once_*`                  | One-time setup (uv, rustup, Ghostty symlink)                                         |
-| `run_onchange_*`              | On-change scripts (brew, cargo, fisher, uv tools, duti, wrappers, skill/cache links) |
+| Path                                               | Use                                |
+| -------------------------------------------------- | ---------------------------------- |
+| `dot_Brewfile.tmpl`                                | macOS packages                     |
+| `dot_dnf_packages.txt`                             | Fedora RPMs                        |
+| `dot_apt_packages.txt`                             | apt CLI tools                      |
+| `dot_config/`                                      | Shell, terminal, and user services |
+| `dot_agents/`, `dot_codex/`, `private_dot_claude/` | Agent configuration                |
+| `dot_local/`                                       | CLI wrappers and their source      |
+| `scripts/fedora/`                                  | Fedora system and hardware setup   |
+| `run_once_*`, `run_onchange_*`, `run_after_*`      | Setup scripts                      |
