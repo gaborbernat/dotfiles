@@ -16,11 +16,14 @@ brew-bundle.sh
 .duti
 .Brewfile
 .config/ghostty
-.local/libexec/et-open
 Library
 {{ end }}
+# Only mini and pc receive the opener tunnel from the laptop
 {{ if ne .chezmoi.hostname "Bernats-Mac-mini" }}
-# Only mini receives the opener tunnel from the laptop
 Library/LaunchAgents/com.gaborbernat.opener-sock-gc.plist
 load-opener-sock-gc.sh
+{{ end }}
+{{ if ne .chezmoi.hostname "pc" }}
+.config/systemd
+enable-opener-sock-gc-timer.sh
 {{ end }}

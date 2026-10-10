@@ -3,13 +3,13 @@
 set -gx EDITOR code
 set -gx VISUAL code
 set -gx SHELL /opt/homebrew/bin/fish
-# Tools that honor BROWSER skip `open`; route them through the et-aware wrapper too.
-set -q ET_VERSION; and set -gx BROWSER $HOME/.local/libexec/et-open/open
 {{- else }}
 set -gx EDITOR vi
 set -gx VISUAL vi
 set -gx SHELL (command -v fish)
 {{- end }}
+# Tools that honor BROWSER skip `open`; route them through the et-aware wrapper too.
+set -q ET_VERSION; and set -gx BROWSER $HOME/.local/libexec/et-open/open
 set -gx DEBUG_PRINT_LIMIT 1000000
 set -gx MANPAGER "sh -c 'col -bx | bat -l man -p'"
 
@@ -39,9 +39,6 @@ fish_add_path --prepend --move \
     /opt/homebrew/opt/gnu-indent/libexec/gnubin \
     /opt/homebrew/opt/findutils/libexec/gnubin \
     /opt/homebrew/opt/make/libexec/gnubin
-# Same reason for the et-aware `open` wrapper, kept in its own dir so the rest of ~/.local/bin
-# keeps its place. Outside et sessions it hands straight to /usr/bin/open.
-fish_add_path --prepend --move $HOME/.local/libexec/et-open
 
 # bb-homebrew
 set -gx PKG_CONFIG_PATH \
@@ -63,6 +60,10 @@ set -gx PATH \
     /usr/share/vscode-server-linux-x64-web/bin/remote-cli \
     $PATH
 {{- end }}
+# The et-aware `open` wrapper goes through fish_user_paths so `mise activate` can't bury it, kept in its
+# own dir so the rest of ~/.local/bin keeps its place. Outside et sessions it hands straight to the
+# platform opener.
+fish_add_path --prepend --move $HOME/.local/libexec/et-open
 
 # GO
 set -gx GOPATH $HOME/go
