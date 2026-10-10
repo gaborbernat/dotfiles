@@ -1,0 +1,379 @@
+{
+    "keys": {
+        "0x0": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_MediaPlugin::Info",
+                            "settings": {
+                                "show_thumbnail": true
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            }
+        },
+        "1x0": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_MediaPlugin::Previous",
+                            "settings": {
+                                "show_thumbnail": false,
+                                "show_label": false
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "labels": {
+                        "bottom": {
+                            "text": "Prev"
+                        }
+                    }
+                }
+            }
+        },
+        "2x0": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_MediaPlugin::PlayPause",
+                            "settings": {
+                                "show_thumbnail": true,
+                                "show_label": false
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "labels": {
+                        "bottom": {
+                            "text": "Play"
+                        }
+                    }
+                }
+            }
+        },
+        "3x0": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_MediaPlugin::Next",
+                            "settings": {
+                                "show_thumbnail": false,
+                                "show_label": false
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "labels": {
+                        "bottom": {
+                            "text": "Next"
+                        }
+                    }
+                }
+            }
+        },
+        "4x0": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_OSPlugin::RunCommand",
+                            "settings": {
+                                "command": "wpctl get-volume @DEFAULT_AUDIO_SINK@ | awk '{printf \"%.0f%%\", $2 * 100}'",
+                                "detached": false,
+                                "display_output": true,
+                                "auto_run": 5,
+                                "label_position": "center"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "labels": {
+                        "bottom": {
+                            "text": "Volume"
+                        }
+                    }
+                }
+            }
+        },
+        "0x1": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_OSPlugin::EasyCommand",
+                            "settings": {
+                                "command": "wpctl set-volume @DEFAULT_AUDIO_SINK@ 5%-"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "labels": {
+                        "bottom": {
+                            "text": "Vol -"
+                        }
+                    }
+                }
+            }
+        },
+        "1x1": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_OSPlugin::EasyCommand",
+                            "settings": {
+                                "command": "wpctl set-volume -l 1.0 @DEFAULT_AUDIO_SINK@ 5%+"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "labels": {
+                        "bottom": {
+                            "text": "Vol +"
+                        }
+                    }
+                }
+            }
+        },
+        "2x1": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_OSPlugin::EasyCommand",
+                            "settings": {
+                                "command": "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "labels": {
+                        "bottom": {
+                            "text": "Mute"
+                        }
+                    }
+                }
+            }
+        },
+        "3x1": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_OSPlugin::EasyCommand",
+                            "settings": {
+                                "command": "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "labels": {
+                        "bottom": {
+                            "text": "Mic mute"
+                        }
+                    }
+                }
+            }
+        },
+        "4x1": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_OSPlugin::EasyCommand",
+                            "settings": {
+                                "command": "gnome-control-center sound"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "labels": {
+                        "bottom": {
+                            "text": "Sound"
+                        }
+                    }
+                }
+            }
+        },
+        "0x2": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_OSPlugin::EasyCommand",
+                            "settings": {
+                                "command": "celluloid"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "labels": {
+                        "bottom": {
+                            "text": "Celluloid"
+                        }
+                    }
+                }
+            }
+        },
+        "1x2": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_OSPlugin::EasyCommand",
+                            "settings": {
+                                "command": "firefox"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "labels": {
+                        "bottom": {
+                            "text": "Firefox"
+                        }
+                    }
+                }
+            }
+        },
+        "2x2": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_OSPlugin::EasyCommand",
+                            "settings": {
+                                "command": "obs"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "labels": {
+                        "bottom": {
+                            "text": "OBS"
+                        }
+                    }
+                }
+            }
+        },
+        "3x2": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_DeckPlugin::ChangePage",
+                            "settings": {
+                                "selected_page": "{{ .chezmoi.homeDir }}/.var/app/com.core447.StreamController/data/pages/Main.json"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "labels": {
+                        "bottom": {
+                            "text": "Main"
+                        }
+                    }
+                }
+            }
+        },
+        "4x2": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_DeckPlugin::GoToPreviousPage",
+                            "settings": {}
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "labels": {
+                        "bottom": {
+                            "text": "Back"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

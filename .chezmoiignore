@@ -37,9 +37,9 @@ configure-fedora-sudo-timeout.sh
 enable-fedora-docker.sh
 enable-fedora-remote-shells.sh
 set-fedora-fish-shell.sh
-install-boatswain.sh
 install-kooha.sh
 install-selected-flatpaks.sh
+install-streamcontroller-plugins.sh
 install-copyous.sh
 install-jetbrains-toolbox.sh
 install-bazecor.sh
@@ -47,7 +47,9 @@ install-ccstatusline.sh
 .config/distrobox
 .local/share/applications/bazecor.desktop
 .config/autostart/bluebubbles-hidden.desktop
+.config/autostart/com.core447.StreamController.desktop
 .local/bin/bluebubbles-start-hidden
+.var/app/com.core447.StreamController
 {{ end }}
 {{ if and (eq .chezmoi.os "linux") (ne .chezmoi.osRelease.id "fedora") }}
 .config/ghostty

@@ -1,0 +1,24 @@
+--- a/actions/WriteText/helper.py
++++ b/actions/WriteText/helper.py
+@@ -113 +113,6 @@
+-    # press unicode codepoint keys
++    ui.syn()
++
++    ui.write(e.EV_KEY, e.KEY_LEFTSHIFT, 0)
++    ui.write(e.EV_KEY, e.KEY_LEFTCTRL, 0)
++    ui.syn()
++
+@@ -117,0 +123 @@
++        ui.syn()
+@@ -119,3 +125,2 @@
+-    # release shift + ctrl
+-    ui.write(e.EV_KEY, e.KEY_LEFTSHIFT, 0)
+-    ui.write(e.EV_KEY, e.KEY_LEFTCTRL, 0)
++    ui.write(e.EV_KEY, e.KEY_SPACE, 1)
++    ui.write(e.EV_KEY, e.KEY_SPACE, 0)
+@@ -123 +127,0 @@
+-    # send keys
+@@ -205 +209 @@
+-# keyboard_write(ui, text)
+\ No newline at end of file
++# keyboard_write(ui, text)

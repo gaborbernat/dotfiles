@@ -6,6 +6,7 @@ if [[ "${SKIP_SELECTED_FLATPAKS:-}" == 1 ]]; then
 fi
 
 apps=(
+    com.core447.StreamController
     org.localsend.localsend_app
     be.alexandervanhee.gradia
     com.vysp3r.ProtonPlus
@@ -13,7 +14,7 @@ apps=(
 )
 missing=()
 for app in "${apps[@]}"; do
-    if ! flatpak info --system "$app" >/dev/null 2>&1; then
+    if ! flatpak info "$app" >/dev/null 2>&1; then
         missing+=("$app")
     fi
 done

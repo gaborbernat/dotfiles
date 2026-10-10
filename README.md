@@ -57,10 +57,17 @@ provide Docker, and Distrobox uses that daemon. Membership in the `docker` group
 The [ChatGPT desktop app](https://learn.chatgpt.com/docs/linux/linux-app) includes Codex. Its official Fedora RPM adds
 OpenAI's signed DNF repository, so Fish `u` updates it with the other RPMs.
 
-Boatswain, Kooha, LocalSend, Gradia, ProtonPlus, and BlueBubbles install as system Flatpaks. Copyous comes from the
-GNOME Extensions release compatible with the running Shell. Bazecor uses a pinned upstream AppImage and checksum;
-JetBrains Toolbox verifies the vendor's checksum for the current release. uv uses its
+Kooha, LocalSend, Gradia, ProtonPlus, and BlueBubbles install as system Flatpaks. StreamController comes from Flathub
+and uses its OS, media, clock, and AMD GPU plugins for the Stream Deck. Copyous comes from the GNOME Extensions release
+compatible with the running Shell. Bazecor uses a pinned upstream AppImage and checksum; JetBrains Toolbox verifies the
+vendor's checksum for the current release. uv uses its
 [standalone installer](https://docs.astral.sh/uv/getting-started/installation/) so `uv self update` works.
+
+The Fedora Stream Deck keeps the macOS emoji keys and adds live clocks, CPU, RAM, and GPU tiles. Its Fedora, System, and
+Media pages provide app launchers, hardware details, playback, and volume controls. Chezmoi creates missing pages and
+leaves later edits made in StreamController intact. The
+[Unicode input patch](scripts/fedora/streamcontroller-unicode.diff) completes the key sequence used by OSPlugin's text
+action for emoji and kaomoji.
 
 GNOME setup covers Dash to Panel on every monitor, Astra Monitor, Copyous, DDC brightness, and xremap for selected
 Super-key application shortcuts. Ghostty handles its own Super-key shortcuts. The `agent-awake` user service inhibits
@@ -116,7 +123,9 @@ The manifests above are the install sources. These links cover the desktop apps 
 - **Screen recording:** [Gifox](https://gifox.io/) on macOS; [Kooha](https://github.com/SeaDve/Kooha) and
   [OBS Studio](https://obsproject.com/) on Fedora.
 - **Stream Deck:** [Elgato Stream Deck](https://www.elgato.com/us/en/s/stream-deck) on macOS;
-  [Boatswain](https://apps.gnome.org/Boatswain/) on Fedora.
+  [StreamController](https://github.com/StreamController/StreamController) on Fedora with
+  [World Clocks](https://github.com/larkum/StreamController-WorldClocks) and
+  [AMD GPU Monitor](https://github.com/julaub/StreamController-AMDGPUTop).
 - **Logitech devices:** [Logi Options+](https://www.logitech.com/en-us/software/logi-options-plus.html) on macOS;
   [Solaar](https://pwr-solaar.github.io/Solaar/) on Fedora.
 - **External displays:** [BetterDisplay](https://betterdisplay.pro/) on macOS; [ddcutil](https://www.ddcutil.com/) on

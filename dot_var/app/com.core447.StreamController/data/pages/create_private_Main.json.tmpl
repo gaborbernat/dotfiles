@@ -1,0 +1,402 @@
+{
+    "keys": {
+        "0x0": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_larkum_WorldClocks::WorldClock",
+                            "settings": {
+                                "city": "New York",
+                                "timezone": "America/New_York",
+                                "time_format": "24h",
+                                "show_date": false
+                            }
+                        }
+                    ],
+                    "image-control-action": null,
+                    "label-control-actions": [
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            }
+        },
+        "1x0": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_larkum_WorldClocks::WorldClock",
+                            "settings": {
+                                "city": "London",
+                                "timezone": "Europe/London",
+                                "time_format": "24h",
+                                "show_date": false
+                            }
+                        }
+                    ],
+                    "image-control-action": null,
+                    "label-control-actions": [
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            }
+        },
+        "2x0": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_larkum_WorldClocks::WorldClock",
+                            "settings": {
+                                "city": "Local",
+                                "timezone": "America/Los_Angeles",
+                                "time_format": "24h",
+                                "show_date": false
+                            }
+                        }
+                    ],
+                    "image-control-action": null,
+                    "label-control-actions": [
+                        0,
+                        0,
+                        0
+                    ]
+                }
+            }
+        },
+        "3x0": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_DeckPlugin::ChangePage",
+                            "settings": {
+                                "selected_page": "{{ .chezmoi.homeDir }}/.var/app/com.core447.StreamController/data/pages/Emoji.json"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        null,
+                        null,
+                        null
+                    ],
+                    "labels": {
+                        "bottom": {
+                            "text": "Emoji"
+                        }
+                    }
+                }
+            }
+        },
+        "4x0": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_OSPlugin::EasyHotkey",
+                            "settings": {
+                                "hotkey": "sysrq"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        null,
+                        null,
+                        null
+                    ],
+                    "labels": {
+                        "bottom": {
+                            "text": "Capture"
+                        }
+                    }
+                }
+            }
+        },
+        "0x1": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_OSPlugin::CPU",
+                            "settings": {}
+                        },
+                        {
+                            "id": "com_core447_OSPlugin::RunCommand",
+                            "settings": {
+                                "command": "sensors | awk '/^Tccd1:/ {print $2; exit}'",
+                                "detached": false,
+                                "display_output": true,
+                                "auto_run": 5,
+                                "label_position": "bottom"
+                            }
+                        }
+                    ],
+                    "image-control-action": null,
+                    "label-control-actions": [
+                        0,
+                        0,
+                        1
+                    ],
+                    "labels": {
+                        "top": {
+                            "text": "CPU"
+                        }
+                    }
+                }
+            }
+        },
+        "1x1": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_OSPlugin::RAM",
+                            "settings": {}
+                        },
+                        {
+                            "id": "com_core447_OSPlugin::RunCommand",
+                            "settings": {
+                                "command": "free -b | awk '/^Mem:/ {printf \"%.0f/%.0fG\", $3/1073741824, $2/1073741824}'",
+                                "detached": false,
+                                "display_output": true,
+                                "auto_run": 5,
+                                "label_position": "bottom"
+                            }
+                        }
+                    ],
+                    "image-control-action": null,
+                    "label-control-actions": [
+                        0,
+                        0,
+                        1
+                    ],
+                    "labels": {
+                        "top": {
+                            "text": "RAM"
+                        }
+                    }
+                }
+            }
+        },
+        "2x1": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_jul_AMDGPUTop::GPUActivityGraph",
+                            "settings": {
+                                "gpu-index": 1,
+                                "show-value": false
+                            }
+                        },
+                        {
+                            "id": "com_core447_OSPlugin::RunCommand",
+                            "settings": {
+                                "command": "sh -c 'printf \"%s%%\" \"$(cat /sys/class/drm/card1/device/gpu_busy_percent)\"'",
+                                "detached": false,
+                                "display_output": true,
+                                "auto_run": 2,
+                                "label_position": "center"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        0,
+                        1,
+                        0
+                    ]
+                }
+            }
+        },
+        "3x1": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_OSPlugin::RunCommand",
+                            "settings": {
+                                "command": "sh -c 'hostname -I | cut -d \" \" -f1'",
+                                "detached": false,
+                                "display_output": true,
+                                "auto_run": 30,
+                                "label_position": "center"
+                            }
+                        }
+                    ],
+                    "image-control-action": null,
+                    "label-control-actions": [
+                        null,
+                        0,
+                        null
+                    ],
+                    "labels": {
+                        "top": {
+                            "text": "LAN IP"
+                        }
+                    }
+                }
+            }
+        },
+        "4x1": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_OSPlugin::EasyCommand",
+                            "settings": {
+                                "command": "flatpak run io.github.seadve.Kooha"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        null,
+                        null,
+                        null
+                    ],
+                    "labels": {
+                        "bottom": {
+                            "text": "Record"
+                        }
+                    }
+                }
+            }
+        },
+        "0x2": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_MediaPlugin::Previous",
+                            "settings": {
+                                "show_thumbnail": false,
+                                "show_label": false
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        null,
+                        null,
+                        null
+                    ],
+                    "labels": {
+                        "bottom": {
+                            "text": "Prev"
+                        }
+                    }
+                }
+            }
+        },
+        "1x2": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_MediaPlugin::PlayPause",
+                            "settings": {
+                                "show_thumbnail": false,
+                                "show_label": false
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        null,
+                        null,
+                        null
+                    ],
+                    "labels": {
+                        "bottom": {
+                            "text": "Play"
+                        }
+                    }
+                }
+            }
+        },
+        "2x2": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_MediaPlugin::Next",
+                            "settings": {
+                                "show_thumbnail": false,
+                                "show_label": false
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        null,
+                        null,
+                        null
+                    ],
+                    "labels": {
+                        "bottom": {
+                            "text": "Next"
+                        }
+                    }
+                }
+            }
+        },
+        "3x2": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_OSPlugin::EasyCommand",
+                            "settings": {
+                                "command": "obs"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        null,
+                        null,
+                        null
+                    ],
+                    "labels": {
+                        "bottom": {
+                            "text": "OBS"
+                        }
+                    }
+                }
+            }
+        },
+        "4x2": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_DeckPlugin::ChangePage",
+                            "settings": {
+                                "selected_page": "{{ .chezmoi.homeDir }}/.var/app/com.core447.StreamController/data/pages/Fedora.json"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        null,
+                        null,
+                        null
+                    ],
+                    "labels": {
+                        "bottom": {
+                            "text": "Fedora"
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
