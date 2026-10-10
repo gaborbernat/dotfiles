@@ -29,5 +29,7 @@
 {{- end -}}
 {{- end -}}
 
+sourceDir = {{ .chezmoi.sourceDir | quote }}
+
 [data]
     signingkey = {{ $signingkey | quote }}

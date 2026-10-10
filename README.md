@@ -23,16 +23,17 @@ On an apt-based Linux system, install `chezmoi` and `git` with that distribution
 `chezmoi init --apply gaborbernat/dotfiles`. The [apt manifest](dot_apt_packages.txt) covers CLI tools; the Fedora
 GNOME, hardware, and gaming setup only runs on Fedora.
 
-If the repo is already checked out, point chezmoi at that checkout. Put `sourceDir` before any `[data]` section in
-`~/.config/chezmoi/chezmoi.toml`:
+If the repo is already checked out, initialize chezmoi with that checkout as its source:
 
-```toml
-sourceDir = "/home/you/git/dotfiles"
+```bash
+chezmoi --source "$HOME/git/dotfiles" init
+chezmoi source-path
+chezmoi apply
 ```
 
-Use the checkout's absolute path, then run `chezmoi source-path` to check it and `chezmoi apply` to install the files.
-Keep that checkout on the branch you want `chezmoi update` to pull. The default source directory is
-`~/.local/share/chezmoi`; running `chezmoi` from a different checkout does not select it automatically.
+Replace the example path if needed. Init records its absolute path as `sourceDir` in `~/.config/chezmoi/chezmoi.toml`;
+the config template retains it when you run `chezmoi update --init`. Keep the checkout on the branch you want to pull.
+Chezmoi otherwise uses `~/.local/share/chezmoi`, regardless of the shell's directory.
 
 ## Platform setup
 
