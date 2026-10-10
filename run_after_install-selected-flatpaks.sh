@@ -9,6 +9,7 @@ apps=(
     org.localsend.localsend_app
     be.alexandervanhee.gradia
     com.vysp3r.ProtonPlus
+    app.bluebubbles.BlueBubbles
 )
 missing=()
 for app in "${apps[@]}"; do
