@@ -1,0 +1,20 @@
+{{- if ne (env "SKIP_DNF_INSTALL") "1" -}}
+#!/bin/bash
+# Insync repository hash: {{ include "scripts/fedora/install-insync.sh" | sha256sum }}
+set -euo pipefail
+
+if ! command -v dnf >/dev/null 2>&1; then
+    echo "dnf is required to configure Fedora repositories" >&2
+    exit 1
+fi
+
+if ! dnf copr --help >/dev/null 2>&1; then
+    sudo dnf install -y dnf5-plugins
+fi
+sudo dnf copr enable -y scottames/ghostty
+sudo dnf copr enable -y blakegardner/xremap
+sudo dnf copr enable -y jdxcode/mise
+sudo dnf install -y fedora-workstation-repositories
+sudo dnf config-manager enable rpmfusion-nonfree-steam
+sudo bash {{ joinPath .chezmoi.sourceDir "scripts/fedora/install-insync.sh" | quote }}
+{{ end -}}
