@@ -1,0 +1,69 @@
+#!/usr/bin/python3
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+
+def main() -> None:
+    # Existing sessions can retain hooks removed from their configuration.
+    if sys.argv[1:] in (["hook", "codex"], ["hook", "claude"]):
+        return
+    if len(sys.argv) != 1:
+        raise SystemExit("usage: agent-awake")
+    inhibitor: subprocess.Popen[bytes] | None = None
+    try:
+        while True:
+            if client_open():
+                if inhibitor is None or inhibitor.poll() is not None:
+                    inhibitor = subprocess.Popen(
+                        [
+                            "gnome-session-inhibit",
+                            "--app-id=agent-awake",
+                            "--reason=Codex, Claude, or ChatGPT is open",
+                            "--inhibit=suspend",
+                            "--inhibit-only",
+                        ],
+                    )
+            elif inhibitor is not None:
+                inhibitor.terminate()
+                inhibitor.wait()
+                inhibitor = None
+            time.sleep(3)
+    finally:
+        if inhibitor is not None and inhibitor.poll() is None:
+            inhibitor.terminate()
+            inhibitor.wait()
+
+
+def client_open() -> bool:
+    for process in Path("/proc").iterdir():
+        if not process.name.isdecimal():
+            continue
+        try:
+            if process.stat().st_uid != os.getuid():
+                continue
+            name = (process / "comm").read_bytes().strip()
+            arguments = (process / "cmdline").read_bytes().split(b"\0")
+        except FileNotFoundError, PermissionError, ProcessLookupError:
+            continue
+        if not arguments[0]:
+            continue
+        command = arguments[0].rsplit(b"/", 1)[-1]
+        if name not in {b"codex", b"claude", b"chatgpt"} and command not in {
+            b"codex",
+            b"claude",
+            b"chatgpt",
+        }:
+            continue
+        if (name == b"codex" or command == b"codex") and arguments[1:2] == [b"app-server"]:
+            continue
+        return True
+    return False
+
+
+if __name__ == "__main__":
+    main()

@@ -53,4 +53,6 @@ load-opener-sock-gc.sh
 {{ if not (and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "fedora")) }}
 .config/systemd
 enable-opener-sock-gc-timer.sh
+.local/bin/agent-awake
+enable-agent-awake.sh
 {{ end }}

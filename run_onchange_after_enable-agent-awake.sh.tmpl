@@ -1,0 +1,8 @@
+#!/bin/bash
+# Service hash: {{ include "dot_config/systemd/user/agent-awake.service" | sha256sum }}
+# Script hash: {{ include "dot_local/bin/executable_agent-awake" | sha256sum }}
+set -euo pipefail
+
+systemctl --user daemon-reload
+systemctl --user enable agent-awake.service
+systemctl --user restart agent-awake.service

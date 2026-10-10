@@ -1,0 +1,13 @@
+[Unit]
+Description=Keep Fedora awake while agent clients run
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=exec
+ExecStart=%h/.local/bin/agent-awake
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target
