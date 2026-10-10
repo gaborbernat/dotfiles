@@ -10,6 +10,7 @@ code
 ctags
 curl
 direnv
+distrobox
 et
 fd-find
 fish
@@ -62,6 +63,7 @@ aria2
 celluloid
 gdu
 graphviz
+gsound
 gnupg2
 hugo
 insync
@@ -69,6 +71,8 @@ jetbrains-mono-fonts
 jq
 lm_sensors
 libgtop2
+libgda
+libgda-sqlite
 libdrm-devel
 ncdu
 ncurses
