@@ -1,8 +1,9 @@
-# Phrases to Remove
+# Phrases to Review
 
 ## Throat-Clearing Openers
 
-Remove these announcement phrases. State the content directly.
+Cut announcement phrases that delay the point. Keep a transition when it leads into a concrete example or marks a useful
+step in a longer explanation.
 
 - "Here's the thing:"
 - "Here's what [X]"
@@ -20,7 +21,8 @@ Remove these announcement phrases. State the content directly.
 - "Here's what I find interesting"
 - "Here's the problem though"
 
-Any "here's what/this/that" construction is throat-clearing before the point. Cut it and state the point.
+"Here's a simple example" can help a reader move from a rule to its application. A standalone "here's what changed" in a
+short PR description usually adds nothing.
 
 ## Emphasis Crutches
 
@@ -52,7 +54,8 @@ Replace with plain language.
 
 ## Adverbs
 
-Kill all adverbs. No -ly words. No softeners, no intensifiers, no hedges.
+Review intensifiers and hedges. Cut them when they change neither meaning nor degree. Keep adverbs that specify time,
+frequency, manner, or uncertainty.
 
 Specific offenders:
 
@@ -84,7 +87,8 @@ Also cut these filler phrases:
 
 ## Meta-Commentary
 
-Remove self-referential asides. The essay should move, not announce its own structure.
+Cut asides that only advertise what the essay will do. Keep a brief roadmap when readers need it to navigate a long
+technical explanation, as in the author's three-part packaging series.
 
 - "Hint:"
 - "Plot twist:" / "Spoiler:"
@@ -124,7 +128,7 @@ Announcing difficulty or significance rather than demonstrating it:
 
 ## Vague Declaratives
 
-Sentences that announce importance without naming the specific thing. Kill these.
+Sentences that announce importance without naming the specific thing need evidence or a more specific claim.
 
 - "The reasons are structural"
 - "The implications are significant"

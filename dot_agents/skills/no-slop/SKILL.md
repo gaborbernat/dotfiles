@@ -1,64 +1,49 @@
 ---
 name: no-slop
-description: Remove AI writing patterns from prose and code artifacts (PRs, commits, comments, docstrings, docs). Use when drafting, editing, or reviewing text to eliminate predictable AI tells like filler, throat-clearing, emphasis crutches, vague declaratives, and formulaic structures.
+description: Edit formulaic prose in PRs, commits, comments, docs, and other writing. Use to cut stock phrasing and empty claims while preserving facts, intent, and the author's voice.
 ---
 
-Strip AI tells, then restore a human voice. Two passes.
+Edit the draft, then check what the edit changed. The goal is useful prose in the author's voice.
 
-This is a by-hand editing task. You must read and apply every rule below to the draft yourself. The script
-(`scripts/slop_score.py`) is a backstop that catches only a fraction of the patterns: it never replaces the rules, and a
-passing score is not completion. Running the script instead of applying the rules is the most common way to do this
-wrong.
+Use [references/phrases.md](references/phrases.md), [references/lexicon.md](references/lexicon.md), and
+[references/structures.md](references/structures.md) to identify candidates for revision. A match is a prompt to read
+the sentence in context. Keep a phrase when it carries a needed distinction, a quotation, a domain term, or the author's
+deliberate style.
 
-## Pass 1 — strip
+1. Check the task, audience, and any length or format constraint. Lead PRs and short replies with the answer or concrete
+   change; a longer explanation can open with the technical question it will answer.
+1. Cut throat-clearing, repeated framing, empty emphasis, and claims that lack a specific fact or source. Keep necessary
+   qualifications and comparisons.
+1. Check the argument: each claim should follow from the evidence available in the source material. Do not invent a
+   number, citation, causal link, or stronger conclusion to make a sentence sound precise.
+1. Check the result for repeated openers, parallel sentence templates, and monotonous rhythm. Preserve useful structure,
+   including lists and headings that help readers scan.
+1. Compare the revision with the draft. Restore any lost fact, qualification, author preference, or distinctive turn of
+   phrase. For this author's register, consult [references/voice.md](references/voice.md).
 
-1. Cut filler: throat-clearing openers, emphasis crutches, all adverbs. See
-   [references/phrases.md](references/phrases.md).
-1. Cut AI vocabulary and copula avoidance. See [references/lexicon.md](references/lexicon.md).
-1. Break formulaic structures: binary contrasts, negative listing, dramatic fragmentation, rhetorical setups, false
-   agency, significance inflation, elegant variation, copula chains. See
-   [references/structures.md](references/structures.md).
-1. Active voice, human subject. No passive, no inanimate actors.
-1. Be specific. No vague declaratives, no lazy extremes (every/always/never).
-1. Vary rhythm. Mix sentence lengths, two items beat three. No em dashes, no colon-drama, no markdown over-structuring.
-1. Trust readers. State facts directly; no softening, no quotables.
-
-## Pass 2 — voice
-
-Restore a human voice without re-adding slop. See [references/voice.md](references/voice.md).
+Surface patterns do not establish AI authorship or writing quality. The linter cannot judge relevance, factual accuracy,
+or whether an unusual expression belongs to the author. Do not minimize the finding count at the expense of meaning or
+voice.
 
 ## Code artifacts
 
-PRs, commits, comments, docstrings, naming, structure: see [references/code.md](references/code.md). For Python style
-run `/simp`.
+For PRs, commits, comments, docstrings, naming, and code structure, see [references/code.md](references/code.md). Use
+`/simp` when Python style work is in scope.
 
 ## Quick checks
 
-Before delivering:
-
-- Adverb, passive voice, inanimate actor, Wh-opener, "here's what/this" → cut or recast.
-- "not X, it's Y" contrast, three same-length sentences, punchy one-line ending → state directly, vary.
-- Em dash, drama colon, over-structured markdown, a phrase repeated across paragraphs → remove.
-- AI-word (lexicon), vague declarative, significance inflation → name the specific thing.
+Before delivering, check for stock openers, hollow contrasts, repeated sentence shapes, unsupported significance, and
+unnecessary length. Review adverbs, passive voice, punctuation, and list structure in context; none is a standalone
+reason to delete content. Preserve quoted text and code examples.
 
 ## Validate
 
-The rules above are the work. Apply every one of them by hand to every draft — phrases, structures, lexicon, voice, and
-code. That is what de-slopping is.
-
-The script is a dumb backstop that matches a small hardcoded subset of patterns. Passing it is necessary but never
-sufficient: text can pass and still be slop. Never treat the script as the goal, as "done," or as a substitute for the
-rules.
-
-After applying every rule, run it as a final check: `uv run scripts/slop_score.py <file>` (resolve the path against this
-skill's directory; pipe text on stdin when there's no file). For prose it prints three lines. GATE flags AI-unambiguous
-tells and must read 100 — any hit fails the run, so fix every gate hit and rerun until it clears. ADVISORY grades the
-stricter style layer (adverbs, passive voice, weak hedges, rhythm, over-structured markdown) and lists each nit; it
-stays low even on good human prose, so don't chase 100 there, but read every finding and fix what the rules call for.
-VOICE reports the fingerprint against the author's profile (no contractions, no em dashes, varied rhythm, concrete
-numbers) and flags anything off-profile. For a source file (`.py`, `.ts`, ...) it prints a CODE line instead: banner
-comments, narrator comments, filler-noun classes (`FooManager`/`Helper`/`Util`), and tautological docstrings. Then
-confirm every fact survived.
+Run `uv run scripts/slop_score.py <file>` from this skill's directory, or pipe a draft on stdin. The script skips
+Markdown code spans and fences. `GATE` locates stock phrases to edit before delivery, except deliberate usage the author
+requested. `ADVISORY` suggests passages to inspect, including common human usage. `VOICE` reports descriptive rhythm and
+punctuation counts; it cannot judge whether the writing sounds like the author. Review each finding against the sentence
+and the author's preferences. For source files, `CODE` checks a small set of comment, name, and docstring patterns.
+Finish by checking the edited facts and the requested format yourself.
 
 ## Examples
 

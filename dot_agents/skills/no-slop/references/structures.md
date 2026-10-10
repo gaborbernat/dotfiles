@@ -2,7 +2,8 @@
 
 ## Binary Contrasts
 
-These create false drama. State the point directly.
+These can create false drama when the first half is a disposable setup. Keep a contrast when both sides are needed to
+prevent a misunderstanding.
 
 | Pattern                                                       | Problem                              |
 | ------------------------------------------------------------- | ------------------------------------ |
@@ -19,7 +20,7 @@ These create false drama. State the point directly.
 | "not just X but also Y"                                       | Additive hedge                       |
 | "Don't call it X. Call it Y."                                 | Imperative twin of the same reversal |
 
-**Instead:** State Y directly. "The problem is Y." "Y matters here." Drop the negation entirely.
+**Instead:** If X adds nothing, state Y directly. "The problem is Y." "Y matters here."
 
 ## Negative Listing
 
@@ -50,16 +51,17 @@ Sentence fragments for emphasis read as manufactured profundity.
 
 ## Rhetorical Setups
 
-These announce insight rather than deliver it.
+These can announce insight rather than deliver it. A real question is useful when the answer requires an example or
+reasoning; the author's posts often use one to set up a technical problem.
 
 | Pattern               | Problem                |
 | --------------------- | ---------------------- |
-| "What if [reframe]?"  | Socratic posturing     |
+| "What if [reframe]?"  | Empty hypothetical     |
 | "Here's what I mean:" | Redundant preview      |
 | "Think about it:"     | Condescending prompt   |
 | "And that's okay."    | Unnecessary permission |
 
-**Instead:** Make the point. Let readers draw conclusions.
+**Instead:** Answer a useful question with the mechanism or an example. Cut it if the next sentence merely restates it.
 
 ## Therapist Voice
 
@@ -89,8 +91,8 @@ naming." If a feeling belongs in the text, name what caused it.
 
 ## False Agency
 
-Giving inanimate things human verbs. Complaints don't "become" fixes. Bets don't "live or die." Decisions don't
-"emerge." A person does something to make those things happen. AI loves this because it avoids naming the actor.
+Some abstract subjects hide who acted. A tool can build, install, or report an error; those verbs describe its behavior.
+When an abstract noun appears to make a decision, check whether naming the person or process would clarify the claim.
 
 | Pattern                         | Problem                                                           |
 | ------------------------------- | ----------------------------------------------------------------- |
@@ -116,11 +118,13 @@ Floating above the scene instead of putting the reader in it.
 | "This is why..."          | Same                    |
 | "People tend to..."       | Armchair sociologist    |
 
-**Instead:** Put the reader in the room. "You don't sit down one day and decide to..." beats "Nobody designed this."
+**Instead:** Name the concrete cause. "Pip used the host interpreter, so a missing Cython import stopped the build"
+tells the reader more than either a vague "this happens because" or a forced second-person scene.
 
 ## Passive Voice
 
-Every sentence needs a subject doing something. Passive voice hides the actor and drains energy.
+Passive voice can hide an actor. Name the actor when readers need to know who did the work; keep passive voice when the
+actor is unknown or the affected thing belongs at the front of the sentence.
 
 | Pattern                    | Fix                  |
 | -------------------------- | -------------------- |
@@ -129,36 +133,36 @@ Every sentence needs a subject doing something. Passive voice hides the actor an
 | "Mistakes were made"       | Name who made them   |
 | "The decision was reached" | Name who decided     |
 
-**Instead:** Find the actor. Put them at the front of the sentence.
+**Instead:** When the actor matters, put them at the front of the sentence.
 
-## Sentence Starters to Avoid
+## Repeated Sentence Starters
 
-| Pattern                                                         | Fix                                             |
-| --------------------------------------------------------------- | ----------------------------------------------- |
-| Sentences starting with What, When, Where, Which, Who, Why, How | Restructure. Lead with the subject or the verb. |
-| Paragraphs starting with "So"                                   | Start with content                              |
-| Sentences starting with "Look,"                                 | Remove                                          |
+| Pattern                                          | Fix                                         |
+| ------------------------------------------------ | ------------------------------------------- |
+| Several questions opening consecutive paragraphs | Keep the ones that advance the explanation. |
+| Repeated paragraphs starting with "So"           | Keep it when it marks a useful transition.  |
+| Sentences starting with "Look,"                  | Remove                                      |
 
-Wh- openers become a crutch. "What makes this hard is..." becomes "The constraint is..." or better, name the specific
-constraint.
+Questions are part of the author's voice. Review repetition, not the first word. "What makes this hard?" earns its place
+when the next passage explains a specific constraint.
 
 ## Rhythm Patterns
 
-| Pattern                        | Fix                                                 |
-| ------------------------------ | --------------------------------------------------- |
-| Three-item lists               | Use two items or one                                |
-| Questions answered immediately | Let questions breathe or cut them                   |
-| Every paragraph ends punchily  | Vary endings                                        |
-| Em-dashes                      | Remove. Use commas or periods. No em dashes at all. |
-| Staccato fragmentation         | Don't stack short punchy sentences                  |
-| "Not always. Not perfectly."   | Hedging disguised as reassurance                    |
+| Pattern                               | Fix                                                |
+| ------------------------------------- | -------------------------------------------------- |
+| Repeated three-item lists             | Keep the number of items the facts require         |
+| Questions answered with a restatement | Add the mechanism or cut the question              |
+| Every paragraph ends punchily         | Vary endings                                       |
+| Repeated em-dashes                    | Use them sparingly; follow the author's preference |
+| Staccato fragmentation                | Don't stack short punchy sentences                 |
+| "Not always. Not perfectly."          | Hedging disguised as reassurance                   |
 
 ## Word Patterns
 
-| Pattern                                                                                               | Problem                                                    |
-| ----------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| Lazy extremes (every, always, never, everyone, everybody, nobody)                                     | False authority. Use specifics instead of sweeping claims. |
-| All adverbs (-ly words, "really," "just," "literally," "genuinely," "honestly," "simply," "actually") | Empty emphasis. See phrases.md for full list.              |
+| Pattern                                                                  | Problem                                                    |
+| ------------------------------------------------------------------------ | ---------------------------------------------------------- |
+| Lazy extremes (every, always, never, everyone, everybody, nobody)        | False authority. Use specifics instead of sweeping claims. |
+| Empty intensifiers ("really," "just," "genuinely," "honestly," "simply") | Review the meaning. See phrases.md for more examples.      |
 
 ## Punctuation and markdown
 
