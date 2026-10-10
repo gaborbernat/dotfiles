@@ -1,15 +1,13 @@
 {{- $work := joinPath .chezmoi.homeDir ".local/share/chezmoi-private/codex_work.toml" -}}
 model_reasoning_effort = "high"
 suppress_unstable_features_warning = true
+developer_instructions = "Do not add AI co-author trailers or generated-by attribution to commits or pull requests."
 
 # ─── Approvals ───────────────────────────────────────────────────────────────
 # Prompt when escalating out of the sandbox — parity with Claude Code, which
 # auto-runs in-scope actions and asks for the rest. (sandbox_mode is omitted on
 # purpose: default_permissions below overrides it, so it would be dead.)
 approval_policy = "on-request"
-
-# ─── Commit Settings ──────────────────────────────────────────────────────────
-commit_attribution = ""
 
 # ─── Permissions (parity with Claude Code — read all, write workspace, network on) ──
 default_permissions = "dev"
