@@ -5,6 +5,11 @@ keymap:
       only: /google-chrome|chromium/
     remap:
       Super-Q: [Alt-F, X]
+  - name: Browser reload
+    application:
+      only: /google-chrome|chromium|firefox/
+    remap:
+      Super-R: Ctrl-R
   - name: JetBrains quit
     application:
       only: /(?i:jetbrains|idea|pycharm|clion|webstorm|goland|rider)/
