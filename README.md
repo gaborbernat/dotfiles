@@ -54,6 +54,9 @@ Workstation's Steam repository before installing the [RPM manifest](dot_dnf_pack
 provide Docker, and Distrobox uses that daemon. Membership in the `docker` group grants
 [root-level access](https://docs.docker.com/engine/install/linux-postinstall/).
 
+The [ChatGPT desktop app](https://learn.chatgpt.com/docs/linux/linux-app) includes Codex. Its official Fedora RPM adds
+OpenAI's signed DNF repository, so Fish `u` updates it with the other RPMs.
+
 Boatswain, Kooha, LocalSend, Gradia, and ProtonPlus install as system Flatpaks. Copyous comes from the GNOME Extensions
 release compatible with the running Shell. Bazecor uses a pinned upstream AppImage and checksum; JetBrains Toolbox
 verifies the vendor's checksum for the current release. uv uses its
@@ -89,6 +92,7 @@ The manifests above are the install sources. These links cover the desktop apps 
 ### Desktop apps
 
 - **Terminal:** [Ghostty](https://ghostty.org/) on both systems.
+- **AI desktop:** [ChatGPT and Codex](https://learn.chatgpt.com/docs/app) on Fedora.
 - **Editors:** [VS Code](https://code.visualstudio.com/) and [JetBrains Toolbox](https://www.jetbrains.com/toolbox-app/)
   on both systems.
 - **Containers:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) on macOS;
