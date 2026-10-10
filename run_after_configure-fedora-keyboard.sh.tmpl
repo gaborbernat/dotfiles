@@ -43,6 +43,18 @@ print(repr(extensions))
 if [[ "$updated" != "$current" ]]; then
     gsettings set org.gnome.shell enabled-extensions "$updated"
 fi
+current=$(gsettings get org.gnome.shell disabled-extensions)
+updated=$(python3 -c '
+import ast
+import sys
+
+extensions = ast.literal_eval(sys.argv[1].removeprefix("@as "))
+extensions = [extension for extension in extensions if extension != sys.argv[2]]
+print(repr(extensions) if extensions else "@as []")
+' "$current" "$uuid")
+if [[ "$updated" != "$current" ]]; then
+    gsettings set org.gnome.shell disabled-extensions "$updated"
+fi
 for digit in {1..9}; do
     gsettings set org.gnome.shell.keybindings "switch-to-application-$digit" '@as []'
 done

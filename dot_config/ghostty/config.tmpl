@@ -79,7 +79,11 @@ keybind = super+q=quit
 keybind = super+h=new_split:right
 keybind = super+j=new_split:down
 keybind = super+d=close_surface
+{{- if eq .chezmoi.os "darwin" }}
 keybind = super+w=close_surface
+{{- else }}
+keybind = super+w=close_tab:this
+{{- end }}
 {{- if eq .chezmoi.os "darwin" }}
 keybind = super+left=goto_split:left
 keybind = super+right=goto_split:right
