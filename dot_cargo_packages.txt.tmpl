@@ -9,3 +9,9 @@ cargo-llvm-cov
 cargo-nextest
 # cargo-update: update installed crates
 cargo-update
+{{- if and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "fedora") }}
+amdgpu_top
+gping
+hyperfine
+mprocs
+{{- end }}

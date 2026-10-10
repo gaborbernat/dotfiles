@@ -1,14 +1,32 @@
 function u -d "Update all development tools (one mprocs tab per tool)"
-    set -l stages brew uv rust cargo npm fisher docker
-    set -l stagefile $__fish_config_dir/local_functions/_u_stage.fish
-
-    set -gx _U_STATUS_DIR (mktemp -d)
-    set -l cmds
-    for s in $stages
-        set --append cmds "fish -lc 'source $stagefile; _u_stage $s'"
+    set -l stages uv rust cargo npm fisher docker
+    if test (uname) = Darwin
+        set --prepend stages brew
+    else if command -q dnf
+        if command -q flatpak
+            set stages dnf flatpak $stages
+        else
+            set --prepend stages dnf
+        end
     end
+    set -l stagefile $__fish_config_dir/local_functions/_u_stage.fish
+    source $stagefile
 
-    dekit mprocs --proc-list-title "Upgrade packages" --names (string join , $stages) $cmds
+    if contains dnf $stages
+        sudo -v; or return $status
+    end
+    set -gx _U_STATUS_DIR (mktemp -d)
+    if command -q mprocs
+        set -l cmds
+        for s in $stages
+            set --append cmds "fish -lc 'source $stagefile; _u_stage $s'"
+        end
+        mprocs --proc-list-title "Upgrade packages" --names (string join , $stages) $cmds
+    else
+        for s in $stages
+            _u_stage $s
+        end
+    end
 
     set -l npass 0
     set -l nfail 0

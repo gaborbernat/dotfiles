@@ -30,7 +30,11 @@ if ! { printf '%s' "$title" > /dev/tty; } 2>/dev/null; then
 fi
 
 if [ -n "$sound" ] && [ -f "$HOME/.claude/sounds/$sound" ]; then
-    afplay "$HOME/.claude/sounds/$sound" >/dev/null 2>&1 &
+    if command -v afplay >/dev/null 2>&1; then
+        afplay "$HOME/.claude/sounds/$sound" >/dev/null 2>&1 &
+    elif command -v pw-play >/dev/null 2>&1; then
+        pw-play "$HOME/.claude/sounds/$sound" >/dev/null 2>&1 &
+    fi
 fi
 
 exit 0

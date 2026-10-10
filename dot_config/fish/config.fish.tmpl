@@ -1,12 +1,20 @@
 # Core
 {{- if eq .chezmoi.os "darwin" }}
-set -gx EDITOR code
-set -gx VISUAL code
+set -gx EDITOR 'code --wait'
+set -gx VISUAL 'code --wait'
 set -gx SHELL /opt/homebrew/bin/fish
 {{- else }}
-set -gx EDITOR vi
-set -gx VISUAL vi
+if command -q code
+    set -gx EDITOR 'code --wait'
+    set -gx VISUAL 'code --wait'
+else
+    set -gx EDITOR vi
+    set -gx VISUAL vi
+end
 set -gx SHELL (command -v fish)
+{{- if eq .chezmoi.osRelease.id "fedora" }}
+set -gx NPM_CONFIG_PREFIX $HOME/.local
+{{- end }}
 {{- end }}
 # Tools that honor BROWSER skip `open`; route them through the et-aware wrapper too.
 set -q ET_VERSION; and set -gx BROWSER $HOME/.local/libexec/et-open/open
@@ -54,7 +62,9 @@ set -gx PY_PYTHON 3.14
 set -gx HOMEBREW_NO_ANALYTICS 1
 {{- else }}
 set -gx PATH \
+    $HOME/.local/sbin \
     $HOME/.local/bin \
+    $HOME/.cargo/bin \
     $HOME/go/bin \
     /opt/bb/bin \
     /usr/share/vscode-server-linux-x64-web/bin/remote-cli \
@@ -84,7 +94,11 @@ if status --is-interactive
     abbr --add l lsd
     abbr --add v nvim
     abbr --add t tig
+{{- if and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "fedora") }}
+    abbr --add gdu gdu
+{{- else }}
     abbr --add gdu gdu-go
+{{- end }}
 {{- if eq .chezmoi.os "darwin" }}
     abbr --add b bat
 {{- else }}
@@ -104,6 +118,9 @@ if status --is-interactive
     command -q zoxide && zoxide init fish | source
     command -q atuin && atuin init fish | source
     command -q mise && mise activate fish | source
+{{- if and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "fedora") }}
+    fish_add_path --path --prepend --move $HOME/.local/bin
+{{- end }}
 
     # fish interactive changes
     set fish_greeting

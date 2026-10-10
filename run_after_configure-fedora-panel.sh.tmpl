@@ -1,0 +1,39 @@
+#!/bin/bash
+set -euo pipefail
+
+if [[ "${SKIP_FEDORA_PANEL:-}" == "1" ]]; then
+    exit 0
+fi
+if [[ "${XDG_CURRENT_DESKTOP:-}" != *GNOME* ]] || ! command -v gsettings >/dev/null 2>&1; then
+    echo "GNOME session not available; panel setup will retry on the next chezmoi apply"
+    exit 0
+fi
+if [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" && ! -S "${XDG_RUNTIME_DIR:-}/bus" ]]; then
+    echo "GNOME session bus not available; panel setup will retry on the next chezmoi apply"
+    exit 0
+fi
+if ! gsettings list-schemas | grep -qx 'org.gnome.shell.extensions.dash-to-panel'; then
+    echo "Dash to Panel RPM not installed yet; panel setup will retry on the next chezmoi apply"
+    exit 0
+fi
+
+gsettings set org.gnome.shell.extensions.dash-to-panel multi-monitors true
+current=$(gsettings get org.gnome.shell enabled-extensions)
+extensions=(dash-to-panel@jderose9.github.com)
+if [[ -d "$HOME/.local/share/gnome-shell/extensions/monitor@astraext.github.io" ]]; then
+    extensions+=(monitor@astraext.github.io)
+fi
+updated=$(python3 -c '
+import ast
+import sys
+
+options = ast.literal_eval(sys.argv[1].removeprefix("@as "))
+for name in sys.argv[2:]:
+    if name not in options:
+        options.append(name)
+print(repr(options))
+' "$current" "${extensions[@]}")
+if [[ "$updated" != "$current" ]]; then
+    gsettings set org.gnome.shell enabled-extensions "$updated"
+    echo "Enabled Fedora GNOME extensions (log out and back in if they are not visible yet)"
+fi

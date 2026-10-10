@@ -18,7 +18,7 @@ diff-cover
 # hatch: Python project manager
 hatch
 # mdformat: markdown formatter
-mdformat --with mdformat-config --with mdformat-ruff --with mdformat-toc --with mdformat-front-matters
+mdformat --with mdformat-config --with mdformat-gfm --with mdformat-ruff --with mdformat-toc --with mdformat-front-matters
 # mitmproxy: HTTP proxy for debugging
 mitmproxy
 # nox: automation tool
@@ -29,6 +29,10 @@ pip
 pip-tools
 # pipx: install Python apps
 pipx
+{{- if and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "fedora") }}
+# prek: no Fedora RPM in the enabled repositories
+prek
+{{- end }}
 # pypi-changes: show PyPI changelog
 pypi-changes
 # pyproject-fmt: format pyproject.toml

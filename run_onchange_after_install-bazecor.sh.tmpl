@@ -1,0 +1,18 @@
+#!/bin/bash
+# Dygma Bazecor v1.10.0, x86_64 AppImage
+set -euo pipefail
+
+if [[ "${SKIP_BAZECOR:-}" == 1 ]]; then
+    exit 0
+fi
+if [[ $(uname -m) != x86_64 ]]; then
+    echo "Bazecor AppImage here is x86_64 only; skipping" >&2
+    exit 0
+fi
+
+download=$(mktemp --suffix=.AppImage)
+trap 'rm -f "$download"' EXIT
+curl -fL -sS -o "$download" 'https://github.com/Dygmalab/Bazecor/releases/download/v1.10.0/Bazecor-1.10.0-x64.AppImage'
+printf '%s  %s\n' 'b5d92e67b6087477ad74b8b911493d1ccbd6d265b43aab1bdbcc6c7a2b1eb364' "$download" | sha256sum -c -
+install -D -m 0755 "$download" "$HOME/.local/opt/bazecor/Bazecor.AppImage"
+echo "Bazecor installed from the checksum-pinned Dygma release"

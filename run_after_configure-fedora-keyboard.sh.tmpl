@@ -1,0 +1,50 @@
+#!/bin/bash
+set -euo pipefail
+
+if [[ "${SKIP_FEDORA_KEYBOARD:-}" == 1 ]]; then
+    exit 0
+fi
+if ! command -v xremap >/dev/null 2>&1; then
+    echo "xremap unavailable; keyboard setup will retry after DNF setup"
+    exit 0
+fi
+
+sudo bash '{{ .chezmoi.sourceDir }}/scripts/fedora/keyboard/install-system.sh' \
+    '{{ .chezmoi.sourceDir }}/scripts/fedora/keyboard/config.yml' "$(id -un)"
+
+if [[ "${XDG_CURRENT_DESKTOP:-}" != *GNOME* ]] ||
+    [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" && ! -S "${XDG_RUNTIME_DIR:-}/bus" ]]; then
+    echo "GNOME session unavailable; xremap extension will install on the next chezmoi apply"
+    exit 0
+fi
+
+uuid=xremap@k0kubun.com
+if [[ ! -d "$HOME/.local/share/gnome-shell/extensions/$uuid" ]]; then
+    zip=$(mktemp --suffix=.zip)
+    trap 'rm -f "$zip"' EXIT
+    curl -fL -sS -o "$zip" \
+        'https://extensions.gnome.org/download-extension/xremap@k0kubun.com.shell-extension.zip?version_tag=69781'
+    printf '%s  %s\n' \
+        '9f81d40ecc23810c704f0e6e6d9cc69c25e7c5528c24576a4972056b5b7d6d5a' \
+        "$zip" | sha256sum -c -
+    gnome-extensions install --force "$zip"
+fi
+
+current=$(gsettings get org.gnome.shell enabled-extensions)
+updated=$(python3 -c '
+import ast
+import sys
+
+extensions = ast.literal_eval(sys.argv[1].removeprefix("@as "))
+if sys.argv[2] not in extensions:
+    extensions.append(sys.argv[2])
+print(repr(extensions))
+' "$current" "$uuid")
+if [[ "$updated" != "$current" ]]; then
+    gsettings set org.gnome.shell enabled-extensions "$updated"
+fi
+for digit in {1..9}; do
+    gsettings set org.gnome.shell.keybindings "switch-to-application-$digit" '@as []'
+done
+gsettings set org.gnome.shell.keybindings toggle-message-tray "['<Super>m']"
+echo "xremap extension enabled"

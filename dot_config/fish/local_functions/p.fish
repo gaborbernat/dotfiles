@@ -7,6 +7,10 @@ function p -d "Open PyCharm with worktree-aware project name and auto-config" -a
             return 1
         end
     end
+    if not command -q pycharm
+        echo "p: PyCharm launcher 'pycharm' not found" >&2
+        return 127
+    end
     set --local project_name (basename "$dir")
     set --local bare_root (git -C "$dir" rev-parse --git-common-dir 2>/dev/null)
 

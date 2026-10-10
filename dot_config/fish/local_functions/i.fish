@@ -7,6 +7,10 @@ function i -d "Open IntelliJ IDEA with worktree-aware project name" -a path
             return 1
         end
     end
+    if not command -q idea
+        echo "i: IntelliJ IDEA launcher 'idea' not found" >&2
+        return 127
+    end
     set --local project_name (basename "$dir")
     set --local bare_root (git -C "$dir" rev-parse --git-common-dir 2>/dev/null)
 

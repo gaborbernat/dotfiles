@@ -110,11 +110,15 @@ _GATE: Final[tuple[_Spec, ...]] = (
             r"\bgoes beyond\b[^.?!]{0,30}\bto\b",
             r"\bmore than just\b",
             # "Don't call it X. Call it Y." - same verb negated, then repeated.
-            r"\b(?:do not|don'?t) (?:just |simply |merely )?(\w+) it\b[^.!?\n]{0,60}[.!?;,:]\s*"
-            r"(?:just |simply )?\1 it\b",
+            (
+                r"\b(?:do not|don'?t) (?:just |simply |merely )?(\w+) it\b[^.!?\n]{0,60}[.!?;,:]\s*"
+                r"(?:just |simply )?\1 it\b"
+            ),
             r"\bno \w+, no \w+, no \w+",
-            r"\b(?:did not|didn'?t) \w+[^.?!\n]{0,40}, (?:did not|didn'?t) \w+[^.?!\n]{0,40}, "
-            r"(?:did not|didn'?t)\b",
+            (
+                r"\b(?:did not|didn'?t) \w+[^.?!\n]{0,40}, (?:did not|didn'?t) \w+[^.?!\n]{0,40}, "
+                r"(?:did not|didn'?t)\b"
+            ),
         ),
     ),
     (
@@ -123,8 +127,10 @@ _GATE: Final[tuple[_Spec, ...]] = (
         True,
         (
             r"\bsit(?:s|ting)? with (?:that|this|it)\b",
-            r"\bsit(?:s|ting)? with (?:the|your) (?:discomfort|feelings?|tension|weight|uncertainty"
-            r"|ambiguity|grief|silence|unease)\b",
+            (
+                r"\bsit(?:s|ting)? with (?:the|your) (?:discomfort|feelings?|tension|weight|uncertainty"
+                r"|ambiguity|grief|silence|unease)\b"
+            ),
             rf"\b(?:that|this|it|which)(?:{_APOS}s| is| was) not nothing\b",
             r"\b(?:is|are|was|were|feels?|seems?)(?: \w+){0,2}? worth naming\b",
             r"\bworth naming:",
