@@ -1,15 +1,28 @@
-# Voice (Second Pass)
+# Voice reference
 
-After stripping slop, restore a human voice. This profile is calibrated to the author's pre-AI writing (blog posts and
-PRs). Keep terse on commits and PRs; allow more room in essays.
+These posts show the author's technical writing before AI-assisted editing:
 
-- Replace generic claims with a number, name, file, or command ("faster" -> "4s to 900ms"). Concrete detail is the
-  strongest human signal.
-- State a claim, then back it in the same paragraph. Drop claims you cannot support.
-- Write formally: no contractions ("it is", "does not"), the author does not use them.
-- Join clauses with a semicolon or a spaced " - ", never an em dash.
-- Vary sentence length on purpose; a long, qualified sentence can be followed by a short one. Aim for real variance, not
-  a uniform cadence.
-- Open on the concrete thing (the bug, the file, the number), not a framing sentence.
+- [Version numbers: how to use them?](https://bernat.tech/posts/version-numbers/)
+- [Python packaging - Growing Pains](https://bernat.tech/posts/growing-pain/)
+- [Python packaging - Past, Present, Future](https://bernat.tech/posts/pep-517-518/)
+- [The state of Python Packaging](https://bernat.tech/posts/pep-517-and-python-packaging/)
+- [The state of type hints in Python](https://bernat.tech/posts/the-state-of-type-hints-in-python/)
 
-Do not re-add adverbs, hype, or chattiness. Keep every fact.
+For longer explanations, start from a real technical question or change, then work through a concrete example. The
+packaging series follows what happens to a small `pugs` project; the versioning post tests a version constraint against
+a dependency conflict. Show the mechanism before recommending a practice. Give competing approaches a fair account and
+name the case where the recommendation fails.
+
+Use first person when the author has direct experience, and address the reader when it helps follow an example.
+Questions, contractions, and occasional informal asides belong to this voice. Keep them purposeful: a question should
+introduce a problem the next passage answers, and an aside should add context or relief without delaying the
+explanation. Headings, lists, code, and links are useful when they carry the reasoning. Retain precise qualifications,
+even when they make a sentence longer. Vary sentence length rather than forcing every sentence into the same shape.
+
+In new writing, tighten grammar, repeated setup, and excess length. Keep the author's curiosity, specific examples, and
+candid judgment. The published pages have later update dates, so treat them as voice references rather than an untouched
+archive of their original wording.
+
+For PRs, commits, and short replies, lead with the result and the evidence that matters. Keep the conversational
+register, but leave the extended walkthrough and playful asides to articles. No punctuation mark, contraction count, or
+sentence length score determines whether text is on voice.

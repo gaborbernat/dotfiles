@@ -2,29 +2,23 @@
 # /// script
 # requires-python = ">=3.11"
 # ///
-"""Score text for AI slop on two tracks: a high-precision GATE and a graded ADVISORY.
+"""Find formulaic prose for review against a local writing style.
 
 Usage: slop_score.py FILE...   |   echo "text" | slop_score.py
 
-GATE lists AI-unambiguous tells that good human prose does not contain (delve,
-"not just X but Y", AI self-disclosure, brochure language). Any hit fails the
-run. Calibrated against a pre-AI human corpus so genuine technical writing stays
-at 100.
+GATE marks stock phrases and placeholders to edit before delivery. A hit says
+nothing about authorship. Markdown code spans and fences are excluded.
 
-ADVISORY is the stricter no-slop style layer plus statistical signals (em dashes,
-adverbs, passive voice, weak hedges, chatbot tone, copula avoidance, uniform
-rhythm, over-structured markdown). Human writing trips these too, so they never
-fail the run; they show what to keep fixing. A clean gate is necessary, never
-sufficient: apply every no-slop rule by hand regardless.
+ADVISORY reports broader style signals (adverbs, passive voice, rhythm, and
+formatting). Human writing trips these too; review them in context. VOICE shows
+descriptive counts, not whether writing matches an author's voice.
 
-Scoring (density per 1000 words, exponential decay, concentration multiplier on
-clustered tells), tiers, and word lists are adapted from eric-tramel/slop-guard,
-gabelul/slopbuster, and the Kobak/Liang corpus studies.
+Findings are local edit aids, not calibrated probabilities or AI detectors.
 """
 
 from __future__ import annotations
 
-import math
+import operator
 import pathlib
 import re
 import statistics
@@ -32,9 +26,6 @@ import sys
 from collections import Counter
 from typing import Final
 
-_DECAY_LAMBDA: Final[float] = 0.04
-_CONCENTRATION_ALPHA: Final[float] = 2.5
-_DENSITY_BASIS: Final[float] = 1000.0
 _RHYTHM_MIN_SENTENCES: Final[int] = 5
 _RHYTHM_CV_THRESHOLD: Final[float] = 0.3
 _COLON_PER_WORDS: Final[float] = 150.0
@@ -44,29 +35,25 @@ _MIN_STRUCTURE_LINES: Final[int] = 5
 _BLOCKQUOTE_MIN: Final[int] = 3
 _HR_MIN: Final[int] = 4
 _BOLD_BULLET_RUN_MIN: Final[int] = 3
-_NGRAM_MIN: Final[int] = 4
-_NGRAM_MAX: Final[int] = 8
-_NGRAM_MIN_COUNT: Final[int] = 3
+_OPENER_WORDS: Final[int] = 4
+_OPENER_MIN_COUNT: Final[int] = 3
+_TRICOLON_MIN_COUNT: Final[int] = 3
 _PITHY_MAX_WORDS: Final[int] = 6
 _MAX_SHOWN: Final[int] = 14
 _REMINDER: Final[str] = (
-    "\nThe script is a backstop, not the work: it catches only a fraction of the rules, so passing it is not\n"
-    "completion. Before delivering, apply every reference by hand - phrases.md, structures.md, lexicon.md, voice.md,\n"
-    "code.md - then resolve each ADVISORY finding above. Re-read any reference you skipped.\n"
+    "\nReview findings in context, then check facts, task fit, and voice by hand.\n"
+    "A match is not evidence of AI authorship; zero findings do not establish quality.\n"
 )
 
 _APOS: Final[str] = r"['\u2019]"
 _TOTALIZING_NOUNS: Final[str] = r"(?:point|game|thing|idea|premise|argument|joke|trick|business model)"
 
-_Spec = tuple[str, int, bool, tuple[str, ...]]
-_CompiledSpec = tuple[str, int, bool, re.Pattern[str]]
+_Spec = tuple[str, tuple[str, ...]]
+_CompiledSpec = tuple[str, re.Pattern[str]]
 
-# Concentrated categories get the slop-guard multiplier so clustered tells drop the score fast.
 _GATE: Final[tuple[_Spec, ...]] = (
     (
         "ai-disclosure",
-        -10,
-        False,
         (
             r"\bas an ai\b",
             r"\bas a (?:large )?language model\b",
@@ -81,8 +68,6 @@ _GATE: Final[tuple[_Spec, ...]] = (
     ),
     (
         "placeholder",
-        -5,
-        False,
         (
             r"\[insert\b",
             r"\blorem ipsum\b",
@@ -95,11 +80,7 @@ _GATE: Final[tuple[_Spec, ...]] = (
     ),
     (
         "contrast",
-        -3,
-        True,
         (
-            r"\bnot just\b[^.?!]{1,40}\bbut(?: also)?\b",
-            r"\bnot only\b[^.?!]{1,40}\bbut(?: also)?\b",
             r"\bit'?s not\b[^.?!]{0,40}\bit'?s\b",
             r"\bit'?s not merely\b[^.?!]{0,40}\bit'?s\b",
             r"\bthe answer isn'?t\b",
@@ -107,6 +88,7 @@ _GATE: Final[tuple[_Spec, ...]] = (
             r"\bthe problem isn'?t\b",
             r"\bisn'?t the problem\b",
             r"\bnot because\b[^.?!]{0,40}\bbecause\b",
+            r"\bit'?s not\b[^.!?\n]{1,50}\.\s+it'?s\b",
             r"\bgoes beyond\b[^.?!]{0,30}\bto\b",
             r"\bmore than just\b",
             # "Don't call it X. Call it Y." - same verb negated, then repeated.
@@ -119,12 +101,11 @@ _GATE: Final[tuple[_Spec, ...]] = (
                 r"\b(?:did not|didn'?t) \w+[^.?!\n]{0,40}, (?:did not|didn'?t) \w+[^.?!\n]{0,40}, "
                 r"(?:did not|didn'?t)\b"
             ),
+            r"\bit wasn'?t\b[^.!?\n]{1,50}\.\s+it wasn'?t\b[^.!?\n]{1,50}\.\s+it was\b",
         ),
     ),
     (
         "therapist",
-        -3,
-        True,
         (
             r"\bsit(?:s|ting)? with (?:that|this|it)\b",
             (
@@ -142,24 +123,22 @@ _GATE: Final[tuple[_Spec, ...]] = (
     ),
     (
         "setup-resolution",
-        -3,
-        True,
         (
-            r"\bwhat if\b[^?]{0,60}\?",
             r"\bhere'?s what i mean\b",
             r"\bthink about it\b",
             r"\band that'?s (?:okay|allowed|fine)\b",
             r"\bhere'?s the thing\b",
+            r"\blet me walk you through\b",
+            r"\bthis unlocks something\b",
         ),
     ),
-    ("fragmentation", -3, True, (r"\bthat'?s it\.\s+that'?s the\b", r"\.\s+and \w+\.\s+and \w+\.")),
+    (
+        "fragmentation",
+        (r"\bthat'?s it\.\s+that'?s the\b", r"\.\s+and \w+\.\s+and \w+\.", r"\bnot always\.\s+not perfectly\."),
+    ),
     (
         "throat-clearing",
-        -3,
-        False,
         (
-            r"\bhere'?s what\b",
-            r"\bhere'?s why\b",
             r"\bhere'?s the problem\b",
             r"\bthe uncomfortable truth\b",
             r"\bit turns out\b",
@@ -172,30 +151,26 @@ _GATE: Final[tuple[_Spec, ...]] = (
     ),
     (
         "meta",
-        -3,
-        False,
         (
             r"\bplot twist\b",
             r"\bspoiler:?",
             r"\byou already know this\b",
             r"\ba feature,? not a bug\b",
+            r"\bthe rest of this (?:essay|post|article) (?:explains|shows|covers)\b",
         ),
     ),
     (
         "emphasis",
-        -3,
-        False,
         (
             r"\bfull stop\.",
             r"\blet that sink in\b",
             r"\bmake no mistake\b",
             r"\bhere'?s why that matters\b",
+            r"\bthis matters because\b",
         ),
     ),
     (
         "vague-declarative",
-        -3,
-        False,
         (
             r"\bthe reasons are structural\b",
             r"\bthe implications are significant\b",
@@ -204,12 +179,12 @@ _GATE: Final[tuple[_Spec, ...]] = (
             r"\bthe deepest problem\b",
             r"\bcannot be overstated\b",
             r"\bprofound implications\b",
+            r"\bthis is what \w+(?: \w+){0,3} actually looks like\b",
+            r"\bthe future belongs to\b",
         ),
     ),
     (
         "significance-inflation",
-        -3,
-        False,
         (
             r"\bpivotal moment\b",
             r"\bgame[- ]chang(?:er|ing)\b",
@@ -234,27 +209,17 @@ _GATE: Final[tuple[_Spec, ...]] = (
     ),
     (
         "brochure",
-        -3,
-        False,
         (
-            r"\bnestled\b",
             r"\bin the heart of\b",
             r"\bstate[- ]of[- ]the[- ]art\b",
             r"\bcutting[- ]edge\b",
             r"\bworld[- ]class\b",
-            r"\bunparalleled\b",
-            r"\bgroundbreaking\b",
-            r"\bbreathtaking\b",
             r"\bmust[- ]visit\b",
-            r"\btransformative\b",
             r"\bboasts a\b",
-            r"\bvibrant\b",
         ),
     ),
     (
         "jargon",
-        -3,
-        False,
         (
             r"\bdeep dive\b",
             r"\bdouble down\b",
@@ -268,8 +233,6 @@ _GATE: Final[tuple[_Spec, ...]] = (
     ),
     (
         "false-agency",
-        -3,
-        False,
         (
             r"\bthe data tells us\b",
             r"\bthe market rewards\b",
@@ -281,8 +244,6 @@ _GATE: Final[tuple[_Spec, ...]] = (
     ),
     (
         "wordy-filler",
-        -3,
-        False,
         (
             r"\bat its core\b",
             r"\bin today'?s\b",
@@ -300,33 +261,10 @@ _GATE: Final[tuple[_Spec, ...]] = (
         ),
     ),
     (
-        "ai-vocabulary",
-        -2,
-        False,
-        (
-            r"\bdelv(?:e|es|ed|ing)\b",
-            r"\bshowcas(?:e|es|ed|ing)\b",
-            r"\bmultifaceted\b",
-            r"\bnuanced\b",
-            r"\bmeticulous(?:ly)?\b",
-            r"\bcommendable\b",
-            r"\bnoteworthy\b",
-            r"\btapestry\b",
-            r"\bkaleidoscope\b",
-            r"\bsymphony\b",
-            r"\bcornerstone\b",
-            r"\binterplay\b",
-            r"\bintricac(?:y|ies)\b",
-            r"\bintricate\b",
-            r"\bfostering\b",
-            r"\bsymboliz(?:e|es|ing)\b",
-            r"\blabyrinthine\b",
-            r"\bpalpable\b",
-            r"\btranscend(?:s|ed|ing)?\b",
-            r"\belucidat(?:e|es|ing)\b",
-            r"\bever[- ](?:evolving|changing)\b",
-        ),
+        "participle-tail",
+        (r",\s+(?:underscoring|highlighting|showcasing) (?:the|a) (?:importance|value|need|significance) of\b",),
     ),
+    ("anaphora", (r"\bit'?s about\b[^.!?\n]{1,60}\.\s+it'?s about\b",)),
 )
 
 _ADVISORY_WORDS: Final[dict[str, tuple[str, ...]]] = {
@@ -371,7 +309,15 @@ _ADVISORY_WORDS: Final[dict[str, tuple[str, ...]]] = {
     ),
     "vague transitions": ("additionally", "moreover", "furthermore"),
 }
-# Chatbot pleasantries: strong AI signal but humans use them too, so advisory not gate.
+_WORD_TELLS: Final[re.Pattern[str]] = re.compile(
+    r"\b(?:delv(?:e|es|ed|ing)|showcas(?:e|es|ed|ing)|multifaceted|nuanced|meticulous(?:ly)?|commendable"
+    r"|noteworthy|tapestry|kaleidoscope|symphony|cornerstone|interplay|intricac(?:y|ies)|intricate"
+    r"|fostering|symboliz(?:e|es|ing)|labyrinthine|palpable|transcend(?:s|ed|ing)?"
+    r"|elucidat(?:e|es|ing)|ever[- ](?:evolving|changing)|nestled|unparalleled|groundbreaking"
+    r"|breathtaking|vibrant|transformative)\b",
+    re.IGNORECASE,
+)
+# Human writing can use these phrases too.
 _CHATBOT: Final[re.Pattern[str]] = re.compile(
     r"\b(?:feel free to|don'?t hesitate to|happy to help|of course!|certainly!|great question"
     r"|you'?re absolutely right|is there anything else|let me know if|would you like me to"
@@ -428,9 +374,10 @@ _ADVERB_STOP: Final[frozenset[str]] = frozenset({
     "yearly",
 })
 _GATE_COMPILED: Final[tuple[_CompiledSpec, ...]] = tuple(
-    (name, penalty, concentrated, re.compile("|".join(patterns), re.IGNORECASE))
-    for name, penalty, concentrated, patterns in _GATE
+    (name, re.compile("|".join(patterns), re.IGNORECASE)) for name, patterns in _GATE
 )
+_FENCE: Final[re.Pattern[str]] = re.compile(r"^ {0,3}(`{3,}|~{3,})(.*)$")
+_INLINE_CODE: Final[re.Pattern[str]] = re.compile(r"(`+)(?!`)[^`\n]*?\1(?!`)")
 _SENT_SPLIT: Final[re.Pattern[str]] = re.compile(r"[.!?]+(?:\s|$)")
 _WORD: Final[re.Pattern[str]] = re.compile(r"[a-z][a-z'-]*", re.IGNORECASE)
 _PASSIVE: Final[re.Pattern[str]] = re.compile(
@@ -450,9 +397,14 @@ _RULE_OF_THREE: Final[re.Pattern[str]] = re.compile(
     re.VERBOSE,
 )
 _CONTRACTION: Final[re.Pattern[str]] = re.compile(
-    r"\b(?:it|that|there|what|who|he|she|we|they|you|i|do|does|did|can|could|would|should|will|are|have|has|had|let)'(?:t|s|re|ve|ll|d|m)\b"
+    r"\b[a-z]+"
+    + _APOS
+    + r"(?:t|re|ve|ll|d|m)\b"
+    + r"|\b(?:it|that|there|what|who|where|how|let|she|he)"
+    + _APOS
+    + r"s\b",
+    re.IGNORECASE,
 )
-_NUMBER: Final[re.Pattern[str]] = re.compile(r"\b\d[\d,.]*\b")
 _CODE_EXTS: Final[frozenset[str]] = frozenset({
     ".py",
     ".pyi",
@@ -470,17 +422,14 @@ _CODE_EXTS: Final[frozenset[str]] = frozenset({
     ".h",
     ".hpp",
 })
-_VOICE_CV_FLOOR: Final[float] = 0.45
-_VOICE_NUMBERS_FLOOR: Final[float] = 3.0
-# (category, penalty, pattern). Calibrated to zero hits on the author's real source (virtualenv, tox, build).
-_CODE: Final[tuple[tuple[str, int, str], ...]] = (
-    ("section-banner comment", -3, r"(?m)^[ \t]*(?:#|//)[ \t]*[-=*~_]{3,}"),
-    ("narrator comment", -2, r"(?im)^[ \t]*(?:#|//)[ \t]*(?:now we\b|we [a-z]|let'?s\b|first,? we\b|next,? we\b)"),
-    ("filler-noun class", -2, r"\bclass\s+[A-Za-z0-9_]+(?:Manager|Helper|Utils?|Wrapper|Processor)\b"),
-    ("tautological docstring", -2, r'(?i)"""\s*(?:returns?|gets?|sets?|runs?|creates?|does?|handles?)\.?\s*"""'),
+_CODE: Final[tuple[tuple[str, str], ...]] = (
+    ("section-banner comment", r"(?m)^[ \t]*(?:#|//)[ \t]*[-=*~_]{3,}"),
+    ("narrator comment", r"(?im)^[ \t]*(?:#|//)[ \t]*(?:now we\b|we [a-z]|let'?s\b|first,? we\b|next,? we\b)"),
+    ("filler-noun class", r"\bclass\s+[A-Za-z0-9_]+(?:Manager|Helper|Utils?|Wrapper|Processor)\b"),
+    ("tautological docstring", r'(?i)"""\s*(?:returns?|gets?|sets?|runs?|creates?|does?|handles?)\.?\s*"""'),
 )
-_CODE_COMPILED: Final[tuple[tuple[str, int, re.Pattern[str]], ...]] = tuple(
-    (name, penalty, re.compile(pattern)) for name, penalty, pattern in _CODE
+_CODE_COMPILED: Final[tuple[tuple[str, re.Pattern[str]], ...]] = tuple(
+    (name, re.compile(pattern)) for name, pattern in _CODE
 )
 
 
@@ -501,74 +450,83 @@ def read_inputs() -> list[tuple[str, str]]:
 def report(name: str, text: str) -> bool:
     if pathlib.Path(name).suffix in _CODE_EXTS:
         return code_report(name, text)
-    words = _WORD.findall(text.lower())
-    gate_hits, gate_penalty = scan(text, _GATE_COMPILED)
-    gate = 100 if not gate_hits else score_from_density(gate_penalty, len(words))
-    advisory_hits, advisory_penalty = advisory(text, words)
-    advisory_score = score_from_density(advisory_penalty, len(words))
+    prose = prose_only(text)
+    words = _WORD.findall(prose.lower())
+    gate_hits = scan(prose, _GATE_COMPILED)
+    advisory_hits = advisory(prose, words)
     sys.stdout.write(
-        f"GATE  {gate:3d}/100  {name}  {summarize(gate_hits) or 'clean'}\n"
-        f"ADVISORY  {advisory_score:3d}/100 ({_band(advisory_score)})  {summarize(advisory_hits) or 'clean'}\n"
-        f"{_voice_line(text, words)}\n"
+        f"GATE  {sum(gate_hits.values())} findings  {name}  {summarize(gate_hits) or 'none'}\n"
+        f"ADVISORY  {sum(advisory_hits.values())} findings  {summarize(advisory_hits) or 'none'}\n"
+        f"{_voice_line(prose)}\n"
     )
+    for category, line, column, match in gate_locations(prose, text):
+        sys.stdout.write(f"  {name}:{line}:{column}: {category}: {match!r}\n")
     return bool(gate_hits)
 
 
+def prose_only(text: str) -> str:
+    lines: list[str] = []
+    fence: tuple[str, int] | None = None
+    for line in text.splitlines(keepends=True):
+        marker = _FENCE.match(line)
+        if fence is None and marker:
+            token = marker.group(1)
+            fence = (token[0], len(token))
+        elif fence and marker and marker.group(1)[0] == fence[0] and len(marker.group(1)) >= fence[1]:
+            if not marker.group(2).strip():
+                fence = None
+        elif fence is None:
+            lines.append(_INLINE_CODE.sub(lambda match: " " * len(match.group()), line))
+            continue
+        lines.append("".join("\n" if character == "\n" else " " for character in line))
+    return "".join(lines)
+
+
+def gate_locations(prose: str, original: str) -> list[tuple[str, int, int, str]]:
+    locations: list[tuple[str, int, int, str]] = []
+    for category, pattern in _GATE_COMPILED:
+        for match in pattern.finditer(prose):
+            start = match.start()
+            line = original.count("\n", 0, start) + 1
+            column = start - original.rfind("\n", 0, start)
+            locations.append((category, line, column, original[start : match.end()].replace("\n", " ")))
+    return sorted(locations, key=operator.itemgetter(1, 2))
+
+
 def code_report(name: str, text: str) -> bool:
-    words = _WORD.findall(text)
     hits: Counter[str] = Counter()
-    penalty = 0.0
-    for category, weight, pattern in _CODE_COMPILED:
+    for category, pattern in _CODE_COMPILED:
         if count := len(pattern.findall(text)):
             hits[category] = count
-            penalty += abs(weight) * count
-    score = score_from_density(penalty, len(words)) if words else 100
-    sys.stdout.write(f"CODE  {score:3d}/100 ({_band(score)})  {name}  {summarize(hits) or 'clean'}\n")
+    sys.stdout.write(f"CODE  {sum(hits.values())} findings  {name}  {summarize(hits) or 'none'}\n")
     return False
 
 
-def _voice_line(text: str, words: list[str]) -> str:
+def _voice_line(text: str) -> str:
     lengths = [count for part in _SENT_SPLIT.split(text) if (count := len(_WORD.findall(part)))]
     cv = statistics.pstdev(lengths) / statistics.fmean(lengths) if len(lengths) >= _RHYTHM_MIN_SENTENCES else 0.0
-    numbers = 1000 * len(_NUMBER.findall(text)) / len(words) if words else 0.0
     contractions = len(_CONTRACTION.findall(text))
-    em_dash = text.count(chr(0x2014)) + text.count(chr(0x2013))
-    off = []
-    if cv and cv < _VOICE_CV_FLOOR:
-        off.append("uniform rhythm")
-    if numbers < _VOICE_NUMBERS_FLOOR:
-        off.append("thin on specifics")
-    if contractions:
-        off.append("contractions")
-    if em_dash:
-        off.append("em dashes")
-    return (
-        f"VOICE  CV {cv:.2f}  numbers/1k {numbers:.1f}  contractions {contractions}  em-dash {em_dash}"
-        f"  [{', '.join(off) or 'on profile'}]"
-    )
+    dashes = text.count(chr(0x2014)) + text.count(chr(0x2013))
+    return f"VOICE  sentence-length CV {cv:.2f}  contractions {contractions}  dashes {dashes}"
 
 
-def scan(text: str, specs: tuple[_CompiledSpec, ...]) -> tuple[Counter[str], float]:
+def scan(text: str, specs: tuple[_CompiledSpec, ...]) -> Counter[str]:
     hits: Counter[str] = Counter()
-    penalty = 0.0
-    for name, weight, concentrated, pattern in specs:
+    for name, pattern in specs:
         if count := len(pattern.findall(text)):
             hits[name] = count
-            penalty += abs(weight) * (_concentrated(count) if concentrated else count)
-    return hits, penalty
+    return hits
 
 
-def advisory(text: str, words: list[str]) -> tuple[Counter[str], float]:
+def advisory(text: str, words: list[str]) -> Counter[str]:
     hits: Counter[str] = Counter()
-    penalty = 0.0
-    for name, count, weight in _advisory_signals(text, words):
+    for name, count in _advisory_signals(text, words):
         if count:
             hits[name] = count
-            penalty += weight * count
-    return hits, penalty
+    return hits
 
 
-def _advisory_signals(text: str, words: list[str]) -> list[tuple[str, int, int]]:
+def _advisory_signals(text: str, words: list[str]) -> list[tuple[str, int]]:
     lowered = text.lower()
     counts = Counter(words)
     lines = [line for line in text.splitlines() if line.strip()]
@@ -578,26 +536,26 @@ def _advisory_signals(text: str, words: list[str]) -> list[tuple[str, int, int]]
     hrules = sum(1 for line in lines if re.fullmatch(r"\s*([-*_])\1{2,}\s*", line))
     dense_bullets = len(lines) >= _MIN_STRUCTURE_LINES and bullets > _BULLET_DENSITY_THRESHOLD * len(lines)
     return [
-        ("named adverbs", sum(counts[word] for word in _ADVISORY_WORDS["named adverbs"]), 2),
-        ("puff adjectives", sum(counts[word] for word in _ADVISORY_WORDS["puff adjectives"]), 1),
-        ("vague transitions", sum(counts[word] for word in _ADVISORY_WORDS["vague transitions"]), 1),
-        ("-ly adverbs", _count_adverbs(words), 1),
-        ("chatbot tone", len(_CHATBOT.findall(text)), 2),
-        ("copula avoidance", len(_COPULA.findall(text)), 1),
-        ("weasel attribution", len(_WEASEL.findall(text)), 2),
-        ("generic transitions", len(_GENERIC_TRANSITION.findall(text)), 1),
-        ("em dashes", text.count(chr(0x2014)) + text.count(chr(0x2013)), 3),
-        ("passive voice", _count_passive(text), 1),
-        ("lazy extremes", len(re.findall(r"\b(?:always|never|everyone|everybody|nobody)\b", lowered)), 1),
-        ("rule-of-three", len(_RULE_OF_THREE.findall(lowered)), 1),
-        ("uniform rhythm", int(_low_rhythm_variance(text)), 5),
-        ("colon density", int(_colon_overuse(text, words)), 3),
-        ("bullet density", int(dense_bullets), 8),
-        ("blockquotes", int(blockquotes >= _BLOCKQUOTE_MIN), 3),
-        ("horizontal rules", int(hrules >= _HR_MIN), 3),
-        ("bold-bullet run", int(bold_bullets >= _BOLD_BULLET_RUN_MIN), 5),
-        ("repeated phrases", _repeated_ngrams(words), 1),
-        ("pithy fragments", _pithy_fragments(text), 2),
+        ("named adverbs", sum(counts[word] for word in _ADVISORY_WORDS["named adverbs"])),
+        ("puff adjectives", sum(counts[word] for word in _ADVISORY_WORDS["puff adjectives"])),
+        ("vague transitions", sum(counts[word] for word in _ADVISORY_WORDS["vague transitions"])),
+        ("stock vocabulary", len(_WORD_TELLS.findall(text))),
+        ("-ly adverbs", _count_adverbs(words)),
+        ("chatbot tone", len(_CHATBOT.findall(text))),
+        ("copula avoidance", len(_COPULA.findall(text))),
+        ("weasel attribution", len(_WEASEL.findall(text))),
+        ("generic transitions", len(_GENERIC_TRANSITION.findall(text))),
+        ("passive voice", _count_passive(text)),
+        ("lazy extremes", len(re.findall(r"\b(?:always|never|everyone|everybody|nobody)\b", lowered))),
+        ("repeated three-item lists", int(len(_RULE_OF_THREE.findall(lowered)) >= _TRICOLON_MIN_COUNT)),
+        ("uniform rhythm", int(_low_rhythm_variance(text))),
+        ("colon density", int(_colon_overuse(text, words))),
+        ("bullet density", int(dense_bullets)),
+        ("blockquotes", int(blockquotes >= _BLOCKQUOTE_MIN)),
+        ("horizontal rules", int(hrules >= _HR_MIN)),
+        ("bold-bullet run", int(bold_bullets >= _BOLD_BULLET_RUN_MIN)),
+        ("repeated sentence openers", _repeated_openers(text)),
+        ("pithy fragments", _pithy_fragments(text)),
     ]
 
 
@@ -627,39 +585,19 @@ def _colon_overuse(text: str, words: list[str]) -> bool:
     return colons / (len(words) / _COLON_PER_WORDS) > _COLON_THRESHOLD
 
 
-def _repeated_ngrams(words: list[str]) -> int:
-    repeated: set[str] = set()
-    for size in range(_NGRAM_MIN, _NGRAM_MAX + 1):
-        grams = Counter(" ".join(words[index : index + size]) for index in range(len(words) - size + 1))
-        repeated |= {gram for gram, count in grams.items() if count >= _NGRAM_MIN_COUNT}
-    return len(repeated)
+def _repeated_openers(text: str) -> int:
+    openers = Counter(
+        tuple(words[:_OPENER_WORDS])
+        for part in _SENT_SPLIT.split(text)
+        if len(words := _WORD.findall(part.lower())) >= _OPENER_WORDS
+    )
+    return sum(count >= _OPENER_MIN_COUNT for count in openers.values())
 
 
 def _pithy_fragments(text: str) -> int:
     return sum(
         1 for part in _SENT_SPLIT.split(text) if "," in part and 0 < len(_WORD.findall(part)) <= _PITHY_MAX_WORDS
     )
-
-
-def _concentrated(count: int) -> float:
-    return 1.0 + _CONCENTRATION_ALPHA * (count - 1)
-
-
-def score_from_density(penalty: float, word_count: int) -> int:
-    if not word_count:
-        return 100
-    density = penalty / (word_count / _DENSITY_BASIS)
-    return max(0, min(100, round(100 * math.exp(-_DECAY_LAMBDA * density))))
-
-
-def _band(score: int) -> str:
-    if score >= 80:
-        return "clean"
-    if score >= 60:
-        return "light"
-    if score >= 40:
-        return "moderate"
-    return "heavy"
 
 
 def summarize(hits: Counter[str]) -> str:

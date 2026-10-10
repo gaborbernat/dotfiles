@@ -1,59 +1,28 @@
 # Before/After Examples
 
-## Example 1: Throat-Clearing + Binary Contrast
+## Stock framing
 
-**Before:**
-> "Here's the thing: building products is hard. Not because the technology is complex. Because people are complex. Let that sink in."
+**Before:** "Here's what changed: the retry loop now stops after three attempts. This matters because the old loop could
+run forever."
 
-**After:**
-> "Building products is hard. Technology is manageable. People aren't."
+**After:** "The retry loop now stops after three attempts. The old loop could retry forever."
 
-**Changes:** Removed opener, binary contrast structure, and emphasis crutch. Direct statements.
+The revision keeps both facts and removes the setup and emphasis.
 
----
+## Useful contrast
 
-## Example 2: Filler + Unnecessary Reassurance
+**Before:** "The formatter did not fail. The generated file had a stale checksum."
 
-**Before:**
-> "It turns out that most teams struggle with alignment. The uncomfortable truth is that nobody wants to admit they're confused. And that's okay."
+**After:** "The generated file had a stale checksum; the formatter completed."
 
-**After:**
-> "Teams struggle with alignment. Nobody admits confusion."
+Both facts matter. Cutting every negative sentence would erase the distinction.
 
-**Changes:** Cut hedging ("most"), removed throat-clearing phrases, deleted permission-granting ending.
+## Evidence before precision
 
----
+**Source:** A benchmark reports startup time falling from 5.0 to 3.0 seconds; no other workload was measured.
 
-## Example 3: Business Jargon Stack
+**Before:** "The patch dramatically improves performance everywhere."
 
-**Before:**
-> "In today's fast-paced landscape, we need to lean into discomfort and navigate uncertainty with clarity. This matters because your competition isn't waiting."
+**After:** "In the benchmark, startup time fell from 5.0 to 3.0 seconds."
 
-**After:**
-> "Move faster. Your competition is."
-
-**Changes:** Eliminated jargon entirely. Core message in six words.
-
----
-
-## Example 4: Dramatic Fragmentation
-
-**Before:**
-> "Speed. Quality. Cost. You can only pick two. That's it. That's the tradeoff."
-
-**After:**
-> "Speed, quality, cost—pick two."
-
-**Changes:** Single sentence. No performative emphasis.
-
----
-
-## Example 5: Rhetorical Setup
-
-**Before:**
-> "What if I told you that the best teams don't optimize for productivity? Here's what I mean: they optimize for learning. Think about it."
-
-**After:**
-> "The best teams optimize for learning, not productivity."
-
-**Changes:** Direct claim. No rhetorical scaffolding.
+The edit narrows the claim to the available measurement. Without a benchmark, omit the numerical claim.
