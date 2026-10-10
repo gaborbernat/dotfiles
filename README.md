@@ -57,9 +57,9 @@ provide Docker, and Distrobox uses that daemon. Membership in the `docker` group
 The [ChatGPT desktop app](https://learn.chatgpt.com/docs/linux/linux-app) includes Codex. Its official Fedora RPM adds
 OpenAI's signed DNF repository, so Fish `u` updates it with the other RPMs.
 
-Boatswain, Kooha, LocalSend, Gradia, ProtonPlus, and BlueBubbles install as system Flatpaks. Copyous comes from the
-GNOME Extensions release compatible with the running Shell. Bazecor uses a pinned upstream AppImage and checksum;
-JetBrains Toolbox verifies the vendor's checksum for the current release. uv uses its
+Boatswain, Kooha, LocalSend, Gradia, ProtonPlus, BlueBubbles, and RustDesk install as system Flatpaks. Copyous comes
+from the GNOME Extensions release compatible with the running Shell. Bazecor uses a pinned upstream AppImage and
+checksum; JetBrains Toolbox verifies the vendor's checksum for the current release. uv uses its
 [standalone installer](https://docs.astral.sh/uv/getting-started/installation/) so `uv self update` works.
 
 GNOME setup covers Dash to Panel on every monitor, Astra Monitor, Copyous, DDC brightness, and xremap for selected
@@ -83,6 +83,10 @@ For iMessage on Fedora, [BlueBubbles](https://bluebubbles.app/install/) needs it
 in to Messages. Complete the server's Full Disk Access, notification, and connection setup on the Mac, then connect the
 Fedora app. The optional Private API requires a separate macOS setup.
 
+To control the Mac mini from Fedora, [install RustDesk on the Mac](https://rustdesk.com/docs/en/client/mac/), grant
+Screen Recording and Accessibility there, and set a separate permanent password in RustDesk's Security settings. The
+Fedora client installs from Flathub.
+
 ### macOS
 
 The [Brewfile](dot_Brewfile.tmpl) installs CLI tools, apps, fonts, and Mac App Store entries. Chezmoi also applies duti
@@ -98,6 +102,7 @@ The manifests above are the install sources. These links cover the desktop apps 
 - **Terminal:** [Ghostty](https://ghostty.org/) on both systems.
 - **AI desktop:** [ChatGPT and Codex](https://learn.chatgpt.com/docs/app) on Fedora.
 - **Messages:** [BlueBubbles](https://bluebubbles.app/) on Fedora, relayed through a Mac.
+- **Remote desktop:** [RustDesk](https://rustdesk.com/) on Fedora for access to the Mac mini.
 - **Editors:** [VS Code](https://code.visualstudio.com/) and [JetBrains Toolbox](https://www.jetbrains.com/toolbox-app/)
   on both systems.
 - **Containers:** [Docker Desktop](https://www.docker.com/products/docker-desktop/) on macOS;
