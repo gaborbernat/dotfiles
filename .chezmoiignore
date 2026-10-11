@@ -39,6 +39,7 @@ configure-fedora-keyboard.sh
 configure-fedora-gamemode.sh
 configure-fedora-panel.sh
 configure-fedora-sudo-timeout.sh
+configure-fedora-inotify.sh
 enable-fedora-docker.sh
 enable-fedora-remote-shells.sh
 set-fedora-fish-shell.sh
