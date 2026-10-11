@@ -84,10 +84,11 @@ local images, stopped containers, and volumes intact.
 GNOME uses Dash to Panel for a top taskbar on each monitor. Until Fedora's RPM supports indicator mirroring, chezmoi
 installs [the upstream change](https://github.com/home-sweet-gnome/dash-to-panel/pull/2570) as a user extension. Astra
 Monitor, Copyous, and DDC brightness then appear on both panels. xremap handles selected Super-key application
-shortcuts. Ghostty handles its own Super-key shortcuts. The `agent-awake` user service inhibits suspend while a Codex,
-Claude, or ChatGPT client is open; it leaves display blanking available. The first apply also sets Fish as the login
-shell, enables SSH, Mosh, and Eternal Terminal, and adds the account to the `docker` and `gamemode` groups. Log out and
-back in for the group, shell, and newly installed GNOME extension changes.
+shortcuts. The focused-monitor extension opens new windows on the focused screen and moves the MX Master pointer to the
+LG TV once when that mouse becomes active. Ghostty handles its own Super-key shortcuts. The `agent-awake` user service
+inhibits suspend while a Codex, Claude, or ChatGPT client is open; it leaves display blanking available. The first apply
+also sets Fish as the login shell, enables SSH, Mosh, and Eternal Terminal, and adds the account to the `docker` and
+`gamemode` groups. Log out and back in for the group, shell, and newly installed GNOME extension changes.
 
 The Antec Flux Pro display needs a [separate community driver](scripts/fedora/flux-pro/setup.sh). Review its
 [sensor configuration](scripts/fedora/flux-pro/config.conf) for this machine, then install it with:

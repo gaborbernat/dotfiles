@@ -1,6 +1,6 @@
 {
   "uuid": "focused-switcher@bernat.tech",
-  "name": "Focused Monitor Switcher",
-  "description": "Show the GNOME app switcher on the focused monitor",
+  "name": "Focused Monitor Controls",
+  "description": "Show the app switcher and new windows on the active monitor; move the MX Master pointer to the TV",
   "shell-version": ["50"]
 }
