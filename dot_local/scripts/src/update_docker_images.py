@@ -4,17 +4,7 @@
 #     "rich>=14.2",
 # ]
 # ///
-"""Update registry-sourced Docker images to their latest digest; prune dormant local ones.
-
-Classification is by reference: an image whose repo carries a registry host (the part
-before the first "/" contains "." or ":", or is localhost) is registry-backed; anything
-else is a local build, including ones carrying a hostless RepoDigest from a mirror push.
-Inspection is keyed by image id, which always resolves — inspecting by tag intermittently
-reports "no such object". Registry images are kept and checked with crane or skopeo
-(daemon-free, reuses Docker credentials); only those whose digest moved are pulled. Local
-images are pruned only once dormant for two weeks — by container last-run time, falling back
-to build time when no run was recorded. The table flags a platform differing from the host arch.
-"""
+"""Update images with matching registry digests without removing local Docker data."""
 
 from __future__ import annotations
 
@@ -29,7 +19,7 @@ import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime
 from typing import Final
 
 from rich import box
@@ -38,7 +28,6 @@ from rich.live import Live
 from rich.table import Table
 
 _CONSOLE: Final[Console] = Console()
-_STALE_LOCAL_AGE: Final[timedelta] = timedelta(days=14)
 _OLDEST: Final[datetime] = datetime.min.replace(tzinfo=UTC)
 _HOST_ARCH: Final[str] = {"x86_64": "amd64", "aarch64": "arm64"}.get(platform.machine(), platform.machine())
 _DOWNLOAD_RE: Final[re.Pattern[str]] = re.compile(
@@ -52,20 +41,21 @@ _STATE_STYLE: Final[dict[str, str]] = {
     "updated": "green",
     "unreachable": "yellow",
     "failed": "red",
+    "error": "red",
 }
 
 
 def main() -> None:
-    registry, stale_local = scan_images()
+    registry = scan_images()
     if registry:
         update_registry_images(registry)
     else:
         _CONSOLE.print("No registry-backed images to check.")
-    cleanup_local(stale_local)
-    prune_system()
+    if any(image.state in {"unreachable", "failed", "error"} for image in registry):
+        raise SystemExit(1)
 
 
-def scan_images() -> tuple[list[ImageStatus], list[str]]:
+def scan_images() -> list[ImageStatus]:
     listing: subprocess.CompletedProcess[str] = subprocess.run(
         [
             "docker",
@@ -79,22 +69,24 @@ def scan_images() -> tuple[list[ImageStatus], list[str]]:
         capture_output=True,
         text=True,
     )
+    if listing.returncode:
+        msg = f"docker images failed: {short_error(listing.stderr)}"
+        raise RuntimeError(msg)
     rows: list[list[str]] = [
         parts
         for raw_line in listing.stdout.splitlines()
         if len(parts := raw_line.split("\t")) == 4 and "<none>" not in parts[0]
     ]
     inspected = bulk_inspect([row[1] for row in rows])
-    runs = last_run_times()
-    cutoff: datetime = datetime.now(UTC) - _STALE_LOCAL_AGE
     registry: list[ImageStatus] = []
-    stale_local: list[str] = []
     for image, image_id, digest, size in rows:
         repo_digests, created, image_platform = inspected.get(image_id, (None, None, ""))
         if repo_digests is None:
             continue
         repo = image.rsplit(":", 1)[0]
-        if has_registry_host(repo) and (matched := digests_for_repo(repo, repo_digests)):
+        if (has_registry_host(repo) or not image.endswith(":local")) and (
+            matched := digests_for_repo(repo, repo_digests)
+        ):
             registry.append(
                 ImageStatus(
                     image=image,
@@ -105,10 +97,8 @@ def scan_images() -> tuple[list[ImageStatus], list[str]]:
                     registry_digests=matched,
                 )
             )
-        elif (last_active := runs.get(image_id, created)) is not None and last_active < cutoff:
-            stale_local.append(image)
     registry.sort(key=lambda status: status.created or _OLDEST, reverse=True)
-    return registry, stale_local
+    return registry
 
 
 def bulk_inspect(image_ids: list[str]) -> dict[str, tuple[set[str], datetime | None, str]]:
@@ -127,6 +117,9 @@ def bulk_inspect(image_ids: list[str]) -> dict[str, tuple[set[str], datetime | N
         capture_output=True,
         text=True,
     )
+    if result.returncode:
+        msg = f"docker image inspect failed: {short_error(result.stderr)}"
+        raise RuntimeError(msg)
     inspected: dict[str, tuple[set[str], datetime | None, str]] = {}
     for line in result.stdout.splitlines():
         image_id, _, rest = line.partition("\t")
@@ -138,38 +131,7 @@ def bulk_inspect(image_ids: list[str]) -> dict[str, tuple[set[str], datetime | N
     return inspected
 
 
-def last_run_times() -> dict[str, datetime]:
-    # The only signal for when an image was last run is a container's State.StartedAt; with ephemeral
-    # (--rm) containers none survive, so scan_images falls back to the image build time.
-    container_ids: list[str] = subprocess.run(
-        ["docker", "ps", "-a", "--no-trunc", "--format", "{{.ID}}"],
-        check=False,
-        capture_output=True,
-        text=True,
-    ).stdout.split()
-    if not container_ids:
-        return {}
-    result: subprocess.CompletedProcess[str] = subprocess.run(
-        ["docker", "container", "inspect", "--format", "{{.Image}}\t{{.State.StartedAt}}", *container_ids],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    runs: dict[str, datetime] = {}
-    for line in result.stdout.splitlines():
-        image_id, _, started = line.partition("\t")
-        # Docker's zero time marks a container that was created but never started
-        if started.startswith("0001"):
-            continue
-        if (when := parse_created(started)) and when > runs.get(image_id, _OLDEST):
-            runs[image_id] = when
-    return runs
-
-
 def has_registry_host(repo: str) -> bool:
-    # Docker treats the part before the first "/" as a registry host only when it looks like one
-    # (contains "." or ":", or is "localhost"); otherwise the ref defaults to docker.io, so a local
-    # build like "guild-week-website-app" or "linterator-cli-cache/x" must not be sent to a registry.
     host, slash, _ = repo.partition("/")
     return bool(slash) and (host == "localhost" or "." in host or ":" in host)
 
@@ -373,28 +335,6 @@ def format_duration(duration: float | None) -> str:
     if duration < 60:
         return f"{duration:.1f}s"
     return f"{int(duration // 60)}m{int(duration % 60)}s"
-
-
-def cleanup_local(images: list[str]) -> None:
-    # Staleness is decided in scan_images (last run, else build time); `docker rmi` still
-    # refuses to remove an image a container references, a final safety net.
-    if not (removed := [image for image in images if remove_image(image)]):
-        return
-    _CONSOLE.print(f"[bright_black]Removed {len(removed)} stale local image(s) (no registry source):[/]")
-    for image in removed:
-        _CONSOLE.print(f"[bright_black]  {image}[/]")
-
-
-def remove_image(image: str) -> bool:
-    return subprocess.run(["docker", "rmi", image], check=False, capture_output=True, text=True).returncode == 0
-
-
-def prune_system() -> None:
-    result: subprocess.CompletedProcess[str] = subprocess.run(
-        ["docker", "system", "prune", "-f", "--volumes"], check=False, capture_output=True, text=True
-    )
-    summary: str = next((line.strip() for line in result.stdout.splitlines() if "reclaimed" in line.lower()), "")
-    _CONSOLE.print(f"[bright_black]{summary or 'Pruned dangling docker data.'}[/]")
 
 
 @dataclass
