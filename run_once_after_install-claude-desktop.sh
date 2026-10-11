@@ -40,3 +40,4 @@ if ! distrobox enter claude-desktop -- dpkg-query -W claude-desktop >/dev/null 2
 fi
 
 distrobox enter claude-desktop -- distrobox-export --app claude-desktop
+gtk-update-icon-cache --force --ignore-theme-index "$HOME/.local/share/icons/hicolor"
