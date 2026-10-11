@@ -59,4 +59,6 @@ for digit in {1..9}; do
     gsettings set org.gnome.shell.keybindings "switch-to-application-$digit" '@as []'
 done
 gsettings set org.gnome.shell.keybindings toggle-message-tray "['<Super>m']"
+gsettings set org.gnome.mutter.keybindings switch-monitor "['XF86Display']"
+gsettings set org.gnome.shell.keybindings show-screenshot-ui "['Print', '<Super>p']"
 echo "xremap extension enabled"
