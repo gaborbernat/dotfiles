@@ -69,11 +69,12 @@ controls; page links and launchers use installed icon assets. Chezmoi creates mi
 in StreamController intact. The [Unicode input patch](scripts/fedora/streamcontroller-unicode.diff) completes the key
 sequence used by OSPlugin's text action for emoji and kaomoji.
 
-GNOME setup covers Dash to Panel on every monitor, Astra Monitor, Copyous, DDC brightness, and xremap for selected
-Super-key application shortcuts. Ghostty handles its own Super-key shortcuts. The `agent-awake` user service inhibits
-suspend while a Codex, Claude, or ChatGPT client is open; it leaves display blanking available. The first apply also
-sets Fish as the login shell, enables SSH, Mosh, and Eternal Terminal, and adds the account to the `docker` and
-`gamemode` groups. Log out and back in for the group, shell, and newly installed GNOME extension changes.
+GNOME uses Multi Monitor Bar to mirror top-panel controls onto secondary monitors and Window List for a taskbar on each
+monitor. Astra Monitor, Copyous, and DDC brightness add indicators; xremap handles selected Super-key application
+shortcuts. Ghostty handles its own Super-key shortcuts. The `agent-awake` user service inhibits suspend while a Codex,
+Claude, or ChatGPT client is open; it leaves display blanking available. The first apply also sets Fish as the login
+shell, enables SSH, Mosh, and Eternal Terminal, and adds the account to the `docker` and `gamemode` groups. Log out and
+back in for the group, shell, and newly installed GNOME extension changes.
 
 The Antec Flux Pro display needs a [separate community driver](scripts/fedora/flux-pro/setup.sh). Review its
 [sensor configuration](scripts/fedora/flux-pro/config.conf) for this machine, then install it with:
@@ -141,7 +142,8 @@ The macOS Brewfile also installs [BetterCmdTab](https://bettercmdtab.app/), [Dis
 Both systems use [JetBrains Mono](https://www.jetbrains.com/lp/mono/) fonts.
 
 Fedora adds [Astra Monitor](https://github.com/AstraExt/astra-monitor),
-[Dash to Panel](https://extensions.gnome.org/extension/1160/dash-to-panel/),
+[Multi Monitor Bar](https://extensions.gnome.org/extension/8773/multi-monitor-bar/) and
+[Window List](https://extensions.gnome.org/extension/602/window-list/),
 [Copyous](https://extensions.gnome.org/extension/8834/copyous/), [LocalSend](https://localsend.org/),
 [Gradia](https://apps.gnome.org/Gradia/), [Bazecor](https://github.com/Dygmalab/Bazecor),
 [OpenRGB](https://openrgb.org/), and [xremap](https://github.com/xremap/xremap). Gaming uses

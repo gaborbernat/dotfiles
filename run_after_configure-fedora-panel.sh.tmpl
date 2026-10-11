@@ -12,14 +12,37 @@ if [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" && ! -S "${XDG_RUNTIME_DIR:-}/bus" ]]; 
     echo "GNOME session bus not available; panel setup will retry on the next chezmoi apply"
     exit 0
 fi
-if ! gsettings list-schemas | grep -qx 'org.gnome.shell.extensions.dash-to-panel'; then
-    echo "Dash to Panel RPM not installed yet; panel setup will retry on the next chezmoi apply"
+if ! gsettings list-schemas | grep -qx 'org.gnome.shell.extensions.window-list'; then
+    echo "Window List RPM not installed yet; panel setup will retry on the next chezmoi apply"
+    exit 0
+fi
+if ! command -v gnome-extensions >/dev/null 2>&1; then
+    echo "gnome-extensions unavailable; panel setup will retry on the next chezmoi apply"
     exit 0
 fi
 
-gsettings set org.gnome.shell.extensions.dash-to-panel multi-monitors true
+uuid=multi-monitors-bar@frederykabryan
+if [[ ! -d "$HOME/.local/share/gnome-shell/extensions/$uuid" ]]; then
+    shell_version=$(gnome-shell --version | awk '{split($3, version, "."); print version[1]}')
+    extension_info=$(curl -fsS --get \
+        --data-urlencode "uuid=$uuid" \
+        --data-urlencode "shell_version=$shell_version" \
+        https://extensions.gnome.org/extension-info/)
+    if ! download_url=$(jq -er --arg shell_version "$shell_version" \
+        'select(.shell_version_map[$shell_version] != null) | .download_url' <<<"$extension_info"); then
+        echo "Multi Monitor Bar has no compatible GNOME Shell $shell_version release" >&2
+        exit 1
+    fi
+    zip=$(mktemp --suffix=.zip)
+    trap 'rm -f "$zip"' EXIT
+    curl -fsSL -o "$zip" "https://extensions.gnome.org$download_url"
+    gnome-extensions install --force "$zip"
+fi
+
+gsettings set org.gnome.shell.extensions.window-list show-on-all-monitors true
+gsettings set org.gnome.shell.extensions.window-list grouping-mode 'always'
 current=$(gsettings get org.gnome.shell enabled-extensions)
-extensions=(dash-to-panel@jderose9.github.com focused-switcher@bernat.tech)
+extensions=(multi-monitors-bar@frederykabryan window-list@gnome-shell-extensions.gcampax.github.com focused-switcher@bernat.tech)
 if [[ -d /usr/share/gnome-shell/extensions/appindicatorsupport@rgcjonas.gmail.com ]]; then
     extensions+=(appindicatorsupport@rgcjonas.gmail.com)
 fi
@@ -31,6 +54,7 @@ import ast
 import sys
 
 options = ast.literal_eval(sys.argv[1].removeprefix("@as "))
+options = [name for name in options if name != "dash-to-panel@jderose9.github.com"]
 for name in sys.argv[2:]:
     if name not in options:
         options.append(name)

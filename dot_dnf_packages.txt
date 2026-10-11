@@ -19,7 +19,7 @@ fedora-workstation-repositories
 fzf
 fuse-libs
 gnome-shell-extension-appindicator
-gnome-shell-extension-dash-to-panel
+gnome-shell-extension-window-list
 gh
 git
 git-delta
