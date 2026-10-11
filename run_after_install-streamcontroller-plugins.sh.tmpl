@@ -1,51 +1,22 @@
 #!/bin/bash
 set -euo pipefail
 
-if ! flatpak info com.core447.StreamController >/dev/null 2>&1; then
+if [[ ! -f /etc/fedora-release ]] || ! flatpak info com.core447.StreamController >/dev/null 2>&1; then
     exit 0
 fi
 
 plugins_dir="$HOME/.var/app/com.core447.StreamController/data/plugins"
-mkdir -p "$plugins_dir"
-store_manifest=
-
-plugins=(
-    'com_core447_OSPlugin https://github.com/StreamController/OSPlugin'
-    'com_core447_MediaPlugin https://github.com/StreamController/MediaPlugin'
-    'com_core447_DeckPlugin https://github.com/StreamController/DeckPlugin'
-    'com_larkum_WorldClocks https://github.com/larkum/StreamController-WorldClocks'
-    'com_jul_AMDGPUTop https://github.com/julaub/StreamController-AMDGPUTop'
-)
-
-for plugin in "${plugins[@]}"; do
-    read -r plugin_id repository <<<"$plugin"
-    plugin_dir="$plugins_dir/$plugin_id"
-    if [[ -f "$plugin_dir/manifest.json" ]]; then
-        continue
+settings="$HOME/.var/app/com.core447.StreamController/data/settings/settings.json"
+for id in com_core447_OSPlugin com_core447_MediaPlugin com_core447_DeckPlugin com_larkum_WorldClocks com_jul_AMDGPUTop; do
+    if [[ ! -f "$plugins_dir/$id/manifest.json" ]]; then
+        "$HOME/.local/bin/update_fedora_extras" streamdeck
+        break
     fi
-    if [[ -e "$plugin_dir" ]]; then
-        printf 'Incomplete StreamController plugin: %s\n' "$plugin_dir" >&2
-        exit 1
-    fi
-
-    if [[ -z "$store_manifest" ]]; then
-        store_manifest=$(curl -fsSL https://raw.githubusercontent.com/StreamController/StreamController-Store/main/Plugins.json)
-    fi
-    commit=$(jq -r --arg url "$repository" '.[] | select(.url == $url) | .hash' <<<"$store_manifest")
-    if [[ ! "$commit" =~ ^[[:xdigit:]]{40}$ ]]; then
-        printf 'No StreamController store commit for %s\n' "$repository" >&2
-        exit 1
-    fi
-
-    git clone --depth 1 "$repository" "$plugin_dir"
-    git -C "$plugin_dir" fetch --depth 1 origin "$commit"
-    git -C "$plugin_dir" checkout --detach "$commit"
 done
-
-helper="$plugins_dir/com_core447_OSPlugin/actions/WriteText/helper.py"
-if ! grep -Fq 'ui.write(e.EV_KEY, e.KEY_SPACE, 1)' "$helper"; then
-    git -C "$plugins_dir/com_core447_OSPlugin" apply --unidiff-zero \
-        {{ joinPath .chezmoi.sourceDir "scripts/fedora/streamcontroller-unicode.diff" | quote }}
+if [[ ! -f "$settings" ]] || ! jq -e '.store["auto-update"] == false' "$settings" >/dev/null || \
+    ! git -C "$plugins_dir/com_core447_OSPlugin" apply --reverse --check --unidiff-zero \
+        {{ joinPath .chezmoi.sourceDir "scripts/fedora/streamcontroller-unicode.diff" | quote }} 2>/dev/null; then
+    "$HOME/.local/bin/update_fedora_extras" streamdeck
 fi
 
 flatpak permission-set background background com.core447.StreamController yes

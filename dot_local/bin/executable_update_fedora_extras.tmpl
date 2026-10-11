@@ -1,0 +1,225 @@
+#!/bin/bash
+set -euo pipefail
+
+if [[ ! -f /etc/fedora-release ]]; then
+    echo 'Fedora only' >&2
+    exit 2
+fi
+
+update_firmware() {
+    sudo fwupdmgr refresh
+    sudo fwupdmgr update --assume-yes --no-reboot-check
+}
+
+update_extensions() {
+    local shell_version uuid installed info available download zip metadata
+    shell_version=$(gnome-shell --version | awk '{split($3, version, "."); print version[1]}')
+    for uuid in \
+        monitor@astraext.github.io \
+        copyous@boerdereinar.dev \
+        display-brightness-ddcutil@themightydeity.github.com; do
+        installed="$HOME/.local/share/gnome-shell/extensions/$uuid/metadata.json"
+        if [[ ! -f "$installed" ]]; then
+            printf 'Skip missing extension: %s\n' "$uuid"
+            continue
+        fi
+        info=$(curl -fsS --get --data-urlencode "uuid=$uuid" --data-urlencode "shell_version=$shell_version" \
+            https://extensions.gnome.org/extension-info/)
+        available=$(jq -r --arg shell "$shell_version" '.shell_version_map[$shell].version // empty' <<<"$info")
+        if [[ -z "$available" ]]; then
+            printf 'No compatible %s release for GNOME %s\n' "$uuid" "$shell_version"
+            continue
+        fi
+        if (( available <= $(jq -er '.version' "$installed") )); then
+            printf '%s is current\n' "$uuid"
+            continue
+        fi
+        download=$(jq -er '.download_url | select(startswith("/download-extension/"))' <<<"$info")
+        zip=$(mktemp --suffix=.zip)
+        if ! curl -fsSL -o "$zip" "https://extensions.gnome.org$download"; then
+            rm -f "$zip"
+            return 1
+        fi
+        if ! metadata=$(unzip -p "$zip" metadata.json); then
+            rm -f "$zip"
+            return 1
+        fi
+        if ! jq -e --arg uuid "$uuid" --argjson version "$available" \
+            '.uuid == $uuid and .version == $version' <<<"$metadata" >/dev/null; then
+            printf 'Invalid extension bundle: %s\n' "$uuid" >&2
+            rm -f "$zip"
+            return 1
+        fi
+        gnome-extensions install --force "$zip"
+        rm -f "$zip"
+        printf 'Updated %s; log out to load the new version\n' "$uuid"
+    done
+}
+
+update_bazecor() {
+    if [[ $(uname -m) != x86_64 ]]; then
+        echo 'Bazecor AppImage is x86_64 only'
+        return
+    fi
+    local release version asset digest url target download
+    release=$(curl -fsSL https://api.github.com/repos/Dygmalab/Bazecor/releases/latest)
+    version=$(jq -er '.tag_name | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))' <<<"$release")
+    asset="Bazecor-${version#v}-x64.AppImage"
+    digest=$(jq -er --arg name "$asset" '.assets[] | select(.name == $name) | .digest | select(startswith("sha256:")) | ltrimstr("sha256:")' <<<"$release")
+    url=$(jq -er --arg name "$asset" '.assets[] | select(.name == $name) | .browser_download_url' <<<"$release")
+    target="$HOME/.local/opt/bazecor/Bazecor.AppImage"
+    if [[ -f "$target" ]] && printf '%s  %s\n' "$digest" "$target" | sha256sum -c - >/dev/null 2>&1; then
+        printf 'Bazecor %s is current\n' "$version"
+        return
+    fi
+    mkdir -p "${target%/*}"
+    download=$(mktemp "${target%/*}/.Bazecor.XXXXXX")
+    if ! curl -fsSL -o "$download" "$url" || ! printf '%s  %s\n' "$digest" "$download" | sha256sum -c -; then
+        rm -f "$download"
+        return 1
+    fi
+    chmod 0755 "$download"
+    mv -f "$download" "$target"
+    printf 'Updated Bazecor to %s\n' "$version"
+}
+
+STREAMDECK_WORK=
+STREAMDECK_RESTART=false
+
+streamdeck_cleanup() {
+    local result=$? backup target restore_failed=false
+    trap - EXIT
+    if [[ -n "$STREAMDECK_WORK" && -d "$STREAMDECK_WORK" ]]; then
+        for backup in "$STREAMDECK_WORK"/*.previous; do
+            [[ -e "$backup" ]] || continue
+            target="$HOME/.var/app/com.core447.StreamController/data/plugins/${backup##*/}"
+            target=${target%.previous}
+            if [[ ! -e "$target" ]]; then
+                if ! mv "$backup" "$target"; then
+                    restore_failed=true
+                    result=1
+                fi
+            fi
+        done
+        if [[ "$restore_failed" == false ]]; then
+            rm -rf "$STREAMDECK_WORK"
+        else
+            printf 'StreamController staging kept at %s\n' "$STREAMDECK_WORK" >&2
+        fi
+    fi
+    if [[ "$STREAMDECK_RESTART" == true ]]; then
+        flatpak run com.core447.StreamController -b >/dev/null 2>&1 &
+        disown
+        for (( wait_count=0; wait_count<30; wait_count++ )); do
+            if flatpak ps --columns=application | grep -Fxq com.core447.StreamController; then
+                break
+            fi
+            sleep 1
+        done
+        if ! flatpak ps --columns=application | grep -Fxq com.core447.StreamController; then
+            echo 'StreamController did not restart' >&2
+            result=1
+        fi
+    fi
+    exit "$result"
+}
+
+update_streamdeck() {
+    if ! flatpak info com.core447.StreamController >/dev/null 2>&1; then
+        echo 'StreamController is not installed'
+        return
+    fi
+    local plugins_dir settings manifest plugin id repository commit target candidate patch
+    local settings_changed=false
+    local -a updates=()
+    plugins_dir="$HOME/.var/app/com.core447.StreamController/data/plugins"
+    settings="$HOME/.var/app/com.core447.StreamController/data/settings/settings.json"
+    patch={{ joinPath .chezmoi.sourceDir "scripts/fedora/streamcontroller-unicode.diff" | quote }}
+    mkdir -p "$plugins_dir" "${settings%/*}"
+    manifest=$(curl -fsSL https://raw.githubusercontent.com/StreamController/StreamController-Store/main/Plugins.json)
+    STREAMDECK_WORK=$(mktemp -d "$plugins_dir/.update.XXXXXX")
+    trap streamdeck_cleanup EXIT
+    for plugin in \
+        'com_core447_OSPlugin https://github.com/StreamController/OSPlugin' \
+        'com_core447_MediaPlugin https://github.com/StreamController/MediaPlugin' \
+        'com_core447_DeckPlugin https://github.com/StreamController/DeckPlugin' \
+        'com_larkum_WorldClocks https://github.com/larkum/StreamController-WorldClocks' \
+        'com_jul_AMDGPUTop https://github.com/julaub/StreamController-AMDGPUTop'; do
+        read -r id repository <<<"$plugin"
+        commit=$(jq -er --arg url "$repository" '.[] | select(.url == $url) | .hash | select(test("^[0-9a-f]{40}$"))' <<<"$manifest")
+        target="$plugins_dir/$id"
+        if [[ -f "$target/VERSION" ]] && [[ $(<"$target/VERSION") == "$commit" ]] && \
+            { [[ "$id" != com_core447_OSPlugin ]] || \
+              git -C "$target" apply --reverse --check --unidiff-zero "$patch" 2>/dev/null; }; then
+            continue
+        fi
+        candidate="$STREAMDECK_WORK/$id"
+        mkdir -p "$candidate"
+        git clone --quiet --filter=blob:none --no-checkout "$repository" "$STREAMDECK_WORK/repo"
+        git -C "$STREAMDECK_WORK/repo" fetch --quiet --depth 1 origin "$commit"
+        git -C "$STREAMDECK_WORK/repo" archive "$commit" | tar -x -C "$candidate"
+        rm -rf "$STREAMDECK_WORK/repo"
+        jq -e --arg id "$id" '.id == $id' "$candidate/manifest.json" >/dev/null
+        if [[ "$id" == com_core447_OSPlugin ]]; then
+            if ! git -C "$candidate" apply --reverse --check --unidiff-zero "$patch" 2>/dev/null; then
+                git -C "$candidate" apply --unidiff-zero "$patch"
+            fi
+            git -C "$candidate" apply --reverse --check --unidiff-zero "$patch"
+        fi
+        printf '%s\n' "$commit" >"$candidate/VERSION"
+        updates+=("$id")
+    done
+    if [[ -f "$settings" ]] && jq -e '.store["auto-update"] == false' "$settings" >/dev/null; then
+        :
+    else
+        settings_changed=true
+    fi
+    if (( ${#updates[@]} == 0 )) && [[ "$settings_changed" == false ]]; then
+        echo 'StreamController plugins are current'
+        return
+    fi
+    if (( ${#updates[@]} > 0 )) && flatpak ps --columns=application | grep -Fxq com.core447.StreamController; then
+        STREAMDECK_RESTART=true
+        # --close-running starts a replacement instance before the plugin swap.
+        gdbus call --session --dest com.core447.StreamController --object-path /com/core447/StreamController \
+            --method org.gtk.Actions.Activate quit '[]' '{}' >/dev/null 2>&1 || true
+        for (( wait_count=0; wait_count<30; wait_count++ )); do
+            if ! flatpak ps --columns=application | grep -Fxq com.core447.StreamController; then
+                break
+            fi
+            sleep 1
+        done
+        if flatpak ps --columns=application | grep -Fxq com.core447.StreamController; then
+            echo 'StreamController did not stop' >&2
+            return 1
+        fi
+    fi
+    if [[ "$settings_changed" == true ]]; then
+        if [[ -f "$settings" ]]; then
+            jq '.store["auto-update"] = false' "$settings" >"$STREAMDECK_WORK/settings.json"
+        else
+            jq -n '{store: {"auto-update": false}}' >"$STREAMDECK_WORK/settings.json"
+        fi
+        mv "$STREAMDECK_WORK/settings.json" "$settings"
+        echo 'Disabled StreamController store auto-updates to preserve the OSPlugin patch'
+    fi
+    for id in "${updates[@]}"; do
+        target="$plugins_dir/$id"
+        if [[ -e "$target" ]]; then
+            mv "$target" "$STREAMDECK_WORK/$id.previous"
+        fi
+        if ! mv "$STREAMDECK_WORK/$id" "$target"; then
+            [[ ! -e "$STREAMDECK_WORK/$id.previous" ]] || mv "$STREAMDECK_WORK/$id.previous" "$target"
+            return 1
+        fi
+        printf 'Updated %s\n' "$id"
+    done
+}
+
+case "${1:-}" in
+    firmware) update_firmware ;;
+    extensions) update_extensions ;;
+    bazecor) update_bazecor ;;
+    streamdeck) update_streamdeck ;;
+    *) echo 'Usage: update_fedora_extras {firmware|extensions|bazecor|streamdeck}' >&2; exit 2 ;;
+esac

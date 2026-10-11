@@ -8,6 +8,9 @@ function u -d "Update all development tools (one mprocs tab per tool)"
         else
             set --prepend stages dnf
         end
+        if test -f /etc/fedora-release
+            set stages $stages firmware extensions bazecor streamdeck mise distrobox
+        end
     end
     set -l stagefile $__fish_config_dir/local_functions/_u_stage.fish
     source $stagefile

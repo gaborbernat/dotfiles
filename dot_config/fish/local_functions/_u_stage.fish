@@ -40,6 +40,36 @@ function _u_stage -a name -d "Run one upgrade stage for u (one mprocs tab)"
             _u_run fisher update
         case docker
             _u_docker
+        case firmware extensions bazecor streamdeck
+            if test -f /etc/fedora-release
+                _u_run update_fedora_extras $name
+            else
+                echo "$name is a Fedora-only upgrade stage" >&2
+                false
+            end
+        case mise
+            if test -f /etc/fedora-release
+                if mise upgrade --help | string match -q '*--global*'
+                    _u_run mise upgrade --global
+                else
+                    _u_run mise -C / upgrade
+                end
+            else
+                echo "mise is a Fedora-only upgrade stage" >&2
+                false
+            end
+        case distrobox
+            if not test -f /etc/fedora-release
+                echo "distrobox is a Fedora-only upgrade stage" >&2
+                false
+            else if not command -q distrobox
+                echo "distrobox is not installed" >&2
+                false
+            else if distrobox list | string match -rv '^ID\s*\|' | string match -qr '\S'
+                _u_run distrobox-upgrade --all
+            else
+                echo "No Distrobox containers to update"
+            end
         case '*'
             echo "unknown upgrade stage: $name" >&2
             return 2

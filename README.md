@@ -69,6 +69,14 @@ controls; page links and launchers use installed icon assets. Chezmoi creates mi
 in StreamController intact. The [Unicode input patch](scripts/fedora/streamcontroller-unicode.diff) completes the key
 sequence used by OSPlugin's text action for emoji and kaomoji.
 
+On Fedora, Fish `u` also updates [LVFS firmware](https://fwupd.org/), the installed Astra Monitor, Copyous, and DDC
+brightness extensions, the latest stable Bazecor AppImage, StreamController plugins, global mise tools, and existing
+Distrobox containers. Project mise files are outside that upgrade. Dash to Panel stays pinned to the patched chezmoi
+install. StreamController's store auto-update is disabled because it replaces the patched OSPlugin; `u` stages plugin
+updates, reapplies the patch, and keeps the installed version if the patch fails. Avoid the app's manual **Update All**
+action, which bypasses this check. This setting also pauses store icon and wallpaper updates. Docker image updates keep
+local images, stopped containers, and volumes intact.
+
 GNOME uses Dash to Panel for a top taskbar on each monitor. Until Fedora's RPM supports indicator mirroring, chezmoi
 installs [the upstream change](https://github.com/home-sweet-gnome/dash-to-panel/pull/2570) as a user extension. Astra
 Monitor, Copyous, and DDC brightness then appear on both panels. xremap handles selected Super-key application
