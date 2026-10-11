@@ -56,6 +56,8 @@ install-copilot-cli.sh
 .config/distrobox
 .local/share/applications/bazecor.desktop
 .local/bin/bluebubbles-start-hidden
+.config/Code
+configure-fedora-font.sh
 {{ end }}
 {{ if eq .chezmoi.os "darwin" }}
 install-apt-packages.sh
