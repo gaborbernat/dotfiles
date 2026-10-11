@@ -77,6 +77,10 @@ idioms, mapping the Python specifics yourself (its formatter for `ruff`, its tes
 
 ### Test rules
 
+1. **Mirror source paths in tests.** Put a source file's tests at the corresponding path under the project's test root:
+   `src/a/x.py` maps to `test/a/test_x.py`. When changing existing source, extend its existing test file instead of
+   creating another. Create a new test file only when adding the corresponding source file.
+
 1. **Parameterize.** Collapse near-duplicate test functions into a single table-driven case with a readable id per row.
 
 1. **Shared setup over duplication.** Extract repeated setup/teardown into shared fixtures, and prefer injecting a
@@ -140,8 +144,7 @@ step above and must not be restated here.
    lazy evaluation (3.14+) defer them, so never reorder a definition to satisfy an annotation reference.
 
 1. **No test classes.** Never group tests in a class. Fold what would have been the class name into a prefix on each
-   test function's name (`class TestParser` with `test_handles_empty` → `test_parser_handles_empty`), and prefer
-   multiple test files over large groupings.
+   test function's name (`class TestParser` with `test_handles_empty` → `test_parser_handles_empty`).
 
 1. **Pytest mechanics.** Parameterize with `@pytest.mark.parametrize` using `pytest.param(..., id="...")`; put shared
    setup in `pytest` fixtures; mock through `pytest-mock`'s `mocker` (stdlib `unittest.mock` only when the fixture is
