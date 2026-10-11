@@ -12,7 +12,7 @@ else
     set -gx VISUAL vi
 end
 set -gx SHELL (command -v fish)
-{{- if eq .chezmoi.osRelease.id "fedora" }}
+{{- if eq (get .chezmoi.osRelease "id") "fedora" }}
 set -gx NPM_CONFIG_PREFIX $HOME/.local
 {{- end }}
 {{- end }}
@@ -95,7 +95,7 @@ if status --is-interactive
     abbr --add l lsd
     abbr --add v nvim
     abbr --add t tig
-{{- if and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "fedora") }}
+{{- if and (eq .chezmoi.os "linux") (eq (get .chezmoi.osRelease "id") "fedora") }}
     abbr --add gdu gdu
 {{- else }}
     abbr --add gdu gdu-go
@@ -120,7 +120,7 @@ if status --is-interactive
     command -q zoxide && zoxide init fish | source
     command -q atuin && atuin init fish | source
     command -q mise && mise activate fish | source
-{{- if and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "fedora") }}
+{{- if and (eq .chezmoi.os "linux") (eq (get .chezmoi.osRelease "id") "fedora") }}
     fish_add_path --path --prepend --move $HOME/.local/bin
 {{- end }}
 

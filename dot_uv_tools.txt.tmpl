@@ -29,7 +29,7 @@ pip
 pip-tools
 # pipx: install Python apps
 pipx
-{{- if and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "fedora") }}
+{{- if and (eq .chezmoi.os "linux") (eq (get .chezmoi.osRelease "id") "fedora") }}
 # prek: no Fedora RPM in the enabled repositories
 prek
 {{- end }}

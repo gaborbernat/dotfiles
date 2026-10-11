@@ -1,4 +1,4 @@
-{{- if ne .chezmoi.osRelease.id "fedora" -}}
+{{- if ne (get .chezmoi.osRelease "id") "fedora" -}}
 #!/bin/bash
 set -euo pipefail
 

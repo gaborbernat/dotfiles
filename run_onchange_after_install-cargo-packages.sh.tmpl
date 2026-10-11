@@ -22,7 +22,7 @@ while IFS= read -r pkg; do
     cargo install --locked "$pkg"
 done < "$HOME/.cargo_packages.txt"
 
-{{- if and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "fedora") }}
+{{- if and (eq .chezmoi.os "linux") (eq (get .chezmoi.osRelease "id") "fedora") }}
 # GNOME Shell does not necessarily inherit Fish's ~/.cargo/bin PATH. Astra
 # Monitor searches /usr/local/bin explicitly, and this link follows Cargo
 # upgrades without copying the binary.

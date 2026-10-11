@@ -19,7 +19,7 @@ brew-bundle.sh
 .Brewfile
 Library
 {{ end }}
-{{ if and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "fedora") }}
+{{ if and (eq .chezmoi.os "linux") (eq (get .chezmoi.osRelease "id") "fedora") }}
 # Fedora installs these with DNF rather than the apt installer.
 install-apt-packages.sh
 .apt_packages.txt
@@ -51,14 +51,14 @@ install-ccstatusline.sh
 .local/bin/bluebubbles-start-hidden
 .var/app/com.core447.StreamController
 {{ end }}
-{{ if and (eq .chezmoi.os "linux") (ne .chezmoi.osRelease.id "fedora") }}
+{{ if and (eq .chezmoi.os "linux") (ne (get .chezmoi.osRelease "id") "fedora") }}
 .config/ghostty
 {{ end }}
 {{ if ne .chezmoi.hostname "Bernats-Mac-mini" }}
 Library/LaunchAgents/com.gaborbernat.opener-sock-gc.plist
 load-opener-sock-gc.sh
 {{ end }}
-{{ if not (and (eq .chezmoi.os "linux") (eq .chezmoi.osRelease.id "fedora")) }}
+{{ if not (and (eq .chezmoi.os "linux") (eq (get .chezmoi.osRelease "id") "fedora")) }}
 .config/systemd
 enable-opener-sock-gc-timer.sh
 .local/bin/agent-awake
