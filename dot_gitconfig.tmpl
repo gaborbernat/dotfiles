@@ -158,11 +158,11 @@
 
 [credential "https://github.com"]
     helper =
-    helper = !gh auth git-credential
+    helper = !{{ output "sh" "-c" "command -v gh || printf gh" | trim }} auth git-credential
 
 [credential "https://gist.github.com"]
     helper =
-    helper = !gh auth git-credential
+    helper = !{{ output "sh" "-c" "command -v gh || printf gh" | trim }} auth git-credential
 
 [includeIf "gitdir:~/"]
     path = ~/.local/share/chezmoi-private/gitconfig_work
