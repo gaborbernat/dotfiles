@@ -1,0 +1,6 @@
+{
+  "uuid": "focused-switcher@bernat.tech",
+  "name": "Focused Monitor Switcher",
+  "description": "Show the GNOME app switcher on the focused monitor",
+  "shell-version": ["50"]
+}
