@@ -56,6 +56,10 @@ provide Docker, and Distrobox uses that daemon. Membership in the `docker` group
 
 The [ChatGPT desktop app](https://learn.chatgpt.com/docs/linux/linux-app) includes Codex. Its official Fedora RPM adds
 OpenAI's signed DNF repository, so Fish `u` updates it with the other RPMs.
+[Claude Desktop](https://support.claude.com/en/articles/10065433-install-claude-desktop) runs in a Debian Distrobox
+because Anthropic publishes an apt package but no Fedora RPM. The app appears in GNOME; Fish `u` updates its apt package
+through `distrobox-upgrade`. [GitHub Copilot CLI](https://docs.github.com/en/copilot/get-started/cli-quickstart)
+installs through npm and updates with the npm stage.
 
 Kooha, LocalSend, Gradia, ProtonPlus, and BlueBubbles install as system Flatpaks. StreamController comes from Flathub
 and uses its OS, media, clock, and AMD GPU plugins for the Stream Deck. Copyous comes from the GNOME Extensions release
@@ -120,7 +124,8 @@ The manifests above are the install sources. These links cover the desktop apps 
 ### Desktop apps
 
 - **Terminal:** [Ghostty](https://ghostty.org/) on both systems.
-- **AI desktop:** [ChatGPT and Codex](https://learn.chatgpt.com/docs/app) on Fedora.
+- **AI desktop:** [Claude](https://claude.com/download) on both systems;
+  [ChatGPT and Codex](https://learn.chatgpt.com/docs/app) on Fedora.
 - **Messages:** [BlueBubbles](https://bluebubbles.app/) on Fedora, relayed through a Mac.
 - **Remote desktop:** [GNOME Connections](https://apps.gnome.org/Connections/) on Fedora for access to the Mac mini.
 - **Editors:** [VS Code](https://code.visualstudio.com/) and [JetBrains Toolbox](https://www.jetbrains.com/toolbox-app/)
@@ -194,7 +199,7 @@ Fedora adds [Astra Monitor](https://github.com/AstraExt/astra-monitor),
 
 **AI** — [Claude Code](https://docs.claude.com/en/docs/claude-code) ·
 [ccstatusline](https://github.com/sirmalloc/ccstatusline) · [Codex](https://github.com/openai/codex) ·
-[OpenCode](https://opencode.ai/)
+[Copilot CLI](https://docs.github.com/en/copilot/get-started/cli-quickstart) · [OpenCode](https://opencode.ai/)
 
 ## Updating
 

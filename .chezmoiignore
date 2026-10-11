@@ -44,11 +44,14 @@ enable-fedora-remote-shells.sh
 set-fedora-fish-shell.sh
 install-kooha.sh
 install-selected-flatpaks.sh
+install-streamcontroller-icons.sh
 install-streamcontroller-plugins.sh
 install-copyous.sh
 install-jetbrains-toolbox.sh
 install-bazecor.sh
 install-ccstatusline.sh
+install-claude-desktop.sh
+install-copilot-cli.sh
 .config/distrobox
 .local/share/applications/bazecor.desktop
 .local/bin/bluebubbles-start-hidden
