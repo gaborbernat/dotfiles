@@ -64,10 +64,10 @@ vendor's checksum for the current release. uv uses its
 [standalone installer](https://docs.astral.sh/uv/getting-started/installation/) so `uv self update` works.
 
 The Fedora Stream Deck keeps the macOS emoji keys and adds live clocks, CPU, RAM, and GPU tiles. Main links directly to
-the Fedora, System, Media, and Emoji pages. Fedora uses the installed apps' icons; the other pages provide hardware
-details, playback, and volume controls. Chezmoi creates missing pages and leaves later edits made in StreamController
-intact. The [Unicode input patch](scripts/fedora/streamcontroller-unicode.diff) completes the key sequence used by
-OSPlugin's text action for emoji and kaomoji.
+the Fedora, System, Media, and Emoji pages. These pages provide app launchers, hardware details, playback, and volume
+controls; page links and launchers use installed icon assets. Chezmoi creates missing pages and leaves later edits made
+in StreamController intact. The [Unicode input patch](scripts/fedora/streamcontroller-unicode.diff) completes the key
+sequence used by OSPlugin's text action for emoji and kaomoji.
 
 GNOME setup covers Dash to Panel on every monitor, Astra Monitor, Copyous, DDC brightness, and xremap for selected
 Super-key application shortcuts. Ghostty handles its own Super-key shortcuts. The `agent-awake` user service inhibits
