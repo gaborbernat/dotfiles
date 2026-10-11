@@ -23,13 +23,11 @@ com.microsoft.VSCode  ts  editor
 com.microsoft.VSCode  toml  editor
 com.microsoft.VSCode  cfg  editor
 com.microsoft.VSCode  ini  editor
-com.microsoft.VSCode  conf  editor
 com.microsoft.VSCode  log  editor
 
 # Python → PyCharm
 com.jetbrains.pycharm  public.python-script  editor
 com.jetbrains.pycharm  py  editor
-com.jetbrains.pycharm  pyi  editor
 
 # Video → IINA
 com.colliderli.iina  public.movie  viewer
