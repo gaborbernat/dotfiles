@@ -221,38 +221,9 @@
                 "0": {
                     "actions": [
                         {
-                            "id": "com_core447_OSPlugin::RunCommand",
+                            "id": "com_core447_DeckPlugin::ChangePage",
                             "settings": {
-                                "command": "sh -c 'hostname -I | cut -d \" \" -f1'",
-                                "detached": false,
-                                "display_output": true,
-                                "auto_run": 30,
-                                "label_position": "center"
-                            }
-                        }
-                    ],
-                    "image-control-action": null,
-                    "label-control-actions": [
-                        null,
-                        0,
-                        null
-                    ],
-                    "labels": {
-                        "top": {
-                            "text": "LAN IP"
-                        }
-                    }
-                }
-            }
-        },
-        "4x1": {
-            "states": {
-                "0": {
-                    "actions": [
-                        {
-                            "id": "com_core447_OSPlugin::EasyCommand",
-                            "settings": {
-                                "command": "flatpak run io.github.seadve.Kooha"
+                                "selected_page": "{{ .chezmoi.homeDir }}/.var/app/com.core447.StreamController/data/pages/System.json"
                             }
                         }
                     ],
@@ -264,7 +235,32 @@
                     ],
                     "labels": {
                         "bottom": {
-                            "text": "Record"
+                            "text": "System"
+                        }
+                    }
+                }
+            }
+        },
+        "4x1": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_DeckPlugin::ChangePage",
+                            "settings": {
+                                "selected_page": "{{ .chezmoi.homeDir }}/.var/app/com.core447.StreamController/data/pages/Media.json"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        null,
+                        null,
+                        null
+                    ],
+                    "labels": {
+                        "bottom": {
+                            "text": "Media"
                         }
                     }
                 }
@@ -359,7 +355,7 @@
                             }
                         }
                     ],
-                    "image-control-action": 0,
+                    "image-control-action": null,
                     "label-control-actions": [
                         null,
                         null,
@@ -369,6 +365,10 @@
                         "bottom": {
                             "text": "OBS"
                         }
+                    },
+                    "media": {
+                        "path": "{{ .chezmoi.homeDir }}/.local/share/streamcontroller-icons/com.obsproject.Studio.png",
+                        "size": 0.78
                     }
                 }
             }
