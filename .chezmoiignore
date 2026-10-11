@@ -24,6 +24,11 @@ Library
 install-apt-packages.sh
 .apt_packages.txt
 {{ else }}
+.config/autostart
+.local/bin/update_fedora_extras
+.local/share/applications
+.local/share/gnome-shell
+.var
 .dnf_packages.txt
 enable-fedora-repos.sh
 install-dnf-packages.sh
@@ -46,10 +51,11 @@ install-bazecor.sh
 install-ccstatusline.sh
 .config/distrobox
 .local/share/applications/bazecor.desktop
-.config/autostart/bluebubbles-hidden.desktop
-.config/autostart/com.core447.StreamController.desktop
 .local/bin/bluebubbles-start-hidden
-.var/app/com.core447.StreamController
+{{ end }}
+{{ if eq .chezmoi.os "darwin" }}
+install-apt-packages.sh
+.apt_packages.txt
 {{ end }}
 {{ if and (eq .chezmoi.os "linux") (ne (get .chezmoi.osRelease "id") "fedora") }}
 .config/ghostty
