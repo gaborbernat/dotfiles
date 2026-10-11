@@ -58,7 +58,9 @@ than define-then-assign.
 
 # Markdown files
 
-I format with `mdformat --wrap 120` after every edit.
+I format Markdown files with `mdformat --wrap 120` after every edit. For PR and issue bodies, I use
+`mdformat --wrap no`: each prose paragraph and list item stays on one physical line, while code blocks and intentional
+line breaks keep their structure.
 
 # Tool Preferences
 

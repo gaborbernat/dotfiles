@@ -1,5 +1,5 @@
 {{- $work := joinPath .chezmoi.homeDir ".local/share/chezmoi-private/codex_work.toml" -}}
-model_reasoning_effort = "high"
+model_reasoning_effort = "medium"
 suppress_unstable_features_warning = true
 developer_instructions = "Do not add AI co-author trailers or generated-by attribution to commits or pull requests."
 
@@ -15,8 +15,14 @@ default_permissions = "dev"
 [permissions.dev.filesystem]
 ":root" = "read"
 ":workspace_roots" = "write"
+{{ if eq .chezmoi.os "linux" }}
+"~/.local/libexec" = "write"
+"~/.local/share/dbus-1/services" = "write"
+"~/.local/share/gnome-shell/extensions" = "write"
+"~/.config/systemd/user" = "write"
+{{ end }}
 
 [permissions.dev.network]
 enabled = true
 {{ if stat $work }}{{ output "cat" $work }}{{ end -}}
-{{ output "sh" "-c" `kept=$(awk '/^\[/{f=($0 ~ /^\[(tui(\]|\.model_availability_nux\])|projects\.|notice\]|desktop\]|marketplaces\.|plugins\.)/)} f' "$HOME/.codex/config.toml" 2>/dev/null); test -n "$kept" && printf '\n%s\n\n' "$kept" || true` -}}
+{{ output "sh" "-c" `kept=$(awk '/^\[/{f=($0 ~ /^\[(tui(\]|\.model_availability_nux\])|projects\.|notice\]|desktop\]|marketplaces\.|plugins\.|mcp_servers\.node_repl)/)} f' "$HOME/.codex/config.toml" 2>/dev/null); test -n "$kept" && printf '\n%s\n\n' "$kept" || true` -}}
