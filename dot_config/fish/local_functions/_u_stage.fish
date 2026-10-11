@@ -3,6 +3,12 @@ function _u_stage -a name -d "Run one upgrade stage for u (one mprocs tab)"
     switch $name
         case dnf
             _u_run sudo dnf upgrade --refresh -y
+            set -l dnf_status $status
+            if test $dnf_status -eq 0 -a -f /etc/fedora-release
+                _u_run update_fedora_extras rustdesk
+            else
+                test $dnf_status -eq 0
+            end
         case flatpak
             _u_run sudo flatpak update --system -y
             set -l system_status $status

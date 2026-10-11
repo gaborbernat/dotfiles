@@ -19,7 +19,7 @@ icons=(
     steam.png
     com.obsproject.Studio.png
     app.bluebubbles.BlueBubbles.png
-    com.rustdesk.RustDesk.png
+    rustdesk.png
     org.gnome.Connections.svg
     solaar.svg
     org.gnome.Settings.svg
