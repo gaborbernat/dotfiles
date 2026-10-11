@@ -1,0 +1,16 @@
+diff --git a/src/panel.js b/src/panel.js
+index fcd0cae..27688b7 100644
+--- a/src/panel.js
++++ b/src/panel.js
+@@ -1488 +1488 @@ export const Panel = GObject.registerClass(
+-        c.actor.destroy()
++        if (!c.actorDestroyed) c.actor.destroy()
+@@ -1563,0 +1564 @@ export const Panel = GObject.registerClass(
++      actor.connect('destroy', () => (c.actorDestroyed = true))
+@@ -1667 +1668,5 @@ export const Panel = GObject.registerClass(
+-      if (!source || !SETTINGS.get_boolean('clone-main-panel')) {
++      if (
++        !source ||
++        !SETTINGS.get_boolean('clone-main-panel') ||
++        !Main.panel.statusArea.quickSettings
++      ) {

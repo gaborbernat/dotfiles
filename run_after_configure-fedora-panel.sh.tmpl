@@ -12,8 +12,8 @@ if [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" && ! -S "${XDG_RUNTIME_DIR:-}/bus" ]]; 
     echo "GNOME session bus not available; panel setup will retry on the next chezmoi apply"
     exit 0
 fi
-if ! gsettings list-schemas | grep -qx 'org.gnome.shell.extensions.window-list'; then
-    echo "Window List RPM not installed yet; panel setup will retry on the next chezmoi apply"
+if ! gsettings list-schemas | grep -qx 'org.gnome.shell.extensions.dash-to-panel'; then
+    echo "Dash to Panel RPM not installed yet; panel setup will retry on the next chezmoi apply"
     exit 0
 fi
 if ! command -v gnome-extensions >/dev/null 2>&1; then
@@ -21,28 +21,40 @@ if ! command -v gnome-extensions >/dev/null 2>&1; then
     exit 0
 fi
 
-uuid=multi-monitors-bar@frederykabryan
-if [[ ! -d "$HOME/.local/share/gnome-shell/extensions/$uuid" ]]; then
-    shell_version=$(gnome-shell --version | awk '{split($3, version, "."); print version[1]}')
-    extension_info=$(curl -fsS --get \
-        --data-urlencode "uuid=$uuid" \
-        --data-urlencode "shell_version=$shell_version" \
-        https://extensions.gnome.org/extension-info/)
-    if ! download_url=$(jq -er --arg shell_version "$shell_version" \
-        'select(.shell_version_map[$shell_version] != null) | .download_url' <<<"$extension_info"); then
-        echo "Multi Monitor Bar has no compatible GNOME Shell $shell_version release" >&2
-        exit 1
-    fi
-    zip=$(mktemp --suffix=.zip)
-    trap 'rm -f "$zip"' EXIT
-    curl -fsSL -o "$zip" "https://extensions.gnome.org$download_url"
-    gnome-extensions install --force "$zip"
+gsettings set org.gnome.shell.extensions.dash-to-panel multi-monitors true
+gsettings set org.gnome.shell.extensions.dash-to-panel panel-position 'TOP'
+gsettings set org.gnome.shell.extensions.dash-to-panel show-favorites-all-monitors true
+uuid=dash-to-panel@jderose9.github.com
+schema=org.gnome.shell.extensions.dash-to-panel
+positions=$(gsettings get "$schema" panel-positions)
+if [[ "$positions" =~ :\"(BOTTOM|LEFT|RIGHT)\" ]]; then
+    gsettings set "$schema" panel-positions '{}'
 fi
-
-gsettings set org.gnome.shell.extensions.window-list show-on-all-monitors true
-gsettings set org.gnome.shell.extensions.window-list grouping-mode 'always'
+system_schema=/usr/share/glib-2.0/schemas/$schema.gschema.xml
+override=$HOME/.local/share/gnome-shell/extensions/$uuid
+if [[ -f "$system_schema" ]] && grep -q 'name="clone-main-panel"' "$system_schema"; then
+    if [[ -f "$override/metadata.json" ]] && jq -e '.version == 9999' "$override/metadata.json" >/dev/null; then
+        gnome-extensions uninstall "$uuid"
+    fi
+    gsettings set "$schema" clone-main-panel true
+else
+    if [[ ! -f "$override/panel.js" ]] || \
+        [[ $(sha256sum "$override/panel.js" | cut -d' ' -f1) != d6215a0a559cfbe6bd9171d1e435dca14cd06100cef65c7862f4c5136e228347 ]]; then
+        archive=$(mktemp --suffix=.tar.gz)
+        source=$(mktemp -d)
+        trap 'rm -f "$archive"; rm -rf "$source"' EXIT
+        curl -fsSL --retry 3 -o "$archive" \
+            https://codeload.github.com/Laertes87/dash-to-panel/tar.gz/e3ef7d2a9e528d24a8e72fd1652aba722f2bd8aa
+        echo "943de3a6483714f0d22edbf626810c6b6d5dee8066696b940f3cc5d2accd1c0c  $archive" | sha256sum -c -
+        tar -xzf "$archive" -C "$source" --strip-components=1
+        git -C "$source" apply --unidiff-zero {{ joinPath .chezmoi.sourceDir "scripts/fedora/dash-to-panel-shutdown.diff" | quote }}
+        make -s -C "$source" zip-file VERSION=9999
+        gnome-extensions install --force "$source/$uuid"_v9999.zip
+    fi
+    GSETTINGS_SCHEMA_DIR="$override/schemas" gsettings set "$schema" clone-main-panel true
+fi
 current=$(gsettings get org.gnome.shell enabled-extensions)
-extensions=(multi-monitors-bar@frederykabryan window-list@gnome-shell-extensions.gcampax.github.com focused-switcher@bernat.tech)
+extensions=(dash-to-panel@jderose9.github.com focused-switcher@bernat.tech)
 if [[ -d /usr/share/gnome-shell/extensions/appindicatorsupport@rgcjonas.gmail.com ]]; then
     extensions+=(appindicatorsupport@rgcjonas.gmail.com)
 fi
@@ -54,7 +66,10 @@ import ast
 import sys
 
 options = ast.literal_eval(sys.argv[1].removeprefix("@as "))
-options = [name for name in options if name != "dash-to-panel@jderose9.github.com"]
+options = [name for name in options if name not in {
+    "multi-monitors-bar@frederykabryan",
+    "window-list@gnome-shell-extensions.gcampax.github.com",
+}]
 for name in sys.argv[2:]:
     if name not in options:
         options.append(name)

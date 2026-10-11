@@ -19,7 +19,7 @@ fedora-workstation-repositories
 fzf
 fuse-libs
 gnome-shell-extension-appindicator
-gnome-shell-extension-window-list
+gnome-shell-extension-dash-to-panel
 gh
 git
 git-delta
@@ -45,6 +45,7 @@ zoxide
 cmake
 gcc
 gawk
+gettext
 golang
 java-latest-openjdk-devel
 llvm

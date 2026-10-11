@@ -69,8 +69,9 @@ controls; page links and launchers use installed icon assets. Chezmoi creates mi
 in StreamController intact. The [Unicode input patch](scripts/fedora/streamcontroller-unicode.diff) completes the key
 sequence used by OSPlugin's text action for emoji and kaomoji.
 
-GNOME uses Multi Monitor Bar to mirror top-panel controls onto secondary monitors and Window List for a taskbar on each
-monitor. Astra Monitor, Copyous, and DDC brightness add indicators; xremap handles selected Super-key application
+GNOME uses Dash to Panel for a top taskbar on each monitor. Until Fedora's RPM supports indicator mirroring, chezmoi
+installs [the upstream change](https://github.com/home-sweet-gnome/dash-to-panel/pull/2570) as a user extension. Astra
+Monitor, Copyous, and DDC brightness then appear on both panels. xremap handles selected Super-key application
 shortcuts. Ghostty handles its own Super-key shortcuts. The `agent-awake` user service inhibits suspend while a Codex,
 Claude, or ChatGPT client is open; it leaves display blanking available. The first apply also sets Fish as the login
 shell, enables SSH, Mosh, and Eternal Terminal, and adds the account to the `docker` and `gamemode` groups. Log out and
@@ -142,8 +143,7 @@ The macOS Brewfile also installs [BetterCmdTab](https://bettercmdtab.app/), [Dis
 Both systems use [JetBrains Mono](https://www.jetbrains.com/lp/mono/) fonts.
 
 Fedora adds [Astra Monitor](https://github.com/AstraExt/astra-monitor),
-[Multi Monitor Bar](https://extensions.gnome.org/extension/8773/multi-monitor-bar/) and
-[Window List](https://extensions.gnome.org/extension/602/window-list/),
+[Dash to Panel](https://github.com/home-sweet-gnome/dash-to-panel),
 [Copyous](https://extensions.gnome.org/extension/8834/copyous/), [LocalSend](https://localsend.org/),
 [Gradia](https://apps.gnome.org/Gradia/), [Bazecor](https://github.com/Dygmalab/Bazecor),
 [OpenRGB](https://openrgb.org/), and [xremap](https://github.com/xremap/xremap). Gaming uses
