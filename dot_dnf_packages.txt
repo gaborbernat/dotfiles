@@ -3,6 +3,7 @@
 
 # Shell, Git, and everyday CLI tools
 acl
+aerc
 atuin
 bat
 chezmoi
@@ -37,6 +38,7 @@ ripgrep
 tig
 tmux
 tree
+w3m
 wget2-wget
 yq
 zoxide

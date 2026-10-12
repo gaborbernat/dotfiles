@@ -5,6 +5,7 @@
 
 # Core tools
 build-essential  # C toolchain (gcc, make, libc headers) — needed to build Rust crates with C deps
+aerc
 atuin
 bat
 direnv
@@ -23,6 +24,7 @@ mprocs
 tig
 tmux
 tree
+w3m
 universal-ctags
 wget
 yq
