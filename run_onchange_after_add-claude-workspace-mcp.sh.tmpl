@@ -1,0 +1,31 @@
+#!/bin/sh
+# Mirrors the gmail/gdrive servers in dot_codex/private_config.toml.tmpl; ~/.claude.json is not chezmoi-managed.
+set -eu
+
+command -v claude >/dev/null 2>&1 || exit 0
+
+add() {
+    name=$1 account=$2
+    shift 2
+    args=$(printf '"%s",' workspace-mcp@latest --single-user "$@")
+    if claude mcp get "$name" >/dev/null 2>&1; then
+        claude mcp remove --scope user "$name" >/dev/null
+    fi
+    claude mcp add-json --scope user "$name" "$(cat <<EOF
+{
+  "type": "stdio",
+  "command": "uvx",
+  "args": [${args%,}],
+  "env": {
+    "GOOGLE_OAUTH_CLIENT_ID": "\${GOOGLE_OAUTH_CLIENT_ID}",
+    "GOOGLE_OAUTH_CLIENT_SECRET": "\${GOOGLE_OAUTH_CLIENT_SECRET}",
+    "WORKSPACE_MCP_CREDENTIALS_DIR": "{{ .chezmoi.homeDir }}/.local/share/workspace-mcp/$account",
+    "USER_GOOGLE_EMAIL": "$account@gmail.com"
+  }
+}
+EOF
+)"
+}
+
+add gmail gaborjbernat --permissions gmail:drafts
+add gdrive jokerjokerer --permissions drive:full --disabled-tools manage_drive_access set_drive_file_permissions
