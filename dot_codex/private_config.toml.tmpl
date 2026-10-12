@@ -31,8 +31,11 @@ enabled = true
 command = "uvx"
 args = ["workspace-mcp@latest", "--single-user", "--permissions", "gmail:drafts"]
 env_vars = ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"]
-env = { WORKSPACE_MCP_CREDENTIALS_DIR = "{{ .chezmoi.homeDir }}/.local/share/workspace-mcp/gaborjbernat" }
 startup_timeout_sec = 60
+
+[mcp_servers.gmail.env]
+WORKSPACE_MCP_CREDENTIALS_DIR = "{{ .chezmoi.homeDir }}/.local/share/workspace-mcp/gaborjbernat"
+USER_GOOGLE_EMAIL = "gaborjbernat@gmail.com"
 
 # Sharing changes stay off so an injected prompt can't publish files.
 [mcp_servers.gdrive]
@@ -47,7 +50,10 @@ args = [
   "set_drive_file_permissions",
 ]
 env_vars = ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"]
-env = { WORKSPACE_MCP_CREDENTIALS_DIR = "{{ .chezmoi.homeDir }}/.local/share/workspace-mcp/jokerjokerer" }
 startup_timeout_sec = 60
+
+[mcp_servers.gdrive.env]
+WORKSPACE_MCP_CREDENTIALS_DIR = "{{ .chezmoi.homeDir }}/.local/share/workspace-mcp/jokerjokerer"
+USER_GOOGLE_EMAIL = "jokerjokerer@gmail.com"
 {{ if stat $work }}{{ output "cat" $work }}{{ end -}}
 {{ output "sh" "-c" `kept=$(awk '/^\[/{f=($0 ~ /^\[(tui(\]|\.model_availability_nux\])|projects\.|notice\]|desktop\]|marketplaces\.|plugins\.|mcp_servers\.node_repl)/)} f' "$HOME/.codex/config.toml" 2>/dev/null); test -n "$kept" && printf '\n%s\n\n' "$kept" || true` -}}
