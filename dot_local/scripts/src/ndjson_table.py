@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.14"
 # dependencies = [
-#     "rich>=14.2",
+#     "rich>=15.0.0",
 # ]
 # ///
 from __future__ import annotations
@@ -60,9 +60,9 @@ def ndjson_table(  # noqa: C901, PLR0912, PLR0915
         for key, value in obj.items():
             new_key = f"{parent_key}.{key}" if parent_key else key
             if isinstance(value, dict):
-                items.update(flatten(value, new_key))  # pyright: ignore [reportUnknownArgumentType]
+                items.update(flatten(value, new_key))
             elif isinstance(value, list) and value and isinstance(value[0], dict):
-                items.update(flatten(value[0], new_key))  # pyright: ignore [reportUnknownArgumentType]
+                items.update(flatten(value[0], new_key))
             else:
                 items[new_key] = value
         return items
@@ -151,7 +151,7 @@ def human_readable_size(size: float) -> str:
 def format_value(key: str, value: Any, type_map: dict[str, type]) -> str:  # noqa: ANN401
     if value is None:
         return ""
-    col_type = type_map.get(key, type(value))  # pyright: ignore [reportUnknownArgumentType]
+    col_type = type_map.get(key, type(value))
     if key == "size" and isinstance(value, int):
         return human_readable_size(value)
     if col_type in [int, float] and isinstance(value, (int, float)):

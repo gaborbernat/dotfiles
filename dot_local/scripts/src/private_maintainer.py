@@ -1,9 +1,9 @@
 # /// script
 # requires-python = ">=3.14"
 # dependencies = [
-#     "pygithub>=2.8.1",
-#     "rich>=14.2",
-#     "rich-argparse>=1.7.2",
+#     "pygithub>=2.10.0",
+#     "rich>=15.0.0",
+#     "rich-argparse>=1.8.0",
 #     "truststore>=0.10.4",
 # ]
 # ///

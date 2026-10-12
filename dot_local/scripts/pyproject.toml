@@ -1,5 +1,12 @@
 [dependency-groups]
-typing = ["pyright>=1.1.408"]
+typing = [
+  "packaging>=26.3",
+  "pygithub>=2.10.0",
+  "rich>=15.0.0",
+  "rich-argparse>=1.8.0",
+  "truststore>=0.10.4",
+  "ty>=0.0.86",
+]
 
 [tool.ruff]
 target-version = "py314"
@@ -10,7 +17,7 @@ format.docstring-code-format = true
 lint.select = [ "ALL" ]
 lint.ignore = [
   "COM812", # conflicts with formatter
-  "CPY",    # No copyright>=1.1.408
+  "CPY",    # No copyright
   "D",      # no docs
   "ISC001", # conflicts with formatter
   "S", # we trust ourselves
@@ -22,10 +29,5 @@ lint.isort = { known-first-party = [
   "from __future__ import annotations",
 ] }
 
-[tool.pyright]
-include = [ "." ]
-typeCheckingMode = "strict"
-reportUnusedFunction = false
-reportUnknownMemberType = false
-reportUnknownVariableType = false
-reportMissingTypeStubs = false
+[tool.ty.environment]
+python-version = "3.14"

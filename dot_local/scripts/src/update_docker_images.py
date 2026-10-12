@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.14"
 # dependencies = [
-#     "rich>=14.2",
+#     "rich>=15.0.0",
 # ]
 # ///
 """Update images with matching registry digests without removing local Docker data."""
@@ -109,8 +109,10 @@ def bulk_inspect(image_ids: list[str]) -> dict[str, tuple[set[str], datetime | N
             "image",
             "inspect",
             "--format",
-            ('{{.Id}}\t{{json .RepoDigests}}\t{{with index . "Created"}}{{.}}{{end}}\t'
-            '{{with index . "Os"}}{{.}}/{{index $ "Architecture"}}{{end}}'),
+            (
+                '{{.Id}}\t{{json .RepoDigests}}\t{{with index . "Created"}}{{.}}{{end}}\t'
+                '{{with index . "Os"}}{{.}}/{{index $ "Architecture"}}{{end}}'
+            ),
             *sorted(set(image_ids)),
         ],
         check=False,

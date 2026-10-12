@@ -1,7 +1,7 @@
 # /// script
 # requires-python = ">=3.14"
 # dependencies = [
-#     "rich>=14.2",
+#     "rich>=15.0.0",
 # ]
 # ///
 from __future__ import annotations
