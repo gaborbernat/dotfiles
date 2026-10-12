@@ -29,13 +29,24 @@ enabled = true
 # Client ID/secret come from ~/.secrets.
 [mcp_servers.gmail]
 command = "uvx"
-args = ["workspace-mcp@latest", "--single-user", "--permissions", "gmail:drafts"]
+args = [
+  "workspace-mcp@latest",
+  "--single-user",
+  "--permissions",
+  "gmail:full",
+  "--disabled-tools",
+  "send_gmail_message",
+]
 env_vars = ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"]
 startup_timeout_sec = 60
 
 [mcp_servers.gmail.env]
 WORKSPACE_MCP_CREDENTIALS_DIR = "{{ .chezmoi.homeDir }}/.local/share/workspace-mcp/gaborjbernat"
 USER_GOOGLE_EMAIL = "gaborjbernat@gmail.com"
+
+# A filter can silently trash mail (e.g. security alerts), so an injected email must not be able to create one unseen.
+[mcp_servers.gmail.tools.manage_gmail_filter]
+approval_mode = "prompt"
 
 # Sharing changes stay off so an injected prompt can't publish files.
 [mcp_servers.gdrive]
