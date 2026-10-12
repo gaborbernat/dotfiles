@@ -114,6 +114,42 @@ update_rustdesk() {
     printf 'Updated RustDesk to %s\n' "$version"
 }
 
+update_gamescope_session() {
+    local versions repo installed latest compare answer
+    local -a updates=()
+    versions=/usr/local/share/gamescope-session-local/versions
+    if [[ ! -f "$versions" ]]; then
+        echo 'Steam Big Picture session is not installed'
+        return
+    fi
+    while read -r repo installed; do
+        latest=$(curl -fsSL "https://api.github.com/repos/ChimeraOS/$repo/commits/HEAD" | jq -er '.sha')
+        if [[ "$latest" == "$installed" ]]; then
+            printf '%s is current\n' "$repo"
+            continue
+        fi
+        compare=$(curl -fsSL "https://api.github.com/repos/ChimeraOS/$repo/compare/$installed...$latest")
+        printf '\n%s %s -> %s\n' "$repo" "${installed:0:7}" "${latest:0:7}"
+        jq -r '.commits[] | "  \(.sha[0:7]) \(.commit.message | split("\n")[0])"' <<<"$compare"
+        jq -r '.files[] | "    \(.status) \(.filename)"' <<<"$compare"
+        updates+=("$repo=$latest")
+    done <"$versions"
+    if (( ${#updates[@]} == 0 )); then
+        return
+    fi
+    # The session runs at the login screen, so new upstream code needs a human review.
+    if [[ ! -t 0 ]]; then
+        echo 'Review the changes above, then run: update_fedora_extras gamescope'
+        return
+    fi
+    read -rp 'Install these session updates? [y/N] ' answer
+    if [[ "$answer" != [yY] ]]; then
+        echo 'Kept the installed session'
+        return
+    fi
+    sudo bash {{ joinPath .chezmoi.sourceDir "scripts/fedora/gamescope-session/install.sh" | quote }} "${updates[@]}"
+}
+
 STREAMDECK_WORK=
 STREAMDECK_RESTART=false
 
@@ -253,5 +289,6 @@ case "${1:-}" in
     bazecor) update_bazecor ;;
     rustdesk) update_rustdesk ;;
     streamdeck) update_streamdeck ;;
-    *) echo 'Usage: update_fedora_extras {firmware|extensions|bazecor|rustdesk|streamdeck}' >&2; exit 2 ;;
+    gamescope) update_gamescope_session ;;
+    *) echo 'Usage: update_fedora_extras {firmware|extensions|bazecor|rustdesk|streamdeck|gamescope}' >&2; exit 2 ;;
 esac

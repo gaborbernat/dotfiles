@@ -51,12 +51,14 @@ install-streamcontroller-plugins.sh
 install-copyous.sh
 install-jetbrains-toolbox.sh
 install-bazecor.sh
+install-gamescope-session.sh
 install-ccstatusline.sh
 install-claude-desktop.sh
 install-copilot-cli.sh
 .config/distrobox
 .local/share/applications/bazecor.desktop
 .local/bin/bluebubbles-start-hidden
+.local/bin/steam
 .config/Code
 configure-fedora-font.sh
 {{ end }}

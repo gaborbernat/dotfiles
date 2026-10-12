@@ -46,7 +46,7 @@ function _u_stage -a name -d "Run one upgrade stage for u (one mprocs tab)"
             _u_run fisher update
         case docker
             _u_docker
-        case firmware extensions bazecor streamdeck
+        case firmware extensions bazecor streamdeck gamescope
             if test -f /etc/fedora-release
                 _u_run update_fedora_extras $name
             else

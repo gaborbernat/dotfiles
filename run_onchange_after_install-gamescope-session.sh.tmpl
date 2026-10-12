@@ -1,0 +1,7 @@
+{{- if ne (env "SKIP_GAMESCOPE_SESSION") "1" -}}
+#!/bin/bash
+# installer hash: {{ include "scripts/fedora/gamescope-session/install.sh" | sha256sum }}
+set -euo pipefail
+
+sudo bash {{ joinPath .chezmoi.sourceDir "scripts/fedora/gamescope-session/install.sh" | quote }}
+{{ end -}}
