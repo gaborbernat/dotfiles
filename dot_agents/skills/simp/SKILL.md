@@ -91,6 +91,8 @@ idioms, mapping the Python specifics yourself (its formatter for `ruff`, its tes
    `src/a/x.py` maps to `test/a/test_x.py`. When changing existing source, extend its existing test file instead of
    creating another. Create a new test file only when adding the corresponding source file.
 
+1. **One behavior per test.** Each test checks one thing; split a test that asserts on unrelated behaviors.
+
 1. **Parameterize.** Collapse near-duplicate test functions into a single table-driven case with a readable id per row.
 
 1. **Shared setup over duplication.** Extract repeated setup/teardown into shared fixtures, and prefer injecting a
@@ -146,9 +148,8 @@ step above and must not be restated here.
 
 1. **Explicit exports.** Every name imported by other modules appears in an `__all__ = [...]` at the end of the file.
 
-1. **Type suppression.** Never reach for `Any`, `object`, or `# type: ignore`. An unavoidable suppression names the
-   specific code, never a blanket `# ty: ignore` / `# type: ignore`, and carries a reason or link, e.g.
-   `# ty: ignore[no-matching-overload]  # https://github.com/astral-sh/ty/issues/2428`.
+1. **Full typing.** Annotate all code, tests included. Never reach for `Any` or `object`; a suppression follows *Fix,
+   never suppress*, e.g. `# ty: ignore[no-matching-overload]  # https://github.com/astral-sh/ty/issues/2428`.
 
 1. **Define-after-use caveat.** Type annotations are not a use: `from __future__ import annotations` (≤3.13) and PEP 649
    lazy evaluation (3.14+) defer them, so never reorder a definition to satisfy an annotation reference.
@@ -160,6 +161,3 @@ step above and must not be restated here.
    setup in `pytest` fixtures; mock through `pytest-mock`'s `mocker` (stdlib `unittest.mock` only when the fixture is
    unavailable, never a bespoke fake class), prefer `mocker.create_autospec(Target)` over a raw mock, and build mocks
    via constructor kwargs (`mocker.MagicMock(name="x", total=3)`) rather than define-then-assign.
-
-Keep all other house conventions (type annotations everywhere, one assertion-concept per test) intact while applying
-these.
