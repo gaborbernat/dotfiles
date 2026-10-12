@@ -55,7 +55,35 @@ for arg in "$@"; do
 done
 
 workdir=$(mktemp -d)
-trap 'rm -rf "$workdir"' EXIT
+install_started=false
+installed=false
+cleanup() {
+    result=$?
+    trap - EXIT
+    if [[ "$install_started" == true && "$installed" == false ]]; then
+        while IFS= read -r path; do
+            rm -f "$path"
+            if [[ -e "$workdir/previous$path" || -L "$workdir/previous$path" ]]; then
+                cp -a "$workdir/previous$path" "$path"
+            fi
+        done < "$workdir/all-files"
+        if [[ -f "$workdir/old-manifest" ]]; then
+            cp -p "$workdir/old-manifest" "$MANIFEST"
+        else
+            rm -f "$MANIFEST"
+        fi
+        if [[ -f "$workdir/old-versions" ]]; then
+            cp -p "$workdir/old-versions" "$VERSIONS"
+        else
+            rm -f "$VERSIONS"
+        fi
+        echo 'Restored the previous Gamescope session after installation failed' >&2
+    fi
+    rm -f "$STATE/.installed-files.new" "$STATE/.versions.new"
+    rm -rf "$workdir"
+    exit "$result"
+}
+trap cleanup EXIT
 
 for repo in "${!commits[@]}"; do
     archive="$workdir/$repo.tar.gz"
@@ -66,36 +94,58 @@ for repo in "${!commits[@]}"; do
     tar xzf "$archive" -C "$workdir" --strip-components=1
 done
 
-mkdir -p "$STATE"
-[[ ! -f "$MANIFEST" ]] || xargs --arg-file="$MANIFEST" rm -f
-: >"$MANIFEST"
+new_manifest="$workdir/new-manifest"
+for file in "${FILES[@]}"; do
+    [[ -f "$workdir/$file" ]] || { echo "Missing session file: $file" >&2; exit 1; }
+    printf '/%s\n' "$file" >> "$new_manifest"
+done
+readonly HELPERS=/usr/bin/steamos-polkit-helpers
+for tool in steamos-update jupiter-biosupdate steamos-select-branch jupiter-dock-updater; do
+    printf '%s/%s\n' "$HELPERS" "$tool" >> "$new_manifest"
+done
+
+mkdir -p "$STATE" "$workdir/previous"
+[[ ! -f "$MANIFEST" ]] || cp -p "$MANIFEST" "$workdir/old-manifest"
+[[ ! -f "$VERSIONS" ]] || cp -p "$VERSIONS" "$workdir/old-versions"
+cp "$new_manifest" "$workdir/all-files"
+[[ ! -f "$MANIFEST" ]] || cat "$MANIFEST" >> "$workdir/all-files"
+sort -u -o "$workdir/all-files" "$workdir/all-files"
+while IFS= read -r path; do
+    [[ -e "$path" || -L "$path" ]] || continue
+    cp -a --parents "$path" "$workdir/previous"
+done < "$workdir/all-files"
+install_started=true
 for file in "${FILES[@]}"; do
     # Root's tar keeps the archive's group-writable modes, so normalize them.
     if [[ -x "$workdir/$file" ]]; then mode=0755; else mode=0644; fi
     install -D --mode="$mode" "$workdir/$file" "/$file"
-    echo "/$file" >>"$MANIFEST"
 done
 
 # In SteamOS mode the Steam client runs its OS, BIOS and dock updaters through these
 # helper paths and reports "unable to download updates" when they are missing. Upstream
 # elevates through pkexec with a policy allowing anyone to run them as root; the scripts
 # behind them only report "nothing to update" here, so they run unprivileged instead.
-readonly HELPERS=/usr/bin/steamos-polkit-helpers
 install -d "$HELPERS"
 for tool in steamos-update jupiter-biosupdate steamos-select-branch; do
     printf '#!/usr/bin/bash\nexec /usr/bin/%s "$@"\n' "$tool" >"$workdir/helper"
     install --mode=0755 "$workdir/helper" "$HELPERS/$tool"
-    echo "$HELPERS/$tool" >>"$MANIFEST"
 done
 printf '#!/usr/bin/bash\nexit 0\n' >"$workdir/helper"
 install --mode=0755 "$workdir/helper" "$HELPERS/jupiter-dock-updater"
-echo "$HELPERS/jupiter-dock-updater" >>"$MANIFEST"
-xargs --arg-file="$MANIFEST" restorecon
+if [[ -f "$MANIFEST" ]]; then
+    while IFS= read -r path; do
+        grep -Fxq "$path" "$new_manifest" || rm -f "$path"
+    done < "$MANIFEST"
+fi
+xargs --arg-file="$new_manifest" restorecon
 
 for repo in "${!commits[@]}"; do
     echo "$repo ${commits[$repo]}"
-done | sort >"$VERSIONS"
-echo "Installed the Steam Big Picture session ($(paste -sd' ' "$VERSIONS"))."
+done | sort >"$workdir/new-versions"
+install --mode=0644 "$new_manifest" "$STATE/.installed-files.new"
+install --mode=0644 "$workdir/new-versions" "$STATE/.versions.new"
+mv -f "$STATE/.installed-files.new" "$MANIFEST"
+mv -f "$STATE/.versions.new" "$VERSIONS"
 
 if ! id "$GAMING_USER" &>/dev/null; then
     useradd --create-home --comment 'Steam TV' --groups games "$GAMING_USER"
@@ -142,4 +192,6 @@ curl -fsSL -o "$workdir/avatar" "https://github.com/$GITHUB_LOGIN.png?size=512"
 accounts_user "$main_user" SetIconFile "$workdir/avatar"
 accounts_user "$GAMING_USER" SetIconFile /usr/share/icons/hicolor/256x256/apps/steam.png
 accounts_user "$GAMING_USER" SetSession gamescope-session-steam
+installed=true
+echo "Installed the Steam Big Picture session ($(paste -sd' ' "$VERSIONS"))."
 echo "Configured '$GAMING_USER': TV session by default, shared library at $LIBRARY."
