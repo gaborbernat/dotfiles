@@ -78,32 +78,15 @@ def scan_images() -> list[ImageStatus]:
         if len(parts := raw_line.split("\t")) == 4 and "<none>" not in parts[0]
     ]
     inspected = bulk_inspect([row[1] for row in rows])
-    built_digests: Final[set[str]] = local_build_digests({row[2] for row in rows})
     registry: list[ImageStatus] = []
     for image, image_id, digest, size in rows:
-<<<<<<< Updated upstream
-        repo_digests, created, image_platform = inspected.get(image_id, (None, None, ""))
-        if repo_digests is None or digest in built_digests:
-||||||| Stash base
-        repo_digests, created, image_platform = inspected.get(image_id, (None, None, ""))
-        if repo_digests is None:
-=======
         if (info := inspected.get(image_id)) is None:
->>>>>>> Stashed changes
             continue
         repo_digests, created, image_platform, pulled_from = info
         repo = image.rsplit(":", 1)[0]
-<<<<<<< Updated upstream
-        if not is_local_image(image, repo) and (matched := digests_for_repo(repo, repo_digests)):
-||||||| Stash base
-        if (has_registry_host(repo) or not image.endswith(":local")) and (
-            matched := digests_for_repo(repo, repo_digests)
-        ):
-=======
         # The containerd store gives local builds a RepoDigest of their own name, so only Identity.Pull
         # tells a registry pull apart from a build, load, or local tag.
         if canonical_repo(repo) in pulled_from and (matched := digests_for_repo(repo, repo_digests)):
->>>>>>> Stashed changes
             registry.append(
                 ImageStatus(
                     image=image,
@@ -124,30 +107,7 @@ def bulk_inspect(image_ids: list[str]) -> dict[str, tuple[set[str], datetime | N
     # Raw JSON rather than --format: Docker omits Identity for images it has no record for, and a
     # template referencing a missing key aborts the whole batch.
     result: subprocess.CompletedProcess[str] = subprocess.run(
-<<<<<<< Updated upstream
-        [
-            "docker",
-            "image",
-            "inspect",
-            "--format",
-            (
-                '{{.Id}}\t{{json .RepoDigests}}\t{{with index . "Created"}}{{.}}{{end}}\t'
-                '{{with index . "Os"}}{{.}}/{{index $ "Architecture"}}{{end}}'
-            ),
-            *sorted(set(image_ids)),
-        ],
-||||||| Stash base
-        [
-            "docker",
-            "image",
-            "inspect",
-            "--format",
-            "{{.Id}}\t{{json .RepoDigests}}\t{{.Created}}\t{{.Os}}/{{.Architecture}}",
-            *sorted(set(image_ids)),
-        ],
-=======
         ["docker", "image", "inspect", *sorted(set(image_ids))],
->>>>>>> Stashed changes
         check=False,
         capture_output=True,
         text=True,
@@ -173,50 +133,9 @@ def canonical_repo(repo: str) -> str:
     return f"docker.io/{repo}" if "/" in repo else f"docker.io/library/{repo}"
 
 
-def local_build_digests(candidates: set[str]) -> set[str]:
-    if not candidates:
-        return set()
-    listing: Final[subprocess.CompletedProcess[str]] = subprocess.run(
-        ["docker", "buildx", "history", "ls", "--format", "{{.Ref}}"],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    if listing.returncode:
-        return set()
-    refs: Final[set[str]] = {ref.rsplit("/", 1)[-1] for ref in listing.stdout.splitlines() if ref}
-    built: Final[set[str]] = set()
-    with ThreadPoolExecutor(max_workers=8) as executor:
-        for digests in executor.map(inspect_build_digests, refs):
-            built.update(digests & candidates)
-    return built
-
-
-def inspect_build_digests(ref: str) -> set[str]:
-    result: Final[subprocess.CompletedProcess[str]] = subprocess.run(
-        [
-            "docker",
-            "buildx",
-            "history",
-            "inspect",
-            ref,
-            "--format",
-            "{{range .Attachments}}{{.Digest}}{{println}}{{end}}",
-        ],
-        check=False,
-        capture_output=True,
-        text=True,
-    )
-    return set(result.stdout.splitlines()) if result.returncode == 0 else set()
-
-
 def has_registry_host(repo: str) -> bool:
     host, slash, _ = repo.partition("/")
     return bool(slash) and (host == "localhost" or "." in host or ":" in host)
-
-
-def is_local_image(image: str, repo: str) -> bool:
-    return image.endswith((":local", ":tmp")) or (repo.endswith("/built") and not has_registry_host(repo))
 
 
 def digests_for_repo(repo: str, entries: set[str]) -> set[str]:
