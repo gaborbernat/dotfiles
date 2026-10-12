@@ -28,6 +28,23 @@ keymap:
       Super-Q: Ctrl-Q
       Super-T: Ctrl-T
       Super-W: Ctrl-W
+  - name: Firefox tabs
+    application:
+      only: /firefox/
+    remap:
+      Super-1: Alt-1
+      Super-2: Alt-2
+      Super-3: Alt-3
+      Super-4: Alt-4
+      Super-5: Alt-5
+      Super-6: Alt-6
+      Super-7: Alt-7
+      Super-8: Alt-8
+      Super-9: Alt-9
+  - name: Other application tabs
+    application:
+      not: /ghostty|firefox/
+    remap:
       Super-1: Ctrl-1
       Super-2: Ctrl-2
       Super-3: Ctrl-3
