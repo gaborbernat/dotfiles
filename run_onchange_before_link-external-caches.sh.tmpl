@@ -8,33 +8,68 @@ set -euo pipefail
 external=/Volumes/OWC
 
 link() {
-    local home_path="$1" target="$2"
+    local home_path="$1" target="$2" backup="$1.chezmoi-backup"
     if [ -L "$home_path" ]; then
+        [ "$(readlink "$home_path")" = "$target" ] || { echo "Unexpected symlink: $home_path" >&2; return 1; }
         return
     fi
     mkdir -p "$target" "$(dirname "$home_path")"
-    # A real directory keeps its contents: they move to the external copy before it is replaced.
     if [ -d "$home_path" ]; then
-        cp -Rp "$home_path/." "$target/"
-        rm -rf "$home_path"
+        [ ! -e "$backup" ] || { echo "Backup already exists: $backup" >&2; return 1; }
+        cp -Rpn "$home_path/." "$target/"
+        mv "$home_path" "$backup"
+        if ! ln -s "$target" "$home_path"; then
+            mv "$backup" "$home_path"
+            return 1
+        fi
+        echo "Retained migration backup: $backup"
+    else
+        [ ! -e "$home_path" ] || { echo "Expected a directory: $home_path" >&2; return 1; }
+        ln -s "$target" "$home_path"
     fi
-    ln -s "$target" "$home_path"
     echo "linked $home_path -> $target"
 }
 
 link_file() {
-    local home_path="$1" target="$2"
+    local home_path="$1" target="$2" suffix backup cleanup_suffix
+    local -a files=()
     if [ -L "$home_path" ]; then
+        [ "$(readlink "$home_path")" = "$target" ] || { echo "Unexpected symlink: $home_path" >&2; return 1; }
         return
     fi
+    [ -f "$home_path" ] || return 0
+    command -v lsof >/dev/null || { echo "lsof is required to move $home_path" >&2; return 1; }
+    if lsof -t "$home_path" >/dev/null 2>&1; then
+        echo "Close the application using $home_path before applying chezmoi" >&2
+        return 1
+    fi
     mkdir -p "$(dirname "$target")"
-    # The -wal and -shm siblings belong to the same database and follow it.
     for suffix in "" -wal -shm; do
+        [ ! -e "$target$suffix" ] || { echo "Database target already exists: $target$suffix" >&2; return 1; }
         if [ -f "$home_path$suffix" ]; then
-            mv "$home_path$suffix" "$target$suffix"
-            ln -s "$target$suffix" "$home_path$suffix"
-            echo "linked $home_path$suffix -> $target$suffix"
+            backup="$home_path$suffix.chezmoi-backup"
+            [ ! -e "$backup" ] || { echo "Database backup already exists: $backup" >&2; return 1; }
+            files+=("$suffix")
         fi
+    done
+    for suffix in "${files[@]}"; do
+        if ! cp -p "$home_path$suffix" "$target$suffix" || ! cmp -s "$home_path$suffix" "$target$suffix"; then
+            for cleanup_suffix in "${files[@]}"; do rm -f "$target$cleanup_suffix"; done
+            return 1
+        fi
+    done
+    for suffix in "${files[@]}"; do
+        if ! mv "$home_path$suffix" "$home_path$suffix.chezmoi-backup" ||
+           ! ln -s "$target$suffix" "$home_path$suffix"; then
+            for cleanup_suffix in "${files[@]}"; do
+                [ ! -L "$home_path$cleanup_suffix" ] || rm "$home_path$cleanup_suffix"
+                [ ! -f "$home_path$cleanup_suffix.chezmoi-backup" ] ||
+                    mv "$home_path$cleanup_suffix.chezmoi-backup" "$home_path$cleanup_suffix"
+                rm -f "$target$cleanup_suffix"
+            done
+            return 1
+        fi
+        echo "linked $home_path$suffix -> $target$suffix (backup: $home_path$suffix.chezmoi-backup)"
     done
 }
 
