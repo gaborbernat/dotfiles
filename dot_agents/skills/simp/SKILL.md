@@ -45,8 +45,18 @@ idioms, mapping the Python specifics yourself (its formatter for `ruff`, its tes
    statement across several lines (a long log or exception message, a nested call argument), or because the identical
    subexpression repeats within one statement. Prefer the named two-line form over the inlined multi-line explosion.
    Readability, documenting intent, visual symmetry, and giving a comment a home are not exceptions — inline the value
-   and put any comment at the use site. A genuine module-scope configuration or taxonomy constant stays named (and typed
-   `Final` in Python); lifting a one-off local to module scope only to name or comment it does not make it one.
+   and put any comment at the use site. Lifting a one-off local to module scope only to name or comment it is not an
+   exception either — see *Module scope only for shared values*.
+
+1. **Module scope only for shared values.** A module-level constant or variable earns its place only when two or more
+   different functions or methods use it, or another module imports it (check every consumer, including sibling repos in
+   scope). A value used by a single function moves into that function, and is inlined there when used once — this covers
+   private `Final` constants, compiled regexes, lookup tables, and message strings alike. What stays at module scope
+   regardless: values the language or framework needs to exist there (decorator and default arguments, class bodies,
+   `__all__`, type aliases, `pytestmark`, migration revision IDs) and values whose identity must stay stable across
+   calls (a memoization key, a UI hook dependency, a styled component). The one cost exception: a large or
+   expensive-to-build value on a hot path stays global with a one-line comment saying so — moving it would rebuild it on
+   every call.
 
 1. **Descriptive names.** Give every name a descriptive word. Single-character names are allowed only as loop or
    comprehension targets (`[x.id for x in rows]`); everywhere else name the thing.
