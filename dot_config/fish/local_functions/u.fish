@@ -15,21 +15,25 @@ function u -d "Update all development tools (one mprocs tab per tool)"
     set -l stagefile $__fish_config_dir/local_functions/_u_stage.fish
     source $stagefile
 
+    set -l runner
+    if command -q mprocs
+        set runner mprocs
+    else if command -q dekit
+        set runner dekit mprocs
+    else
+        echo "u needs mprocs or dekit" >&2
+        return 127
+    end
+
     if contains dnf $stages
         sudo -v; or return $status
     end
     set -gx _U_STATUS_DIR (mktemp -d)
-    if command -q mprocs
-        set -l cmds
-        for s in $stages
-            set --append cmds "fish -lc 'source $stagefile; _u_stage $s'"
-        end
-        mprocs --proc-list-title "Upgrade packages" --names (string join , $stages) $cmds
-    else
-        for s in $stages
-            _u_stage $s
-        end
+    set -l cmds
+    for s in $stages
+        set --append cmds "fish -lc 'source $stagefile; _u_stage $s'"
     end
+    $runner --proc-list-title "Upgrade packages" --names (string join , $stages) $cmds
 
     set -l npass 0
     set -l nfail 0
