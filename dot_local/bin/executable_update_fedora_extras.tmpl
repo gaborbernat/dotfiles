@@ -7,8 +7,8 @@ if [[ ! -f /etc/fedora-release ]]; then
 fi
 
 update_firmware() {
-    sudo fwupdmgr refresh
-    sudo fwupdmgr update --assume-yes --no-reboot-check
+    sudo fwupdmgr refresh || [[ $? -eq 2 ]] || return 1
+    sudo fwupdmgr update --assume-yes --no-reboot-check || [[ $? -eq 2 ]]
 }
 
 update_extensions() {
