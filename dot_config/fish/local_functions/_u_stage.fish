@@ -16,7 +16,9 @@ function _u_stage -a name -d "Run one upgrade stage for u (one mprocs tab)"
             set -l user_status $status
             test $system_status -eq 0 -a $user_status -eq 0
         case brew
-            _u_run brew upgrade --greedy --yes
+            _u_run brew upgrade --formula --yes
+        case casks
+            _u_run brew upgrade --cask --greedy --yes
             set -l ok $status
             _u_run brew cleanup
             test $ok -eq 0

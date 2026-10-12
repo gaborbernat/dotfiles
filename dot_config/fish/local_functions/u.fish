@@ -1,7 +1,7 @@
 function u -d "Update all development tools (one mprocs tab per tool)"
     set -l stages uv rust cargo npm fisher docker
     if test (uname) = Darwin
-        set --prepend stages brew
+        set --prepend stages brew casks
     else if command -q dnf
         if command -q flatpak
             set stages dnf flatpak $stages
@@ -31,9 +31,14 @@ function u -d "Update all development tools (one mprocs tab per tool)"
     set -gx _U_STATUS_DIR (mktemp -d)
     set -l cmds
     for s in $stages
+        test "$s" = casks; and continue
         set --append cmds "fish -lc 'source $stagefile; _u_stage $s'"
     end
-    $runner --proc-list-title "Upgrade packages" --names (string join , $stages) $cmds
+    set -l parallel_stages (string match -v casks -- $stages)
+    $runner --proc-list-title "Upgrade packages" --names (string join , $parallel_stages) $cmds
+    if contains casks $stages
+        _u_stage casks
+    end
 
     set -l npass 0
     set -l nfail 0
