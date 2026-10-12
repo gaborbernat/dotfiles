@@ -1,5 +1,5 @@
 function dcr -d "Run a docker compose service then tear down"
-    argparse h/help b v no-rm -- $argv
+    argparse h/help b/build v no-rm -- $argv
     or return 1
     if set -q _flag_help
         echo "Usage: dcr [-b] [-v] [--no-rm] <service> [-- args...]"
@@ -23,7 +23,24 @@ function dcr -d "Run a docker compose service then tear down"
         echo "Usage: dcr [-b] [-v] [--no-rm] <service> [-- args...]" >&2
         return 1
     end
-    set -l flags --force-recreate --abort-on-container-exit --exit-code-from $argv[1]
+    set -l service $argv[1]
+    set -l service_args $argv[2..-1]
+    if set -q service_args[1]; and test "$service_args[1]" = --
+        set -e service_args[1]
+    end
+    set -l services (docker compose config --services)
+    or return $status
+    if not contains -- "$service" $services
+        echo "dcr: unknown service: $service" >&2
+        return 1
+    end
+    set -l existing (docker compose ps --all --quiet)
+    or return $status
+    if set -q existing[1]
+        echo "dcr: Compose project already has containers; refusing project-wide teardown" >&2
+        return 1
+    end
+    set -l flags --force-recreate --abort-on-container-exit --exit-code-from $service
     if set -q _flag_b
         set -a flags --build
     else if test -f Dockerfile
@@ -49,7 +66,15 @@ function dcr -d "Run a docker compose service then tear down"
             end
         end
     end
-    docker compose up $flags $argv
+    if set -q service_args[1]
+        set -l run_flags
+        if contains -- --build $flags
+            set run_flags --build
+        end
+        docker compose run $run_flags $service $service_args
+    else
+        docker compose up $flags $service
+    end
     set -l rc $status
     if not set -q _flag_no_rm
         set -l down_flags --remove-orphans
