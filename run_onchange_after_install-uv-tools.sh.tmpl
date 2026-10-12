@@ -1,5 +1,7 @@
 #!/bin/bash
 # uv tools hash: {{ include "dot_uv_tools.txt.tmpl" | sha256sum }}
+{{- $workTools := joinPath .chezmoi.homeDir ".local/share/chezmoi-private/uv_tools_work.txt" }}
+# Work uv tools hash: {{ if stat $workTools }}{{ output "cat" $workTools | sha256sum }}{{ else }}none{{ end }}
 set -euo pipefail
 
 export PATH="$HOME/.local/bin:$PATH"
