@@ -1,0 +1,6 @@
+{
+  "uuid": "magnet-tiling@bernat.tech",
+  "name": "Magnet Tiling",
+  "description": "Tile windows to screen halves and step them across monitors like Magnet on macOS",
+  "shell-version": ["50"]
+}

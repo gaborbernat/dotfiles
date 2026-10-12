@@ -61,4 +61,12 @@ done
 gsettings set org.gnome.shell.keybindings toggle-message-tray "['<Super>m']"
 gsettings set org.gnome.mutter.keybindings switch-monitor "['XF86Display']"
 gsettings set org.gnome.shell.keybindings show-screenshot-ui "['Print', '<Super>p']"
+# Super+arrows go to Ghostty split navigation; Shift+Super+arrows drive magnet-tiling@bernat.tech.
+gsettings set org.gnome.mutter.keybindings toggle-tiled-left "['<Shift><Super>Left']"
+gsettings set org.gnome.mutter.keybindings toggle-tiled-right "['<Shift><Super>Right']"
+gsettings set org.gnome.desktop.wm.keybindings maximize "['<Shift><Super>Up']"
+gsettings set org.gnome.desktop.wm.keybindings unmaximize "['<Shift><Super>Down', '<Alt>F5']"
+for direction in left right up down; do
+    gsettings set org.gnome.desktop.wm.keybindings "move-to-monitor-$direction" '@as []'
+done
 echo "xremap extension enabled"
