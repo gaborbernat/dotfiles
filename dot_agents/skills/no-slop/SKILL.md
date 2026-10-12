@@ -28,7 +28,7 @@ voice.
 ## Code artifacts
 
 For PRs, commits, comments, docstrings, naming, and code structure, see [references/code.md](references/code.md). Use
-`/simp` when Python style work is in scope.
+`/simp` when code style work is in scope.
 
 ## Quick checks
 
