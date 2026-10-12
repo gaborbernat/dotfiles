@@ -1,0 +1,93 @@
+#!/usr/bin/python3
+"""Keep RustDesk's Wayland screencast restore token pointed at the primary monitor.
+
+xdg-desktop-portal deletes a restore token from the permission store as soon as it is used, and GNOME rejects it if
+any monitor it names is missing. One connection while a monitor is unplugged therefore loses the selection for good.
+Rewriting the entry on every monitor change keeps the token valid and bound to whatever monitor is primary.
+"""
+
+import logging
+import time
+import tomllib
+from pathlib import Path
+from typing import Final
+
+import gi
+
+gi.require_version("Gio", "2.0")
+from gi.repository import Gio, GLib  # ruff: ignore[module-import-not-at-top-of-file] # ty: ignore[unresolved-import] # require_version must run first; gi modules are generated at runtime
+
+_CONFIG: Final = Path.home() / ".config/rustdesk/RustDesk_local.toml"
+_MUTTER: Final = ("org.gnome.Mutter.DisplayConfig", "/org/gnome/Mutter/DisplayConfig", "org.gnome.Mutter.DisplayConfig")
+_STORE: Final = (
+    "org.freedesktop.impl.portal.PermissionStore",
+    "/org/freedesktop/impl/portal/PermissionStore",
+    "org.freedesktop.impl.portal.PermissionStore",
+)
+_HOST_APP_ID: Final = ""
+_SOURCE_TYPE_MONITOR: Final = 1
+_LOG: Final = logging.getLogger("rustdesk-pin-primary")
+
+
+def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    bus = Gio.bus_get_sync(Gio.BusType.SESSION)
+    bus.signal_subscribe(
+        _MUTTER[0], _MUTTER[2], "MonitorsChanged", _MUTTER[1], None, Gio.DBusSignalFlags.NONE, lambda *_: pin(bus)
+    )
+    pin(bus)
+    GLib.MainLoop().run()
+
+
+def pin(bus: Gio.DBusConnection) -> None:
+    if not (token := restore_token()):
+        _LOG.info("no restore token in %s yet, pick a screen in RustDesk once", _CONFIG)
+        return
+    if (match := primary_match_string(bus)) is None:
+        _LOG.info("no primary monitor")
+        return
+    if stored_match_strings(bus, token) == [match]:
+        return
+    now = time.time_ns() // 1000
+    streams = [(0, _SOURCE_TYPE_MONITOR, GLib.Variant("s", match))]
+    data = GLib.Variant("(suv)", ("GNOME", 1, GLib.Variant("(xxa(uuv))", (now, now, streams))))
+    args = GLib.Variant("(sbsa{sas}v)", ("screencast", True, token, {_HOST_APP_ID: ["yes"]}, data))
+    call(bus, _STORE, "Set", args)
+    _LOG.info("pinned restore token to %s", match)
+
+
+def restore_token() -> str:
+    try:
+        return tomllib.loads(_CONFIG.read_text())["options"].get("wayland-restore-token", "")
+    except (FileNotFoundError, KeyError, tomllib.TOMLDecodeError) as exc:
+        _LOG.warning("cannot read %s: %r", _CONFIG, exc)
+        return ""
+
+
+def primary_match_string(bus: Gio.DBusConnection) -> str | None:
+    _, _, logical_monitors, _ = call(bus, _MUTTER, "GetCurrentState", None).unpack()
+    for _, _, _, _, primary, monitors, _ in logical_monitors:
+        if primary:
+            connector, vendor, product, serial = monitors[0]
+            # Mirrors xdg-desktop-portal-gnome's displaystatetracker.c match string
+            return connector if vendor == product == serial == "unknown" else f"{vendor}:{product}:{serial}"
+    return None
+
+
+def stored_match_strings(bus: Gio.DBusConnection, token: str) -> list[str] | None:
+    try:
+        _, data = call(bus, _STORE, "Lookup", GLib.Variant("(ss)", ("screencast", token))).unpack()
+    except GLib.Error as exc:
+        if Gio.DBusError.get_remote_error(exc) != "org.freedesktop.portal.Error.NotFound":
+            raise
+        return None
+    _, _, (_, _, streams) = data
+    return [stream_data for _, _, stream_data in streams]
+
+
+def call(bus: Gio.DBusConnection, target: tuple[str, str, str], method: str, args: GLib.Variant | None) -> GLib.Variant:
+    return bus.call_sync(target[0], target[1], target[2], method, args, None, Gio.DBusCallFlags.NONE, -1, None)
+
+
+if __name__ == "__main__":
+    main()

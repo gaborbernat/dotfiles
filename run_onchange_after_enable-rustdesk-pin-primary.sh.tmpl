@@ -1,0 +1,8 @@
+#!/bin/bash
+# Service hash: {{ include "dot_config/systemd/user/rustdesk-pin-primary.service" | sha256sum }}
+# Script hash: {{ include "dot_local/bin/executable_rustdesk-pin-primary" | sha256sum }}
+set -euo pipefail
+
+systemctl --user daemon-reload
+systemctl --user enable rustdesk-pin-primary.service
+systemctl --user restart rustdesk-pin-primary.service
