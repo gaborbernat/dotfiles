@@ -4,7 +4,7 @@
 #     "rich>=15.0.0",
 # ]
 # ///
-"""Update images with matching registry digests without removing local Docker data."""
+"""Update images pulled from a registry without removing local Docker data."""
 
 from __future__ import annotations
 
@@ -20,7 +20,7 @@ import time
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Final
+from typing import Any, Final
 
 from rich import box
 from rich.console import Console
@@ -81,11 +81,29 @@ def scan_images() -> list[ImageStatus]:
     built_digests: Final[set[str]] = local_build_digests({row[2] for row in rows})
     registry: list[ImageStatus] = []
     for image, image_id, digest, size in rows:
+<<<<<<< Updated upstream
         repo_digests, created, image_platform = inspected.get(image_id, (None, None, ""))
         if repo_digests is None or digest in built_digests:
+||||||| Stash base
+        repo_digests, created, image_platform = inspected.get(image_id, (None, None, ""))
+        if repo_digests is None:
+=======
+        if (info := inspected.get(image_id)) is None:
+>>>>>>> Stashed changes
             continue
+        repo_digests, created, image_platform, pulled_from = info
         repo = image.rsplit(":", 1)[0]
+<<<<<<< Updated upstream
         if not is_local_image(image, repo) and (matched := digests_for_repo(repo, repo_digests)):
+||||||| Stash base
+        if (has_registry_host(repo) or not image.endswith(":local")) and (
+            matched := digests_for_repo(repo, repo_digests)
+        ):
+=======
+        # The containerd store gives local builds a RepoDigest of their own name, so only Identity.Pull
+        # tells a registry pull apart from a build, load, or local tag.
+        if canonical_repo(repo) in pulled_from and (matched := digests_for_repo(repo, repo_digests)):
+>>>>>>> Stashed changes
             registry.append(
                 ImageStatus(
                     image=image,
@@ -100,10 +118,13 @@ def scan_images() -> list[ImageStatus]:
     return registry
 
 
-def bulk_inspect(image_ids: list[str]) -> dict[str, tuple[set[str], datetime | None, str]]:
+def bulk_inspect(image_ids: list[str]) -> dict[str, tuple[set[str], datetime | None, str, set[str]]]:
     if not image_ids:
         return {}
+    # Raw JSON rather than --format: Docker omits Identity for images it has no record for, and a
+    # template referencing a missing key aborts the whole batch.
     result: subprocess.CompletedProcess[str] = subprocess.run(
+<<<<<<< Updated upstream
         [
             "docker",
             "image",
@@ -115,6 +136,18 @@ def bulk_inspect(image_ids: list[str]) -> dict[str, tuple[set[str], datetime | N
             ),
             *sorted(set(image_ids)),
         ],
+||||||| Stash base
+        [
+            "docker",
+            "image",
+            "inspect",
+            "--format",
+            "{{.Id}}\t{{json .RepoDigests}}\t{{.Created}}\t{{.Os}}/{{.Architecture}}",
+            *sorted(set(image_ids)),
+        ],
+=======
+        ["docker", "image", "inspect", *sorted(set(image_ids))],
+>>>>>>> Stashed changes
         check=False,
         capture_output=True,
         text=True,
@@ -122,15 +155,22 @@ def bulk_inspect(image_ids: list[str]) -> dict[str, tuple[set[str], datetime | N
     if result.returncode:
         msg = f"docker image inspect failed: {short_error(result.stderr)}"
         raise RuntimeError(msg)
-    inspected: dict[str, tuple[set[str], datetime | None, str]] = {}
-    for line in result.stdout.splitlines():
-        image_id, _, rest = line.partition("\t")
-        digests_json, _, rest = rest.partition("\t")
-        created, _, image_platform = rest.partition("\t")
-        # {{json .RepoDigests}} emits "null" for a nil slice, which json.loads -> None; coerce to empty.
-        digests = json.loads(digests_json) if digests_json.strip() else []
-        inspected[image_id] = (set(digests or []), parse_created(created), image_platform)
-    return inspected
+    entries: list[dict[str, Any]] = json.loads(result.stdout)
+    return {
+        entry["Id"]: (
+            set(entry.get("RepoDigests") or []),
+            parse_created(entry.get("Created", "")),
+            f"{entry.get('Os', '')}/{entry.get('Architecture', '')}",
+            {pull["Repository"] for pull in (entry.get("Identity") or {}).get("Pull") or []},
+        )
+        for entry in entries
+    }
+
+
+def canonical_repo(repo: str) -> str:
+    if has_registry_host(repo):
+        return repo
+    return f"docker.io/{repo}" if "/" in repo else f"docker.io/library/{repo}"
 
 
 def local_build_digests(candidates: set[str]) -> set[str]:
