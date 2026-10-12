@@ -1,9 +1,9 @@
 # /// script
 # requires-python = ">=3.14"
 # dependencies = [
-#     "pygithub>=2.8.1",
-#     "rich>=14.2",
-#     "rich-argparse>=1.7.2",
+#     "pygithub>=2.10.0",
+#     "rich>=15.0.0",
+#     "rich-argparse>=1.8.0",
 #     "truststore>=0.10.4",
 # ]
 # ///
@@ -423,10 +423,21 @@ def get_stale_branches(default_branch: str, stale_days: int, opts: Options) -> l
     return stale_branches
 
 
+def remote_branch_tip(remote: str, branch: str) -> str | None:
+    result = subprocess.run(
+        ["git", "ls-remote", "--heads", remote, f"refs/heads/{branch}"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    return result.stdout.partition("\t")[0] if result.returncode == 0 else None
+
+
 def delete_branch_and_remotes(
     branch: str, default_branch: str, opts: Options, console: Console, remotes: tuple[bool, bool]
 ) -> None:
     switch_if_current_branch(branch, default_branch, opts, console)
+    local_tip = run_git(["git", "rev-parse", branch], opts, capture=True).strip()
 
     run_git(["git", "branch", "-D", branch], opts)
     console.print(f"[green]✓ Deleted local branch {branch}[/green]")
@@ -436,7 +447,11 @@ def delete_branch_and_remotes(
     for remote, wanted in (("origin", delete_origin), ("upstream", delete_upstream)):
         if not wanted:
             continue
-        if run_git_ok(["git", "push", remote, "--delete", branch], opts):
+        if (remote_tip := remote_branch_tip(remote, branch)) != local_tip:
+            console.print(f"[yellow]⚠ Kept {remote}/{branch}: remote tip differs or could not be verified[/yellow]")
+        elif run_git_ok(
+            ["git", "push", f"--force-with-lease=refs/heads/{branch}:{remote_tip}", remote, "--delete", branch], opts
+        ):
             console.print(f"[green]✓ Deleted remote branch {remote}/{branch}[/green]")
         else:
             console.print(f"[yellow]⚠ Could not delete remote branch {remote}/{branch}[/yellow]")
@@ -631,7 +646,13 @@ def delete_remote_only_branch(branch: str, opts: Options, console: Console, remo
     for remote, wanted in (("origin", has_origin), ("upstream", has_upstream)):
         if not wanted:
             continue
-        if run_git_ok(["git", "push", remote, "--delete", branch], opts):
+        expected_tip = run_git(["git", "rev-parse", f"{remote}/{branch}"], opts, capture=True, check=False).strip()
+        remote_tip = remote_branch_tip(remote, branch)
+        if not expected_tip or remote_tip != expected_tip:
+            console.print(f"[yellow]⚠ Kept {remote}/{branch}: remote tip changed or could not be verified[/yellow]")
+        elif run_git_ok(
+            ["git", "push", f"--force-with-lease=refs/heads/{branch}:{remote_tip}", remote, "--delete", branch], opts
+        ):
             console.print(f"[green]✓ Deleted remote branch {remote}/{branch}[/green]")
         else:
             console.print(f"[yellow]⚠ Could not delete remote branch {remote}/{branch}[/yellow]")

@@ -30,6 +30,16 @@ function wl -d "List worktrees for bare repo (interactive: enter=cd, ctrl-d=dele
                     set --local last_commit (git -C "$wt_path" log -1 --format="%cr" 2>/dev/null)
                     set --local last_ts (git -C "$wt_path" log -1 --format="%ct" 2>/dev/null)
                     test -z "$last_ts"; and set last_ts 0
+                    set --local changes (git -C "$wt_path" status --porcelain --untracked-files=all 2>/dev/null)
+                    set --local status_code $status
+                    set --local untracked
+                    set --local state clean
+                    if test $status_code -ne 0
+                        set state unavailable
+                    else if set -q changes[1]
+                        set untracked (string match -r '^\?\?' -- $changes)
+                        set state (math (count $changes) - (count $untracked))" modified, "(count $untracked)" untracked"
+                    end
 
                     set --local upstream_info local
                     if test -n "$branch"; and git -C "$bare_root" rev-parse "origin/$branch" &>/dev/null
@@ -49,7 +59,7 @@ function wl -d "List worktrees for bare repo (interactive: enter=cd, ctrl-d=dele
                         end
                     end
 
-                    set --append entries (printf "%s\t%-24s %-15s %s\t%s\t%s" "$last_ts" "$wt_name" "$last_commit" "$upstream_info" "$wt_path" "$branch")
+                    set --append entries (printf "%s\t%-24s %-15s %-22s %s\t%s\t%s" "$last_ts" "$wt_name" "$last_commit" "$state" "$upstream_info" "$wt_path" "$branch")
                 end
                 set wt_path (string replace 'worktree ' '' -- $line)
                 set branch ""
@@ -66,7 +76,7 @@ function wl -d "List worktrees for bare repo (interactive: enter=cd, ctrl-d=dele
         set entries (printf '%s\n' $entries | sort -t (printf '\t') -k1,1 -rn | cut -f2-)
     end
 
-    set --local legend (printf "%-24s %-15s %s" "WORKTREE" "LAST COMMIT" "ORIGIN")
+    set --local legend (printf "%-24s %-15s %-22s %s" "WORKTREE" "LAST COMMIT" "STATE" "ORIGIN")
     set --local header (basename "$bare_root")" (bare) | enter=cd, c=create, o=open PR, d=delete (multi), r=refresh, q=quit
 $legend"
     set --local result (printf '%s\n' $entries | fzf --height=~50% --header="$header" --expect=c,o,d,r --bind=q:abort --delimiter='\t' --with-nth=1 --multi)
@@ -118,7 +128,7 @@ $legend"
 end
 
 function _wl_remove_worktree -a bare_root wt_path wt_name branch default_branch
-    set --local start_time (gdate +%s.%N 2>/dev/null; or date +%s)
+    set --local start_time (command -q gdate; and gdate +%s.%N; or date +%s)
     echo "Removing worktree '$wt_name'..."
 
     # Only reap a lock we can prove is stale: a live-pid agent lock means the tree is in use, and a
@@ -143,26 +153,32 @@ function _wl_remove_worktree -a bare_root wt_path wt_name branch default_branch
             git -C "$bare_root" worktree remove --force "$wt_path" 2>/dev/null
             or _wl_force_remove "$bare_root" "$wt_path"
         end
-        printf "Failed to remove %s (%.2fs)\n" "$wt_name" (math (gdate +%s.%N 2>/dev/null; or date +%s) - "$start_time")
+        printf "Failed to remove %s (%.2fs)\n" "$wt_name" (math (command -q gdate; and gdate +%s.%N; or date +%s) - "$start_time")
         return 1
     end
 
     if test -n "$branch"
         set --local merged (git -C "$bare_root" merge-base --is-ancestor "$branch" "$default_branch" 2>/dev/null; and echo 1)
-        set --local has_remote (git -C "$bare_root" rev-parse --verify "origin/$branch" &>/dev/null; and echo 1)
+        set --local local_sha (git -C "$bare_root" rev-parse --verify "$branch" 2>/dev/null)
+        set --local remote_line (git -C "$bare_root" ls-remote --heads origin "refs/heads/$branch" 2>/dev/null)
+        set --local remote_status $status
+        set --local remote_sha (string split -f1 \t -- "$remote_line")
         git -C "$bare_root" branch -D "$branch" 2>/dev/null; and echo "Deleted local branch $branch"
-        if test -n "$has_remote"
-            # A force-deleted local branch is still in the reflog; a deleted remote one is not.
+        if test $remote_status -ne 0
+            echo "⚠ Could not verify remote origin/$branch; kept it"
+        else if test -n "$remote_sha"
             if test -z "$merged"
                 echo "⚠ Kept remote origin/$branch (not merged into $default_branch)"
-            else if git -C "$bare_root" push origin --delete "$branch" 2>/dev/null
+            else if test "$remote_sha" != "$local_sha"
+                echo "⚠ Kept remote origin/$branch (tip differs from local branch)"
+            else if git -C "$bare_root" push --force-with-lease="refs/heads/$branch:$remote_sha" origin --delete "$branch" 2>/dev/null
                 echo "Deleted remote branch origin/$branch"
             else
                 echo "⚠ Could not delete remote origin/$branch"
             end
         end
     end
-    printf "Removed %s (%.2fs)\n" "$wt_name" (math (gdate +%s.%N 2>/dev/null; or date +%s) - "$start_time")
+    printf "Removed %s (%.2fs)\n" "$wt_name" (math (command -q gdate; and gdate +%s.%N; or date +%s) - "$start_time")
 end
 
 function _wl_lock_reason -a bare_root wt_path
