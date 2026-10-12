@@ -84,9 +84,7 @@ def scan_images() -> list[ImageStatus]:
         if repo_digests is None:
             continue
         repo = image.rsplit(":", 1)[0]
-        if (has_registry_host(repo) or not image.endswith(":local")) and (
-            matched := digests_for_repo(repo, repo_digests)
-        ):
+        if not is_local_image(image, repo) and (matched := digests_for_repo(repo, repo_digests)):
             registry.append(
                 ImageStatus(
                     image=image,
@@ -134,6 +132,10 @@ def bulk_inspect(image_ids: list[str]) -> dict[str, tuple[set[str], datetime | N
 def has_registry_host(repo: str) -> bool:
     host, slash, _ = repo.partition("/")
     return bool(slash) and (host == "localhost" or "." in host or ":" in host)
+
+
+def is_local_image(image: str, repo: str) -> bool:
+    return image.endswith(":local") or (repo.endswith("/built") and not has_registry_host(repo))
 
 
 def digests_for_repo(repo: str, entries: set[str]) -> set[str]:
