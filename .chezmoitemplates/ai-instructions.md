@@ -65,6 +65,27 @@ line breaks keep their structure.
 # Tool Preferences
 
 For Python projects I use ruff for format and linting, and ty for type checking. I align at 120 characters.
+{{- if eq .chezmoi.hostname "pc" }}
+
+# Windows testing
+
+This machine has a Windows 11 VM for running code on Windows. I use it when a change touches platform-specific behavior
+(paths, subprocess, file locking, symlinks, console encoding, `sys.platform` branches) or a Windows CI job fails, instead
+of guessing from Linux. Other agents share it, so I only touch it through `winvm`, which gives each agent its own lease
+and `C:\src` directory:
+
+```bash
+winvm up                    # start the VM if needed and take my lease
+winvm sync                  # copy this git working tree, uncommitted changes included, to my directory
+winvm run 'tox -e 3.14'     # PowerShell in my directory; the exit code comes back
+winvm down                  # drop my lease and directory; stops the VM only if no other agent holds a lease
+```
+
+The shell is Windows PowerShell 5.1: I chain commands with `;`, not `&&`. `sync` copies tracked files and the current
+changes to them, so I `git add` new files first. Python 3.11 to 3.15 come from uv's standalone builds: I call
+`python3.14` or `uv run --python 3.14`, because a bare `python` opens the Microsoft Store stub. tox (with tox-uv) and Git
+are on the PATH. I never run `docker compose down -v` on the VM: it deletes the disk and forces a full reinstall.
+{{- end }}
 
 # Documentation (when docs are requested)
 
