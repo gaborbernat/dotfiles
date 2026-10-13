@@ -99,6 +99,25 @@ The Antec Flux Pro display needs a [separate community driver](scripts/fedora/fl
 bash "$(chezmoi source-path)/scripts/fedora/flux-pro/setup.sh"
 ```
 
+A Windows 11 VM for testing Python projects runs in Docker through [dockur/windows](https://github.com/dockur/windows).
+The first start downloads Windows and installs it unattended. The
+[first-logon script](dot_config/windows-vm/oem/setup.ps1) enables long paths and OpenSSH with your
+`~/.ssh/id_ed25519.pub`, and installs uv, Python 3.11 to 3.15, tox with tox-uv, and Git. It stays off until something
+starts it:
+
+```bash
+docker compose -f ~/.config/windows-vm/compose.yml up -d    # first install; watch at http://localhost:8006
+winvm ssh                                                   # PowerShell over SSH as $USER
+```
+
+[`winvm`](dot_local/bin/executable_winvm) lets several agents share the VM: each `winvm up` holds a shared `flock` for
+as long as the calling process lives, and `winvm down` stops the VM only when no other lease remains. A stop in progress
+holds the lock exclusively, so a concurrent `up` waits for it and then boots the VM again.
+
+Ports listen on localhost only. The Windows password defaults to `admin`; set `WINDOWS_VM_PASSWORD` before the first
+start to change it. The script only runs on that first install, so changes to it need
+`docker compose -f ~/.config/windows-vm/compose.yml down -v` to reinstall.
+
 Sign in to Insync and select the Google Drive folders to sync. Sign in to Steam and enable Steam Play in its
 Compatibility settings for Windows games. GameMode, MangoHud, and Gamescope are installed; add their launch options per
 game.

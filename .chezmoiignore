@@ -80,4 +80,6 @@ enable-opener-sock-gc-timer.sh
 enable-agent-awake.sh
 .local/bin/rustdesk-pin-primary
 enable-rustdesk-pin-primary.sh
+.config/windows-vm
+.local/bin/winvm
 {{ end }}

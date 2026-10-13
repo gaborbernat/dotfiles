@@ -1,0 +1,29 @@
+name: windows-vm
+services:
+  windows:
+    image: dockurr/windows:6.05
+    container_name: windows-vm
+    environment:
+      VERSION: "11"
+      USERNAME: ${USER}
+      PASSWORD: ${WINDOWS_VM_PASSWORD:-admin}
+      RAM_SIZE: 16G
+      CPU_CORES: "8"
+      DISK_SIZE: 128G
+    devices:
+      - /dev/kvm
+      - /dev/net/tun
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - 127.0.0.1:8006:8006
+      - 127.0.0.1:3389:3389/tcp
+      - 127.0.0.1:3389:3389/udp
+      - 127.0.0.1:2222:22
+    volumes:
+      - storage:/storage
+      - ./oem:/oem:Z
+    restart: "no"
+    stop_grace_period: 2m
+volumes:
+  storage:

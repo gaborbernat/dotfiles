@@ -1,0 +1,123 @@
+#!/bin/bash
+# Shares the Windows test VM between agents. `up` takes a shared flock held by a background process that lives as
+# long as the calling agent, so a crashed agent releases it on its own. `down` stops the VM only when it can take the
+# lock exclusively, and a start blocks on its shared lock while a stop is in progress.
+set -euo pipefail
+
+state="$HOME/.local/state/windows-vm"
+lock="$state/lock"
+compose=(docker compose -f "$HOME/.config/windows-vm/compose.yml")
+# The VM gets a new host key on every reinstall
+remote=(ssh -p 2222 -o BatchMode=yes -o ConnectTimeout=5 -o LogLevel=ERROR -o StrictHostKeyChecking=no
+    -o UserKnownHostsFile=/dev/null "$USER@localhost")
+mkdir -p "$state/holders"
+
+usage() {
+    cat <<'EOF'
+Usage: winvm <command>
+
+Share the Windows 11 test VM between agents.
+
+Commands:
+  up          Start the VM if needed, hold a lease for the calling agent, wait for SSH
+  sync        Copy the git working tree (tracked and staged files) to this agent's directory
+  run <cmd>   Run a PowerShell command in this agent's directory
+  ssh [cmd]   Run a PowerShell command in the home directory, or open a shell
+  down        Drop this agent's lease and directory, stop the VM if no other lease is held
+  status      Show whether the VM runs and which agents hold a lease
+
+The lease lasts until `down` or until the calling agent process exits.
+EOF
+}
+
+# The first ancestor that is not a shell is the agent (claude, codex) or the terminal running this command
+owner() {
+    local pid=$PPID comm
+    while [ "$pid" -gt 1 ]; do
+        comm=$(ps -o comm= -p "$pid")
+        case "$comm" in
+            bash | sh | dash | zsh | fish | env | timeout | winvm) pid=$(ps -o ppid= -p "$pid" | tr -d ' ') ;;
+            *) echo "$pid" && return ;;
+        esac
+    done
+    echo $PPID
+}
+
+workdir() {
+    echo "C:\\src\\$(basename "$PWD")-$(owner)"
+}
+
+holder_alive() {
+    local pid_file="$state/holders/$1"
+    [ -f "$pid_file" ] && kill -0 "$(cat "$pid_file")" 2>/dev/null
+}
+
+up() {
+    local agent ready
+    agent=$(owner)
+    if ! holder_alive "$agent"; then
+        ready="$state/holders/$agent.ready"
+        rm -f "$ready"
+        # shellcheck disable=SC2016 # $1 and $2 expand in the inner sh, not here
+        setsid flock -s -o "$lock" sh -c 'touch "$1"; exec tail --pid="$2" -f /dev/null' _ "$ready" "$agent" \
+            </dev/null >/dev/null 2>&1 &
+        echo $! >"$state/holders/$agent"
+        until [ -f "$ready" ]; do sleep 1; done
+        rm -f "$ready"
+    fi
+    "${compose[@]}" up -d --quiet-pull 2>&1 | grep -v -e '^ Container .* Running *$' -e '^$' || true
+    until "${remote[@]}" exit 2>/dev/null; do sleep 3; done
+    echo "VM ready, lease held by PID $agent"
+}
+
+sync() {
+    local dir snapshot
+    dir=$(workdir)
+    snapshot=$(git stash create)
+    git archive --format=tar "${snapshot:-HEAD}" |
+        "${remote[@]}" "cmd /c \"(if exist $dir rmdir /s /q $dir) & mkdir $dir && tar -xf - -C $dir\""
+    echo "$dir"
+}
+
+run() {
+    "${remote[@]}" "Set-Location $(workdir); $*; exit \$LASTEXITCODE"
+}
+
+down() {
+    local agent dir
+    agent=$(owner)
+    dir=$(workdir)
+    if "${remote[@]}" exit 2>/dev/null; then
+        "${remote[@]}" "if (Test-Path $dir) { Remove-Item -Recurse -Force $dir }"
+    fi
+    if holder_alive "$agent"; then
+        kill -- "-$(cat "$state/holders/$agent")"
+    fi
+    rm -f "$state/holders/$agent"
+    if flock -x -n "$lock" "${compose[@]}" stop; then
+        echo "VM stopped"
+    else
+        echo "VM left running for other agents"
+    fi
+}
+
+status() {
+    local pid_file
+    docker ps -a --filter name=windows-vm --format '{{.Status}}'
+    for pid_file in "$state"/holders/*; do
+        [ -f "$pid_file" ] || continue
+        if holder_alive "$(basename "$pid_file")"; then
+            echo "lease: $(basename "$pid_file") $(ps -o comm= -p "$(basename "$pid_file")")"
+        else
+            rm -f "$pid_file"
+        fi
+    done
+}
+
+case "${1:-}" in
+    up | sync | down | status) "$1" ;;
+    run) shift && run "$@" ;;
+    ssh) shift && exec "${remote[@]}" "$@" ;;
+    -h | --help | help) usage ;;
+    *) usage >&2 && exit 2 ;;
+esac
