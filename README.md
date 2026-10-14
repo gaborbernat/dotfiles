@@ -128,9 +128,11 @@ on [gamescope#2358](https://github.com/ValveSoftware/gamescope/pull/2358). For H
 SteamOS-style [session](scripts/fedora/gamescope-session/install.sh) from
 [ChimeraOS](https://github.com/ChimeraOS/gamescope-session) drives the TV directly while your desktop session keeps
 running (Ctrl+Alt+F2 returns to it). The first apply creates the user, the shared `/home/games/steam` library, and the
-login-screen avatars and monitor layout; set its password with `sudo passwd gaming`. Quit desktop Steam before
-switching, since it keeps the controller open. In the gaming session, turn on Bluetooth under Steam's settings, or Steam
-powers the adapter off for both users. Fish `u` shows new upstream session commits and installs them after you confirm.
+login-screen avatars and monitor layout; set its password with `sudo passwd gaming`. Steam keeps a library list per
+account, so start and quit Steam once as each user, then rerun the installer to register the shared library for both.
+Quit desktop Steam before switching, since it keeps the controller open. In the gaming session, turn on Bluetooth under
+Steam's settings, or Steam powers the adapter off for both users. Fish `u` shows new upstream session commits and
+installs them after you confirm.
 
 For iMessage on Fedora, [BlueBubbles](https://bluebubbles.app/install/) needs its server running on an awake Mac signed
 in to Messages. Complete the server's Full Disk Access, notification, and connection setup on the Mac, then connect the

@@ -172,6 +172,30 @@ ENABLE_GAMESCOPE_WSI=1
 ENABLE_GAMESCOPE_HDR=1
 EOF
 
+# Each Steam account keeps its own library list, so the shared library stays invisible
+# (and its games show as not installed) until it is registered for that user. Steam
+# rewrites the list from memory on exit, so edit it only while that user's Steam is closed;
+# Steam fills in the remaining fields from the library's own libraryfolder.vdf.
+for user in "$main_user" "$GAMING_USER"; do
+    folders="$(getent passwd "$user" | cut -d: -f6)/.local/share/Steam/steamapps/libraryfolders.vdf"
+    if [[ ! -f "$folders" ]]; then
+        echo "Start Steam once as '$user', quit it, then rerun to add the shared library."
+    elif grep -Fq "\"$LIBRARY\"" "$folders"; then
+        continue
+    elif pgrep --uid "$user" --exact steam >/dev/null; then
+        echo "Quit Steam for '$user', then rerun to add the shared library."
+    else
+        index=$(grep -cP '^\t"\d+"$' "$folders")
+        {
+            sed '$d' "$folders"
+            printf '\t"%s"\n\t{\n\t\t"path"\t\t"%s"\n\t\t"label"\t\t""\n\t\t"apps"\n\t\t{\n\t\t}\n\t}\n}\n' \
+                "$index" "$LIBRARY"
+        } >"$workdir/libraryfolders.vdf"
+        install --owner="$user" --group="$user" --mode=0644 "$workdir/libraryfolders.vdf" "$folders"
+        echo "Added $LIBRARY to the Steam libraries of '$user'."
+    fi
+done
+
 # Mutter reads monitors.xml from the system config dirs as a fallback for every user,
 # which covers the GDM greeter whatever dynamic user it runs as.
 layout="$main_home/.config/monitors.xml"
