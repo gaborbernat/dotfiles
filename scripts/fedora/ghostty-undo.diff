@@ -301,3 +301,21 @@ index 6f2cc31..77d78b2 100644
      undo,
  
      /// Redo the last undoable action for the focused surface or terminal,
+diff --git a/src/apprt/gtk/class/split_tree.zig b/src/apprt/gtk/class/split_tree.zig
+--- a/src/apprt/gtk/class/split_tree.zig
++++ b/src/apprt/gtk/class/split_tree.zig
+@@ -770,6 +770,14 @@
+         const tree = self.getTree() orelse return;
+         priv.pending_close = tree.locate(surface) orelse return;
+ 
++        var iterator = tree.iterator();
++        _ = iterator.next();
++        if (iterator.next() == null and surface.as(gtk.Widget).activateAction(
++            "tab.close",
++            glib.ext.VariantType.stringFor([:0]const u8),
++            "this",
++        ) != 0) return;
++
+         // If we don't need to confirm then just close immediately.
+         if (!core.needsConfirmQuit()) {
+             closeConfirmationClose(
