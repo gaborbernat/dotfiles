@@ -1,0 +1,11 @@
+headerbar {
+  min-height: 36px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+headerbar button {
+  min-height: 28px;
+  padding-top: 0;
+  padding-bottom: 0;
+}

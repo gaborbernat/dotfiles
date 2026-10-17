@@ -72,6 +72,9 @@ configure-fedora-workspaces.sh
 {{ if eq .chezmoi.os "darwin" }}
 install-apt-packages.sh
 .apt_packages.txt
+.config/gtk-3.0
+.config/gtk-4.0
+configure-gtk-headerbar.sh
 {{ end }}
 {{ if and (eq .chezmoi.os "linux") (ne (get .chezmoi.osRelease "id") "fedora") }}
 .config/ghostty
