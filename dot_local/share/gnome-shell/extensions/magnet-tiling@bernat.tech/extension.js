@@ -32,8 +32,16 @@ function tileToward(window, direction) {
 }
 
 function tile(window, monitor, side) {
-    if (window.is_fullscreen())
+    if (window.is_fullscreen()) {
+        const signal = window.connect('notify::fullscreen', () => {
+            if (window.is_fullscreen())
+                return;
+            window.disconnect(signal);
+            tile(window, monitor, side);
+        });
         window.unmake_fullscreen();
+        return;
+    }
     if (window.is_maximized())
         window.unmaximize();
     if (!states.has(window))
@@ -44,6 +52,10 @@ function tile(window, monitor, side) {
 }
 
 function restore(window) {
+    if (window.is_fullscreen()) {
+        window.unmake_fullscreen();
+        return;
+    }
     if (window.is_maximized()) {
         window.unmaximize();
         return;
