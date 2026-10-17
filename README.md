@@ -75,7 +75,9 @@ sequence used by OSPlugin's text action for emoji and kaomoji.
 
 On Fedora, Fish `u` also updates [LVFS firmware](https://fwupd.org/), the installed Astra Monitor, Copyous, and DDC
 brightness extensions, the latest stable Bazecor AppImage, StreamController plugins, global mise tools, and existing
-Distrobox containers. Project mise files are outside that upgrade. Dash to Panel stays pinned to the patched chezmoi
+Distrobox containers. It also builds Ghostty from the latest upstream `main` source with the closed-tab restore patch
+from [PR #14653](https://github.com/ghostty-org/ghostty/pull/14653). When that PR merges, the update uses upstream
+without the patch. Project mise files are outside that upgrade. Dash to Panel stays pinned to the patched chezmoi
 install. StreamController's store auto-update is disabled because it replaces the patched OSPlugin; `u` stages plugin
 updates, reapplies the patch, and keeps the installed version if the patch fails. Avoid the app's manual **Update All**
 action, which bypasses this check. This setting also pauses store icon and wallpaper updates. Docker image updates keep

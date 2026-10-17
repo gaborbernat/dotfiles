@@ -1,0 +1,303 @@
+diff --git a/src/apprt/gtk/class/application.zig b/src/apprt/gtk/class/application.zig
+index 6ea9d7a..c678bf5 100644
+--- a/src/apprt/gtk/class/application.zig
++++ b/src/apprt/gtk/class/application.zig
+@@ -19,6 +19,7 @@ const apprt = @import("../../../apprt.zig");
+ const CoreApp = @import("../../../App.zig");
+ const compat_file = @import("../../../lib/compat/file.zig");
+ const configpkg = @import("../../../config.zig");
++const IntrusiveDoublyLinkedList = @import("../../../datastruct/main.zig").IntrusiveDoublyLinkedList;
+ const input = @import("../../../input.zig");
+ const internal_os = @import("../../../os/main.zig");
+ const systemd = @import("../../../os/systemd.zig");
+@@ -168,6 +169,19 @@ pub const Application = extern struct {
+     };
+ 
+     const Private = struct {
++        const ClosedTab = struct {
++            tab: *Tab,
++            window_id: c_uint,
++            position: c_int,
++            pinned: bool,
++            timer: c_uint = 0,
++            prev: ?*ClosedTab = null,
++            next: ?*ClosedTab = null,
++        };
++
++        closed_tabs: IntrusiveDoublyLinkedList(ClosedTab) = .{},
++        undo_hold: bool = false,
++
+         /// The apprt App. This is annoying that we need this it'd be
+         /// nicer to just make THIS the apprt app but the current libghostty
+         /// API doesn't allow that.
+@@ -577,6 +591,7 @@ pub const Application = extern struct {
+                 // If we are configured to always stay running, don't quit.
+                 const config = priv.config.get();
+                 if (!config.@"quit-after-last-window-closed") break :q false;
++                if (priv.closed_tabs.first != null) break :q false;
+ 
+                 // If the quit timer has expired, quit.
+                 if (priv.quit_timer == .expired) {
+@@ -658,6 +673,10 @@ pub const Application = extern struct {
+     }
+ 
+     fn quitNow(self: *Self) void {
++        // Retained tabs belong to no window, so destroying windows won't
++        // stop their surfaces before the core app tears down.
++        self.clearUndoHistory();
++
+         // Get all our windows and destroy them, forcing them to free.
+         const list = gtk.Window.listToplevels();
+         defer list.free();
+@@ -803,6 +822,8 @@ pub const Application = extern struct {
+             .search_total => Action.searchTotal(target, value),
+             .search_selected => Action.searchSelected(target, value),
+ 
++            .undo => return Action.undo(target),
++
+             // Unimplemented
+             .secure_input,
+             .close_all_windows,
+@@ -815,7 +836,6 @@ pub const Application = extern struct {
+             .color_change,
+             .reset_window_size,
+             .check_for_updates,
+-            .undo,
+             .redo,
+             => {
+                 log.warn("unimplemented action={}", .{action});
+@@ -849,6 +869,90 @@ pub const Application = extern struct {
+         return &self.private().open_uri;
+     }
+ 
++    pub fn retainClosedTab(self: *Self, window: *Window, page: *adw.TabPage) void {
++        const timeout = self.private().config.get().@"undo-timeout".duration;
++        if (timeout == 0) return;
++        const tab = gobject.ext.cast(Tab, page.getChild()) orelse return;
++        const tree = tab.getSurfaceTree() orelse return;
++        if (tree.isEmpty()) return;
++        const entry = self.allocator().create(Private.ClosedTab) catch |err| {
++            log.warn("unable to retain closed tab: {}", .{err});
++            return;
++        };
++        const delay_ms = std.math.divCeil(u64, timeout, std.time.ns_per_ms) catch unreachable;
++        entry.* = .{
++            .tab = tab,
++            .window_id = window.as(gtk.ApplicationWindow).getId(),
++            .position = window.getTabView().getPagePosition(page),
++            .pinned = page.getPinned() != 0,
++            .timer = glib.timeoutAdd(@intCast(@min(delay_ms, std.math.maxInt(c_uint))), closedTabExpired, entry),
++        };
++        self.private().closed_tabs.append(entry);
++        _ = tab.as(gobject.Object).ref();
++        if (!self.private().undo_hold) {
++            self.as(gio.Application).hold();
++            self.private().undo_hold = true;
++        }
++    }
++
++    fn undoClosedTab(self: *Self) bool {
++        defer self.releaseUndoHoldIfEmpty();
++        while (self.private().closed_tabs.pop()) |entry| {
++            _ = glib.Source.remove(entry.timer);
++            defer self.releaseClosedTab(entry);
++            const live = if (entry.tab.getSurfaceTree()) |tree| !tree.isEmpty() else false;
++            if (!live) continue;
++            const existing = if (self.as(gtk.Application).getWindowById(entry.window_id)) |gtk_window|
++                gobject.ext.cast(Window, gtk_window)
++            else
++                null;
++            const window = existing orelse Window.new(self, .none);
++            if (existing == null) {
++                self.private().requested_window = true;
++                _ = self.as(gobject.Object).bindProperty(
++                    "config",
++                    window.as(gobject.Object),
++                    "config",
++                    .{},
++                );
++            }
++            window.restoreClosedTab(entry.tab, entry.position, entry.pinned);
++            gtk.Window.present(window.as(gtk.Window));
++            return true;
++        }
++        return false;
++    }
++
++    fn closedTabExpired(user_data: ?*anyopaque) callconv(.c) c_int {
++        const entry: *Private.ClosedTab = @ptrCast(@alignCast(user_data.?));
++        const self = Self.default();
++        self.private().closed_tabs.remove(entry);
++        self.releaseClosedTab(entry);
++        self.releaseUndoHoldIfEmpty();
++        return 0;
++    }
++
++    fn releaseClosedTab(self: *Self, entry: *Private.ClosedTab) void {
++        entry.tab.as(gobject.Object).unref();
++        self.allocator().destroy(entry);
++    }
++
++    fn releaseUndoHoldIfEmpty(self: *Self) void {
++        const priv = self.private();
++        if (priv.undo_hold and priv.closed_tabs.first == null) {
++            priv.undo_hold = false;
++            self.as(gio.Application).release();
++        }
++    }
++
++    fn clearUndoHistory(self: *Self) void {
++        while (self.private().closed_tabs.pop()) |entry| {
++            _ = glib.Source.remove(entry.timer);
++            self.releaseClosedTab(entry);
++        }
++        self.releaseUndoHoldIfEmpty();
++    }
++
+     /// This will get called when there are no more open surfaces.
+     fn startQuitTimer(self: *Self) void {
+         const priv = self.private();
+@@ -1522,6 +1626,7 @@ pub const Application = extern struct {
+ 
+     fn dispose(self: *Self) callconv(.c) void {
+         const priv = self.private();
++        self.clearUndoHistory();
+         if (priv.config_errors_dialog.get()) |diag| {
+             diag.close();
+             diag.unref(); // strong ref from get()
+@@ -2090,6 +2195,10 @@ pub const Application = extern struct {
+ 
+ /// All apprt action handlers
+ const Action = struct {
++    pub fn undo(_: apprt.Target) bool {
++        return Application.default().undoClosedTab();
++    }
++
+     pub fn closeTab(target: apprt.Target, value: apprt.Action.Value(.close_tab)) bool {
+         switch (target) {
+             .app => return false,
+diff --git a/src/apprt/gtk/class/window.zig b/src/apprt/gtk/class/window.zig
+index 58e59a3..ef02671 100644
+--- a/src/apprt/gtk/class/window.zig
++++ b/src/apprt/gtk/class/window.zig
+@@ -1630,6 +1630,36 @@ pub const Window = extern struct {
+         self.as(gtk.Window).destroy();
+     }
+ 
++    pub fn restoreClosedTab(self: *Self, tab: *Tab, position: c_int, pinned: bool) void {
++        const tab_view = self.private().tab_view;
++        const page = if (pinned)
++            tab_view.insertPinned(tab.as(gtk.Widget), @min(position, tab_view.getNPinnedPages()))
++        else
++            tab_view.insert(tab.as(gtk.Widget), @max(tab_view.getNPinnedPages(), @min(position, tab_view.getNPages())));
++        _ = tab.as(gobject.Object).bindProperty(
++            "title",
++            page.as(gobject.Object),
++            "title",
++            .{ .sync_create = true },
++        );
++        _ = tab.as(gobject.Object).bindProperty(
++            "tooltip",
++            page.as(gobject.Object),
++            "tooltip",
++            .{ .sync_create = true },
++        );
++        tab_view.setSelectedPage(page);
++        // Restored surfaces were initialized before, so their init signal
++        // won't fire again to size a new window.
++        if (tab.getActiveSurface()) |surface| {
++            if (surface.core() != null) surfaceInit(surface, self);
++        }
++    }
++
++    fn retainClosedTab(self: *Self, page: *adw.TabPage) void {
++        Application.default().retainClosedTab(self, page);
++    }
++
+     fn closeConfirmationCloseTab(
+         _: *CloseConfirmationDialog,
+         page: *adw.TabPage,
+@@ -1641,6 +1671,9 @@ pub const Window = extern struct {
+             log.warn("close confirmation called for non-existent page", .{});
+             return;
+         };
++        if (ext.getAncestor(Self, tab_view.as(gtk.Widget))) |window| {
++            window.retainClosedTab(page);
++        }
+         tab_view.closePageFinish(page, @intFromBool(true));
+     }
+ 
+@@ -1671,6 +1704,7 @@ pub const Window = extern struct {
+         // If the tab says it doesn't need confirmation then we go ahead
+         // and close immediately.
+         if (!tab.getNeedsConfirmQuit()) {
++            self.retainClosedTab(page);
+             priv.tab_view.closePageFinish(page, @intFromBool(true));
+             return @intFromBool(true);
+         }
+@@ -1740,6 +1774,14 @@ pub const Window = extern struct {
+             .{},
+         );
+ 
++        _ = SplitTree.signals.changed.connect(
++            tab.getSplitTree(),
++            *Self,
++            tabSplitTreeChanged,
++            self,
++            .{},
++        );
++
+         // Attach listeners for the surface.
+         //
+         // Interesting behavior here that was previously undocumented but
+@@ -1794,6 +1836,15 @@ pub const Window = extern struct {
+             self,
+         );
+ 
++        _ = gobject.signalHandlersDisconnectMatched(
++            tab.getSplitTree().as(gobject.Object),
++            .{ .data = true },
++            0,
++            0,
++            null,
++            null,
++            self,
++        );
+         _ = gobject.signalHandlersDisconnectMatched(
+             tab.getSplitTree().as(gobject.Object),
+             .{ .data = true },
+diff --git a/src/config/Config.zig b/src/config/Config.zig
+index 83a1322..3bfe1c1 100644
+--- a/src/config/Config.zig
++++ b/src/config/Config.zig
+@@ -2725,9 +2725,12 @@ keybind: Keybinds = .{},
+ /// `1h1h` is equivalent to `2h`. This is confusing and should be avoided.
+ /// A future update may disallow this.
+ ///
+-/// This configuration is only supported on macOS. Linux doesn't
+-/// support undo operations at all so this configuration has no
+-/// effect.
++/// On Linux (GTK), this controls how long a closed tab remains undoable,
++/// including when closing the last tab also closes its window. With
++/// `gtk-single-instance=true`, reopen Ghostty before the timeout and use
++/// the undo binding to restore the tab. Closing a window itself is not
++/// undoable on GTK.
++/// The `-e` flag starts a separate instance and cannot reach that history.
+ ///
+ /// Available since: 1.2.0
+ @"undo-timeout": Duration = .{ .duration = 5 * std.time.ns_per_s },
+diff --git a/src/input/Binding.zig b/src/input/Binding.zig
+index 6f2cc31..77d78b2 100644
+--- a/src/input/Binding.zig
++++ b/src/input/Binding.zig
+@@ -909,7 +909,9 @@ pub const Action = union(enum) {
+     /// in the background indefinitely, and the keybinds become available
+     /// for terminal applications to use.
+     ///
+-    /// Only implemented on macOS.
++    /// On Linux (GTK), this restores closed tabs, including when closing
++    /// the last tab also closes its window. Closing a window itself and
++    /// other undoable actions are only implemented on macOS.
+     undo,
+ 
+     /// Redo the last undoable action for the focused surface or terminal,

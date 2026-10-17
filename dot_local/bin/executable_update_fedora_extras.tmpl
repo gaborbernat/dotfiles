@@ -11,13 +11,68 @@ update_firmware() {
     sudo fwupdmgr update --assume-yes --no-reboot-check || [[ $? -eq 2 ]]
 }
 
+update_ghostty() {
+    local release commit main_commit digest archive patch patch_id build_id work source zig_version merge_status
+    patch={{ joinPath .chezmoi.sourceDir "scripts/fedora/ghostty-undo.diff" | quote }}
+    release=$(curl -fsSL https://api.github.com/repos/ghostty-org/ghostty/releases/tags/tip)
+    commit=$(jq -er '.target_commitish | select(test("^[0-9a-f]{40}$"))' <<<"$release")
+    main_commit=$(git ls-remote https://github.com/ghostty-org/ghostty.git refs/heads/main | cut -f1)
+    if [[ "$commit" != "$main_commit" ]]; then
+        echo 'Ghostty tip source has not caught up with main' >&2
+        return 1
+    fi
+    digest=$(jq -er '.assets[] | select(.name == "ghostty-source.tar.gz") | .digest | select(test("^sha256:[0-9a-f]{64}$")) | ltrimstr("sha256:")' <<<"$release")
+    merge_status=$(curl -fsSL https://api.github.com/repos/ghostty-org/ghostty/pulls/14653 | jq -er '.merged_at // "open"')
+    if [[ "$merge_status" == open ]]; then
+        patch_id=$(sha256sum "$patch" | cut -d' ' -f1)
+    else
+        patch_id=merged
+    fi
+    build_id="$commit:$patch_id"
+    if [[ -x "$HOME/.local/bin/ghostty" && -f "$HOME/.local/share/ghostty/build-id" ]] &&
+        [[ $(<"$HOME/.local/share/ghostty/build-id") == "$build_id" ]]; then
+        printf 'Ghostty %s is current\n' "${commit:0:7}"
+        return
+    fi
+
+    GHOSTTY_BUILD_DIR=$(mktemp -d)
+    trap 'rm -rf "$GHOSTTY_BUILD_DIR"' EXIT
+    work=$GHOSTTY_BUILD_DIR
+    archive="$work/ghostty-source.tar.gz"
+    source="$work/source"
+    curl -fsSL --retry 3 -o "$archive" \
+        https://github.com/ghostty-org/ghostty/releases/download/tip/ghostty-source.tar.gz
+    printf '%s  %s\n' "$digest" "$archive" | sha256sum -c -
+    mkdir "$source"
+    tar -xzf "$archive" -C "$source" --strip-components=1
+    if [[ $(<"$source/VERSION") != *"+${commit:0:7}" ]]; then
+        echo 'Ghostty source does not match main' >&2
+        return 1
+    fi
+    if [[ "$patch_id" != merged ]]; then
+        git -C "$source" apply --check "$patch"
+        git -C "$source" apply "$patch"
+    fi
+    zig_version=$(sed -n 's/^[[:space:]]*\.minimum_zig_version = "\([^"]*\)".*/\1/p' "$source/build.zig.zon")
+    if [[ ! "$zig_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+        echo 'Cannot determine Ghostty Zig version' >&2
+        return 1
+    fi
+    mise install "zig@$zig_version"
+    (cd "$source" && mise exec "zig@$zig_version" -- zig build -Doptimize=ReleaseFast)
+    (cd "$source" && mise exec "zig@$zig_version" -- zig build -p "$HOME/.local" -Doptimize=ReleaseFast)
+    "$HOME/.local/bin/ghostty" --version | head -1
+    install -D -m 0644 /dev/stdin "$HOME/.local/share/ghostty/build-id" <<<"$build_id"
+}
+
 update_extensions() {
     local shell_version uuid installed info available download zip metadata
     shell_version=$(gnome-shell --version | awk '{split($3, version, "."); print version[1]}')
     for uuid in \
         monitor@astraext.github.io \
         copyous@boerdereinar.dev \
-        display-brightness-ddcutil@themightydeity.github.com; do
+        display-brightness-ddcutil@themightydeity.github.com \
+        xremap@k0kubun.com; do
         installed="$HOME/.local/share/gnome-shell/extensions/$uuid/metadata.json"
         if [[ ! -f "$installed" ]]; then
             printf 'Skip missing extension: %s\n' "$uuid"
@@ -290,5 +345,6 @@ case "${1:-}" in
     rustdesk) update_rustdesk ;;
     streamdeck) update_streamdeck ;;
     gamescope) update_gamescope_session ;;
-    *) echo 'Usage: update_fedora_extras {firmware|extensions|bazecor|rustdesk|streamdeck|gamescope}' >&2; exit 2 ;;
+    ghostty) update_ghostty ;;
+    *) echo 'Usage: update_fedora_extras {firmware|extensions|bazecor|rustdesk|streamdeck|gamescope|ghostty}' >&2; exit 2 ;;
 esac

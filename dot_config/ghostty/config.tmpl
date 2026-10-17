@@ -4,7 +4,11 @@ command = /opt/homebrew/bin/fish
 command = /usr/bin/fish
 {{- end }}
 
+{{- if eq .chezmoi.os "darwin" }}
 theme = Monokai Remastered
+{{- else }}
+theme = {{ joinPath .chezmoi.homeDir ".local/share/ghostty/themes/Monokai Remastered" }}
+{{- end }}
 minimum-contrast = 3
 {{- if eq .chezmoi.os "darwin" }}
 font-family = JetBrainsMono Nerd Font
@@ -105,6 +109,7 @@ keybind = super+shift+o=toggle_background_opacity
 keybind = super+c=copy_to_clipboard
 keybind = super+v=paste_from_clipboard
 keybind = super+t=new_tab
+keybind = super+z=undo
 keybind = super+1=goto_tab:1
 keybind = super+2=goto_tab:2
 keybind = super+3=goto_tab:3

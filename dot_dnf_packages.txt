@@ -1,5 +1,5 @@
 # Fedora Workstation RPM baseline.
-# Ghostty comes from COPR and Code from Microsoft's RPM repository.
+# Code comes from Microsoft's RPM repository.
 
 # Shell, Git, and everyday CLI tools
 acl
@@ -26,7 +26,6 @@ git
 git-delta
 git-lfs
 glow
-ghostty
 htop
 lsd
 mise
@@ -49,7 +48,10 @@ gcc
 gawk
 gettext
 golang
+gtk4-devel
+gtk4-layer-shell-devel
 java-latest-openjdk-devel
+libadwaita-devel
 llvm
 make
 maven

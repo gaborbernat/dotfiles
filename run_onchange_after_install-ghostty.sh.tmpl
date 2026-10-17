@@ -1,0 +1,11 @@
+{{- if ne (env "SKIP_DNF_INSTALL") "1" -}}
+#!/bin/bash
+# Ghostty updater hash: {{ include "dot_local/bin/executable_update_fedora_extras.tmpl" | sha256sum }}
+# Ghostty patch hash: {{ include "scripts/fedora/ghostty-undo.diff" | sha256sum }}
+set -euo pipefail
+
+"$HOME/.local/bin/update_fedora_extras" ghostty
+if rpm -q ghostty >/dev/null 2>&1; then
+    sudo dnf remove -y ghostty
+fi
+{{ end -}}
