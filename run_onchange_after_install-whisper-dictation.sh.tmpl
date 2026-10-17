@@ -16,6 +16,7 @@ while IFS= read -r path; do
 	binding="$schema.custom-keybinding:$path"
 	if [[ $(gsettings get "$binding" name) == "'Whisper Dictation'" ]]; then
 		gsettings set "$binding" binding '<Super>d'
+		gsettings set "$binding" command "env WD_NOTIFY_CMD=true $HOME/.local/bin/dictate-toggle"
 		exit 0
 	fi
 done < <(grep -oE '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/custom[0-9]+/' <<<"$bindings")

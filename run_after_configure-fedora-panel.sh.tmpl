@@ -54,7 +54,7 @@ else
     GSETTINGS_SCHEMA_DIR="$override/schemas" gsettings set "$schema" clone-main-panel true
 fi
 current=$(gsettings get org.gnome.shell enabled-extensions)
-extensions=(dash-to-panel@jderose9.github.com focused-switcher@bernat.tech magnet-tiling@bernat.tech)
+extensions=(dash-to-panel@jderose9.github.com focused-switcher@bernat.tech magnet-tiling@bernat.tech dictation-indicator@bernat.tech)
 if [[ -d /usr/share/gnome-shell/extensions/appindicatorsupport@rgcjonas.gmail.com ]]; then
     extensions+=(appindicatorsupport@rgcjonas.gmail.com)
 fi

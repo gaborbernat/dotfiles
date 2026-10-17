@@ -1,0 +1,6 @@
+{
+  "uuid": "dictation-indicator@bernat.tech",
+  "name": "Dictation Indicator",
+  "description": "Show an on-screen recording badge while Whisper Dictation captures audio",
+  "shell-version": ["50"]
+}
