@@ -28,6 +28,7 @@ install-apt-packages.sh
 .local/bin/update_fedora_extras
 .local/share/applications
 .local/share/gnome-shell
+.local/share/vicinae
 .var
 .dnf_packages.txt
 enable-fedora-repos.sh

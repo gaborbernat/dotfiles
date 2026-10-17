@@ -1,4 +1,5 @@
 import Clutter from 'gi://Clutter';
+import Gio from 'gi://Gio';
 import GObject from 'gi://GObject';
 import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
@@ -15,8 +16,20 @@ const APP_BINDINGS = [
     'switch-group-backward',
 ];
 const TV_PRODUCT = 'LG TV SSCR2';
+const BENQ_LEFT_SERIAL = '34R01091019';
+const BENQ_RIGHT_SERIAL = 'C6P06071019';
 const MX_MASTER = 'Logitech MX Master 3';
 const MX_KEYS = 'Logitech MX Keys';
+const WINDOWS_INTERFACE = `<node>
+    <interface name="org.bernat.FocusedSwitcher">
+        <method name="ListWindows">
+            <arg type="s" direction="out"/>
+        </method>
+        <method name="BringToCurrentMonitor">
+            <arg type="u" direction="in"/>
+        </method>
+    </interface>
+</node>`;
 
 const FocusedAppSwitcherPopup = GObject.registerClass(
 class FocusedAppSwitcherPopup extends AltTab.AppSwitcherPopup {
@@ -69,6 +82,8 @@ class FocusedAppSwitcherPopup extends AltTab.AppSwitcherPopup {
 export default class FocusedSwitcherExtension extends Extension {
     enable() {
         this._backend = global.get_backend();
+        this._windowService = Gio.DBusExportedObject.wrapJSObject(WINDOWS_INTERFACE, this);
+        this._windowService.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/FocusedSwitcher');
         this._deviceName = null;
         this._mxMouseActive = false;
         this._focusMonitor = global.display.focus_window?.get_monitor() ?? global.display.get_current_monitor();
@@ -155,7 +170,54 @@ export default class FocusedSwitcherExtension extends Extension {
             : -1;
     }
 
+    ListWindows() {
+        const monitorManager = this._backend.get_monitor_manager();
+        const monitors = Array.from({length: global.display.get_n_monitors()}, (_, index) => `Monitor ${index + 1}`);
+        for (const monitor of monitorManager.get_monitors()) {
+            if (!monitor.is_active())
+                continue;
+            const index = monitorManager.get_monitor_for_connector(monitor.get_connector());
+            if (index < 0)
+                continue;
+            const product = monitor.get_product();
+            const serial = monitor.get_serial();
+            if (monitor.get_vendor() === 'FUE')
+                monitors[index] = 'Dummy';
+            else if (serial === BENQ_LEFT_SERIAL)
+                monitors[index] = 'BenQ Left';
+            else if (serial === BENQ_RIGHT_SERIAL)
+                monitors[index] = 'BenQ Right';
+            else if (product === TV_PRODUCT)
+                monitors[index] = 'LG TV';
+            else
+                monitors[index] = `${monitor.get_connector()} · ${product?.startsWith('0x') ? monitor.get_vendor() : product}`;
+        }
+        return JSON.stringify({
+            windows: global.get_window_actors()
+                .map(actor => actor.meta_window)
+                .filter(window => window?.get_window_type() === Meta.WindowType.NORMAL)
+                .map(window => ({
+                    id: window.get_id(),
+                    title: window.get_title(),
+                    app: window.get_wm_class() || 'Unknown app',
+                    monitor: monitors[window.get_monitor()],
+                })),
+        });
+    }
+
+    BringToCurrentMonitor(id) {
+        const window = global.get_window_actors()
+            .map(actor => actor.meta_window)
+            .find(candidate => candidate?.get_id() === id && candidate.get_window_type() === Meta.WindowType.NORMAL);
+        if (!window)
+            throw new Error('Window not found');
+        window.move_to_monitor(global.display.get_current_monitor());
+        Main.activateWindow(window);
+    }
+
     disable() {
+        this._windowService.unexport();
+        this._windowService = null;
         this._backend.disconnect(this._deviceChangedId);
         global.display.disconnect(this._focusChangedId);
         global.display.disconnect(this._windowCreatedId);
