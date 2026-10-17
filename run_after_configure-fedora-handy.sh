@@ -12,7 +12,6 @@ handy_path=
 while IFS= read -r path; do
     binding="$schema.custom-keybinding:$path"
     case $(gsettings get "$binding" name) in
-        "'Whisper Dictation'") gsettings set "$binding" binding '' ;;
         "'Handy Dictation'") handy_path=$path ;;
     esac
 done < <(grep -oE '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/[^/]+/' <<< "$bindings")
