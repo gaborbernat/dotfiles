@@ -66,6 +66,7 @@ install-copilot-cli.sh
 .local/bin/steam
 .config/Code
 configure-fedora-font.sh
+configure-fedora-vicinae.sh
 configure-fedora-workspaces.sh
 {{ end }}
 {{ if eq .chezmoi.os "darwin" }}
