@@ -25,6 +25,7 @@ install-apt-packages.sh
 .apt_packages.txt
 {{ else }}
 .config/autostart
+.config/vicinae
 .local/bin/update_fedora_extras
 .local/bin/order-monitors
 .local/share/applications

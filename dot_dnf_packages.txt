@@ -66,6 +66,7 @@ sccache
 aria2
 celluloid
 chatgpt
+flameshot
 gdu
 gnome-connections
 glib2
