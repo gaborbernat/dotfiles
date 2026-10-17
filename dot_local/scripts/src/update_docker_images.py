@@ -82,11 +82,14 @@ def scan_images() -> list[ImageStatus]:
     for image, image_id, digest, size in rows:
         if (info := inspected.get(image_id)) is None:
             continue
-        repo_digests, created, image_platform, pulled_from = info
+        repo_digests, created, image_platform, pulled_from, locally_built = info
         repo = image.rsplit(":", 1)[0]
-        # The containerd store gives local builds a RepoDigest of their own name, so only Identity.Pull
-        # tells a registry pull apart from a build, load, or local tag.
-        if canonical_repo(repo) in pulled_from and (matched := digests_for_repo(repo, repo_digests)):
+        # Containerd can record Identity.Pull for images built locally, so Build takes precedence.
+        if (
+            not locally_built
+            and canonical_repo(repo) in pulled_from
+            and (matched := digests_for_repo(repo, repo_digests))
+        ):
             registry.append(
                 ImageStatus(
                     image=image,
@@ -101,7 +104,7 @@ def scan_images() -> list[ImageStatus]:
     return registry
 
 
-def bulk_inspect(image_ids: list[str]) -> dict[str, tuple[set[str], datetime | None, str, set[str]]]:
+def bulk_inspect(image_ids: list[str]) -> dict[str, tuple[set[str], datetime | None, str, set[str], bool]]:
     if not image_ids:
         return {}
     # Raw JSON rather than --format: Docker omits Identity for images it has no record for, and a
@@ -122,6 +125,7 @@ def bulk_inspect(image_ids: list[str]) -> dict[str, tuple[set[str], datetime | N
             parse_created(entry.get("Created", "")),
             f"{entry.get('Os', '')}/{entry.get('Architecture', '')}",
             {pull["Repository"] for pull in (entry.get("Identity") or {}).get("Pull") or []},
+            bool((entry.get("Identity") or {}).get("Build")),
         )
         for entry in entries
     }
