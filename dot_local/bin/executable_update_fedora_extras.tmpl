@@ -59,8 +59,9 @@ update_ghostty() {
         return 1
     fi
     mise install "zig@$zig_version"
-    (cd "$source" && mise exec "zig@$zig_version" -- zig build -Doptimize=ReleaseFast)
-    (cd "$source" && mise exec "zig@$zig_version" -- zig build -p "$HOME/.local" -Doptimize=ReleaseFast)
+    local version
+    version=$(<"$source/VERSION")
+    (cd "$source" && mise exec "zig@$zig_version" -- zig build -p "$HOME/.local" -Doptimize=ReleaseFast "-Dversion-string=$version")
     "$HOME/.local/bin/ghostty" --version | head -1
     install -D -m 0644 /dev/stdin "$HOME/.local/share/ghostty/build-id" <<<"$build_id"
 }
