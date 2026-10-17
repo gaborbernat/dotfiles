@@ -32,6 +32,8 @@ function tileToward(window, direction) {
 }
 
 function tile(window, monitor, side) {
+    if (window.is_fullscreen())
+        window.unmake_fullscreen();
     if (window.is_maximized())
         window.unmaximize();
     if (!states.has(window))
@@ -74,7 +76,8 @@ export default class MagnetTilingExtension extends Extension {
         for (const [name, action] of Object.entries(BINDINGS)) {
             Main.wm.setCustomKeybindingHandler(name, Shell.ActionMode.NORMAL, (_display, window) => {
                 const target = window ?? global.display.focus_window;
-                if (target?.get_window_type() === Meta.WindowType.NORMAL && target.allows_resize())
+                if (target?.get_window_type() === Meta.WindowType.NORMAL &&
+                    (target.is_fullscreen() || target.allows_resize()))
                     action(target);
             });
         }
