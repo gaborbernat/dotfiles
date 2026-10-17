@@ -1,0 +1,42 @@
+diff --git a/src/panel.js b/src/panel.js
+--- a/src/panel.js
++++ b/src/panel.js
+@@ -1488 +1488 @@
+-        c.actor.destroy()
++        if (!c.actorDestroyed) c.actor.destroy()
+@@ -1563,0 +1564 @@
++      actor.connect('destroy', () => (c.actorDestroyed = true))
+@@ -1640 +1641,22 @@
+-      let onPress = () => {
++      let onPress = (_actor, event) => {
++        if (indicator.uuid == 'monitor@astraext.github.io') {
++          let [stageX, stageY] = event.get_coords()
++          let [ok, x] = clones[0].transform_stage_point(stageX, stageY)
++          if (!ok || !clones[0].width) return Clutter.EVENT_PROPAGATE
++
++          let source = sources[0]
++          let sourceX = (x * source.width) / clones[0].width
++          let header = source.get_children().find((child) => {
++            let box = child.get_allocation_box()
++            return child.visible && box.x1 <= sourceX && sourceX < box.x2
++          })
++
++          if (!header) return Clutter.EVENT_PROPAGATE
++
++          c.menu = header.getMenu?.() ?? null
++          if (!c.menu) {
++            header.click()
++            return Clutter.EVENT_STOP
++          }
++        }
++
+@@ -1650 +1672 @@
+-          ? onPress()
++          ? onPress(a, event)
+@@ -1667 +1689,5 @@
+-      if (!source || !SETTINGS.get_boolean('clone-main-panel')) {
++      if (
++        !source ||
++        !SETTINGS.get_boolean('clone-main-panel') ||
++        !Main.panel.statusArea.quickSettings
++      ) {

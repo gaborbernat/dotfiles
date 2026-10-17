@@ -39,7 +39,7 @@ if [[ -f "$system_schema" ]] && grep -q 'name="clone-main-panel"' "$system_schem
     gsettings set "$schema" clone-main-panel true
 else
     if [[ ! -f "$override/panel.js" ]] || \
-        [[ $(sha256sum "$override/panel.js" | cut -d' ' -f1) != d6215a0a559cfbe6bd9171d1e435dca14cd06100cef65c7862f4c5136e228347 ]]; then
+        [[ $(sha256sum "$override/panel.js" | cut -d' ' -f1) != e6668dd6bef3ea7ab669d51400d75e1e48684b803850e515aeb3f2d997cf8703 ]]; then
         archive=$(mktemp --suffix=.tar.gz)
         source=$(mktemp -d)
         trap 'rm -f "$archive"; rm -rf "$source"' EXIT
@@ -47,7 +47,7 @@ else
             https://codeload.github.com/Laertes87/dash-to-panel/tar.gz/e3ef7d2a9e528d24a8e72fd1652aba722f2bd8aa
         echo "943de3a6483714f0d22edbf626810c6b6d5dee8066696b940f3cc5d2accd1c0c  $archive" | sha256sum -c -
         tar -xzf "$archive" -C "$source" --strip-components=1
-        git -C "$source" apply --unidiff-zero {{ joinPath .chezmoi.sourceDir "scripts/fedora/dash-to-panel-shutdown.diff" | quote }}
+        git -C "$source" apply --unidiff-zero {{ joinPath .chezmoi.sourceDir "scripts/fedora/dash-to-panel-compat.diff" | quote }}
         make -s -C "$source" zip-file VERSION=9999
         gnome-extensions install --force "$source/$uuid"_v9999.zip
     fi
