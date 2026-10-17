@@ -13,7 +13,8 @@
    "providers": {
       "@JaINTP/vscrot": {
          "preferences": {
-            "screenshot_tool": "flameshot"
+            "screenshot_tool": "flameshot",
+            "copy_to_clipboard": true
          }
       }
    },
