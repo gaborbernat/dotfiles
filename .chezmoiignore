@@ -38,6 +38,7 @@ install-astra-monitor.sh
 install-ddc-brightness.sh
 enable-vscode-repo.sh
 configure-fedora-keyboard.sh
+configure-fedora-handy.sh
 configure-fedora-monitors.sh
 configure-fedora-gamemode.sh
 configure-fedora-panel.sh
