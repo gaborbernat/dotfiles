@@ -68,6 +68,7 @@ celluloid
 chatgpt
 gdu
 gnome-connections
+glib2
 graphviz
 gsound
 gnupg2
@@ -77,6 +78,7 @@ jetbrains-mono-fonts
 jq
 lm_sensors
 libgtop2
+libnotify
 libgda
 libgda-sqlite
 libdrm-devel
@@ -90,6 +92,7 @@ pipewire-utils
 poppler-utils
 ShellCheck
 shfmt
+socat
 sqlite
 sshpass
 tokei
