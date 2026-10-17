@@ -1,0 +1,79 @@
+#!/usr/bin/python3
+"""Keep connected GNOME displays in the configured left-to-right order."""
+
+import logging
+from typing import Final
+
+import gi
+
+gi.require_version("Gio", "2.0")
+from gi.repository import Gio, GLib  # ruff: ignore[module-import-not-at-top-of-file] # ty: ignore[unresolved-import] # require_version must run first
+
+_MUTTER: Final = ("org.gnome.Mutter.DisplayConfig", "/org/gnome/Mutter/DisplayConfig", "org.gnome.Mutter.DisplayConfig")
+_SERIAL_ORDER: Final = {"34R01091019": 1, "C6P06071019": 2}
+_LOG: Final = logging.getLogger("order-monitors")
+
+
+def main() -> None:
+    logging.basicConfig(level=logging.INFO, format="%(message)s")
+    bus = Gio.bus_get_sync(Gio.BusType.SESSION)
+    bus.signal_subscribe(
+        _MUTTER[0], _MUTTER[2], "MonitorsChanged", _MUTTER[1], None, Gio.DBusSignalFlags.NONE,
+        lambda *_: GLib.timeout_add(500, arrange, bus),
+    )
+    arrange(bus)
+    GLib.MainLoop().run()
+
+
+def arrange(bus: Gio.DBusConnection) -> bool:
+    try:
+        state = bus.call_sync(*_MUTTER, "GetCurrentState", None, None, Gio.DBusCallFlags.NONE, -1, None).unpack()
+        serial, monitors, logical_monitors, properties = state
+        if len(logical_monitors) < 2 or any(len(logical[5]) != 1 for logical in logical_monitors):
+            return GLib.SOURCE_REMOVE
+
+        modes = {}
+        for spec, available_modes, monitor_properties in monitors:
+            current = next((mode for mode in available_modes if "is-current" in mode[6]), None)
+            if current:
+                modes[spec[0]] = (current, monitor_properties)
+
+        ordered = []
+        for logical in logical_monitors:
+            connector, vendor, product, monitor_serial = logical[5][0]
+            rank = 0 if vendor == "FUE" else _SERIAL_ORDER.get(monitor_serial, 3 if product == "LG TV SSCR2" else -1)
+            if rank < 0 or connector not in modes:
+                return GLib.SOURCE_REMOVE
+            ordered.append((rank, connector, logical))
+
+        if [connector for _, connector, _ in sorted(ordered, key=lambda item: item[2][0])] == [
+            connector for _, connector, _ in sorted(ordered)
+        ]:
+            return GLib.SOURCE_REMOVE
+
+        position = 0
+        layout = []
+        for _, connector, logical in sorted(ordered):
+            mode, monitor_properties = modes[connector]
+            options = {key: monitor_properties[key] for key in ("color-mode", "rgb-range") if key in monitor_properties}
+            layout.append((position, logical[1], logical[2], logical[3], logical[4], [(connector, mode[0], options)]))
+            width, height = mode[1:3]
+            position += round((height if logical[3] in (1, 3, 5, 7) else width) / logical[2])
+
+        config_properties = {
+            key: properties[key] for key in ("layout-mode", "monitors-for-lease") if key in properties
+        }
+        for method in (0, 2):
+            bus.call_sync(
+                *_MUTTER, "ApplyMonitorsConfig",
+                GLib.Variant("(uua(iiduba(ssa{sv}))a{sv})", (serial, method, layout, config_properties)),
+                None, Gio.DBusCallFlags.NONE, -1, None,
+            )
+        _LOG.info("ordered displays: %s", " → ".join(connector for _, connector, _ in sorted(ordered)))
+    except GLib.Error:
+        _LOG.exception("could not order displays")
+    return GLib.SOURCE_REMOVE
+
+
+if __name__ == "__main__":
+    main()

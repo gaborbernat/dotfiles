@@ -26,6 +26,7 @@ install-apt-packages.sh
 {{ else }}
 .config/autostart
 .local/bin/update_fedora_extras
+.local/bin/order-monitors
 .local/share/applications
 .local/share/gnome-shell
 .local/share/vicinae
@@ -37,6 +38,7 @@ install-astra-monitor.sh
 install-ddc-brightness.sh
 enable-vscode-repo.sh
 configure-fedora-keyboard.sh
+configure-fedora-monitors.sh
 configure-fedora-gamemode.sh
 configure-fedora-panel.sh
 configure-fedora-sudo-timeout.sh
