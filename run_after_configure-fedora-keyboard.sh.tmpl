@@ -19,13 +19,21 @@ if [[ "${XDG_CURRENT_DESKTOP:-}" != *GNOME* ]] ||
 fi
 
 uuid=xremap@k0kubun.com
-if [[ ! -d "$HOME/.local/share/gnome-shell/extensions/$uuid" ]]; then
+installed_version=$(python3 -c '
+import json
+import sys
+from pathlib import Path
+
+path = Path(sys.argv[1])
+print(json.loads(path.read_text())["version"] if path.is_file() else "")
+' "$HOME/.local/share/gnome-shell/extensions/$uuid/metadata.json")
+if [[ "$installed_version" != 16 ]]; then
     zip=$(mktemp --suffix=.zip)
     trap 'rm -f "$zip"' EXIT
     curl -fL -sS -o "$zip" \
-        'https://extensions.gnome.org/download-extension/xremap@k0kubun.com.shell-extension.zip?version_tag=69781'
+        'https://extensions.gnome.org/download-extension/xremap@k0kubun.com.shell-extension.zip?version_tag=76494'
     printf '%s  %s\n' \
-        '9f81d40ecc23810c704f0e6e6d9cc69c25e7c5528c24576a4972056b5b7d6d5a' \
+        'ec9544258550a4e84b1fb0e86eb6eea9174ba15f3c0b2acb41576eca6ebb620f' \
         "$zip" | sha256sum -c -
     gnome-extensions install --force "$zip"
 fi
