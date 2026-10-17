@@ -39,7 +39,7 @@ class FocusedAppSwitcherPopup extends AltTab.AppSwitcherPopup {
     }
 
     vfunc_allocate(box) {
-        // GNOME 50 uses the primary monitor for both icon and thumbnail allocation.
+        // GNOME Shell uses the primary monitor for both icon and thumbnail allocation.
         this.set_allocation(box);
 
         const monitor = Main.layoutManager.monitors[this._monitorIndex] ?? Main.layoutManager.primaryMonitor;
