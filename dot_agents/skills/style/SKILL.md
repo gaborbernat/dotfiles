@@ -8,7 +8,7 @@ the manual pass is complete.
 
 1. Read `/simp` and `/no-slop` in full. Read every `/no-slop` reference they point to: phrases, lexicon, structures,
    voice, code, and examples. Inspect the entire final PR diff against its merge base, including code, tests, comments,
-   and prose.
+   docstrings, documentation, and other prose. Check documentation and docstrings against the source files' line limit.
 1. Make a rule-by-rule audit in working notes. Give each `/simp` Common rule, each applicable Python rule, and each
    `/no-slop` instruction and listed pattern an outcome: applied, inapplicable with a reason, or an exception with the
    concrete necessity allowed by that rule. Check every relevant changed line against every entry. A tool pass or

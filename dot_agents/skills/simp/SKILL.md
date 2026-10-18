@@ -35,9 +35,9 @@ idioms, mapping the Python specifics yourself (its formatter for `ruff`, its tes
    and rots as code moves. If a block feels like it needs a label, that is a signal to extract a function or class with
    a descriptive name instead.
 
-1. **Wrap to the configured line length.** Use the project's configured width — in Python, ruff's `line-length`
-   (`pyproject.toml`/`ruff.toml`; 120 if unset). The formatter wraps code; manually reflow long comments and docstrings
-   to the same width, since formatters do not touch prose. No line should exceed the limit.
+1. **Wrap to the configured line length.** Use the source files' configured width — in Python, ruff's `line-length`
+   (`pyproject.toml`/`ruff.toml`; 120 if unset). Apply the same limit to comments, docstrings, and documentation. Reflow
+   prose manually; code formatters do not wrap it. No line should exceed the limit.
 
 1. **Compact, late variables.** Define each variable as late as possible, immediately before its first use — not at the
    top of a block. Inline single-use local values at their point of use. A local earns a name when its value is used in
