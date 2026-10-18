@@ -1,6 +1,6 @@
 ---
 name: rev
-description: Review and fix one pull request by number, or all open pull requests not authored by the authenticated GitHub user. Use for an adversarial PR review that produces one fix commit per PR and waits for approval before pushing.
+description: Review and fix one pull request by number, or all open pull requests not authored by the authenticated GitHub user. Use for an adversarial PR review that produces one fix commit per PR and pushes verified fixes.
 ---
 
 Work in the repository selected by the user, or the current repository when none is named.
@@ -19,8 +19,7 @@ Work in the repository selected by the user, or the current repository when none
    PR's existing commits. Inspect the staged diff before committing and follow the repository's commit format. If the PR
    needs no changes, do not create an empty commit.
 1. Before any push, give the user a concise explanation for each PR of what changed and why, the checks run, and any
-   unresolved issue. Ask for explicit confirmation to push the prepared commit or commits. A confirmation for one run
-   does not authorize later runs. Do not post PR comments or reviews.
-1. After confirmation, verify each remote PR head is still the commit reviewed. If it moved, recheck the new diff and
-   obtain confirmation for the revised result before pushing. Push only to the PR's head branch, without force. If that
-   branch is not writable, report the blocker and leave the local commit available.
+   unresolved issue. Do not post PR comments or reviews.
+1. Verify each remote PR head is still the commit reviewed. If it moved, recheck the new diff and update the fix and
+   checks before pushing. Push only to the PR's head branch, without force. If that branch is not writable, report the
+   blocker and leave the local commit available.
