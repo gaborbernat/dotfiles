@@ -1,4 +1,0 @@
-interface:
-  display_name: "Rev: no exceptions"
-  short_description: "Check the full PR diff against simp and no-slop"
-  default_prompt: "Use $rev-no-exc to check the final PR diff before committing."

@@ -17,7 +17,8 @@ Work in the repository selected by the user, or the current repository when none
    rule to the **entire final PR diff** against its merge base, including tests and prose. Do not treat a passing
    `/no-slop` gate as completion: perform its full manual review. Apply `/no-slop` to the commit message and user-facing
    report too. Repeat both passes after any further edit, with no skipped rules. Recheck the final diff for regressions
-   and unnecessary changes. Invoke `/rev-no-exc` before committing to check this pass again.
+   and unnecessary changes. Use `/style` to audit the diff and commit message before committing, then the drafted report
+   before sending it.
 1. Put all fixes for each PR in **one new commit on top of its head**. Do not amend, rebase, force-push, or change the
    PR's existing commits. Inspect the staged diff before committing and follow the repository's commit format. If the PR
    needs no changes, do not create an empty commit.
