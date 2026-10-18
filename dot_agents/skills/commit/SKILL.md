@@ -54,7 +54,7 @@ Run the message through the `/no-slop` skill before committing.
 - Bullet lists of changed files
 - Generic messages like "fix bug" or "update code"
 
-**Good example**:
+**Illustrative example** (follow the format; take the content and length from the change):
 
 ```
 🐛 fix(auth): prevent session timeout during OAuth flow

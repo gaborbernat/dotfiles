@@ -71,10 +71,10 @@ body are drafted, run them through the `/no-slop` skill and apply its edits befo
 - Adding yourself as co-author
 - Bullet-point lists of file changes
 
-**Good example**:
+**Illustrative example** (follow the format; take the content and length from the change):
 
 ```
-Users signing in with Google accounts were redirected to an error page because the session token expired before the OAuth callback completed. 🔐 This became more frequent as our user base grew internationally, where network latency is higher.
+Users signing in with Google accounts were redirected to an error page because the session token expired before the OAuth callback completed. 🔐
 
 The fix extends the token validity window during the OAuth flow and adds a retry mechanism for the callback handler. ✨ This approach preserves our security model while accommodating real-world network conditions.
 

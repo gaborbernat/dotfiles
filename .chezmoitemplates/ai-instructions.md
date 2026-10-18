@@ -1,11 +1,12 @@
 # Communication Style
 
 I am concise and direct, professional but avoid corporate jargon and platitudes. I don't repeat myself. I use code
-examples when explaining. I avoid emojis unless specifically requested, or unless files alongside the one I'm editing
-use them. I report CI status when a check fails, blocks the requested work, or changes the next action. I omit routine
-pass and pending summaries that the user can read in the PR. This applies to documentation, comments, commit messages,
-and any user-facing text. Any prose I generate — comments, docstrings, commit messages, PR/issue/review/comment bodies,
-and docs — I run through the no-slop skill to strip AI writing patterns before finalizing.
+examples when explaining. I avoid emojis unless specifically requested, a selected skill requires them, or files
+alongside the one I'm editing use them. I report CI status when a check fails, blocks the requested work, or changes the
+next action. I omit routine pass and pending summaries that the user can read in the PR. This applies to documentation,
+comments, commit messages, and any user-facing text. Any prose I generate — comments, docstrings, commit messages,
+PR/issue/review/comment bodies, and docs — I run through the no-slop skill to strip AI writing patterns before
+finalizing.
 
 # Code Quality Standards
 
@@ -24,15 +25,15 @@ lookups). I consider memory usage for large datasets.
 
 # Python code
 
-Before generating code I read the pyproject.toml and use the latest supported features. I always use the walrus operator
-where possible. I order methods in topological usage order from top to bottom, like reading a book — this includes the
-main entrypoint. I type never-reassigned values as `Final`, name module-scope globals `UPPER_CASE` (adding a `_` prefix
-when they aren't imported by other modules), keep single-letter names to comprehension targets only, and list every name
-other modules import in `__all__`. I fix linter and type-checker findings rather than suppressing them; any unavoidable
-suppression names the specific code with an inline reason.
+Before generating code I read the pyproject.toml and use the latest supported features. I use the walrus operator when
+it makes code more compact without hurting readability. I order methods in topological usage order from top to bottom,
+like reading a book — this includes the main entrypoint. I type never-reassigned values as `Final`, name module-scope
+globals `UPPER_CASE` (adding a `_` prefix when they aren't imported by other modules), keep single-letter names to
+comprehension targets only, and list every name other modules import in `__all__`. I fix linter and type-checker
+findings rather than suppressing them; any unavoidable suppression names the specific code with an inline reason.
 
-After editing a Python file I run `ruff format .; ruff check . --fix --unsafe-fixes . --output-format=concise` and make
-sure it passes.
+After editing a Python file, I run `linterator check -l info --fix .` when the project has a root `.lintrc.yaml`;
+otherwise I run `ruff format .; ruff check . --fix --unsafe-fixes . --output-format=concise`. I make sure it passes.
 
 I never group tests in classes — I fold what would be the class name into a prefix on each test function's name, and
 prefer multiple test files over large groupings. All code, including tests, is fully type annotated.
@@ -65,14 +66,15 @@ line breaks keep their structure.
 # Tool Preferences
 
 For Python projects I use ruff for format and linting, and ty for type checking. I align at 120 characters.
+
 {{- if eq .chezmoi.hostname "pc" }}
 
 # Windows testing
 
 This machine has a Windows 11 VM for running code on Windows. I use it when a change touches platform-specific behavior
-(paths, subprocess, file locking, symlinks, console encoding, `sys.platform` branches) or a Windows CI job fails, instead
-of guessing from Linux. Other agents share it, so I only touch it through `winvm`, which gives each agent its own lease
-and `C:\src` directory:
+(paths, subprocess, file locking, symlinks, console encoding, `sys.platform` branches) or a Windows CI job fails,
+instead of guessing from Linux. Other agents share it, so I only touch it through `winvm`, which gives each agent its
+own lease and `C:\src` directory:
 
 ```bash
 winvm up                    # start the VM if needed and take my lease
@@ -83,8 +85,8 @@ winvm down                  # drop my lease and directory; stops the VM only if 
 
 The shell is Windows PowerShell 5.1: I chain commands with `;`, not `&&`. `sync` copies tracked files and the current
 changes to them, so I `git add` new files first. Python 3.11 to 3.15 come from uv's standalone builds: I call
-`python3.14` or `uv run --python 3.14`, because a bare `python` opens the Microsoft Store stub. tox (with tox-uv) and Git
-are on the PATH. I never run `docker compose down -v` on the VM: it deletes the disk and forces a full reinstall.
+`python3.14` or `uv run --python 3.14`, because a bare `python` opens the Microsoft Store stub. tox (with tox-uv) and
+Git are on the PATH. I never run `docker compose down -v` on the VM: it deletes the disk and forces a full reinstall.
 {{- end }}
 
 # Documentation (when docs are requested)
