@@ -13,8 +13,11 @@ Work in the repository selected by the user, or the current repository when none
    adversarially for correctness, performance, and maintainability; investigate plausible failures and fix those
    supported by evidence.
 1. Follow the repository's instructions and conventions. Add or change tests that demonstrate each behavioral fix, then
-   run the relevant checks. Read and apply the full `/simp` and `/no-slop` skills to the **entire final PR diff**
-   against its merge base, including tests and prose. Recheck the final diff for regressions and unnecessary changes.
+   run the relevant checks. Read both `/simp` and `/no-slop` in full, including their referenced rules, and apply every
+   rule to the **entire final PR diff** against its merge base, including tests and prose. Do not treat a passing
+   `/no-slop` gate as completion: perform its full manual review. Apply `/no-slop` to the commit message and user-facing
+   report too. Repeat both passes after any further edit, with no skipped rules. Recheck the final diff for regressions
+   and unnecessary changes.
 1. Put all fixes for each PR in **one new commit on top of its head**. Do not amend, rebase, force-push, or change the
    PR's existing commits. Inspect the staged diff before committing and follow the repository's commit format. If the PR
    needs no changes, do not create an empty commit.
