@@ -1,0 +1,7 @@
+{{- if ne (env "SKIP_DNF_INSTALL") "1" -}}
+#!/bin/bash
+# Handy updater hash: {{ include "dot_local/bin/executable_update_handy" | sha256sum }}
+set -euo pipefail
+
+"$HOME/.local/bin/update_handy"
+{{ end -}}

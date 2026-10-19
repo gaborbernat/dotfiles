@@ -349,5 +349,6 @@ case "${1:-}" in
     streamdeck) update_streamdeck ;;
     gamescope) update_gamescope_session ;;
     ghostty) update_ghostty ;;
-    *) echo 'Usage: update_fedora_extras {firmware|extensions|bazecor|rustdesk|streamdeck|gamescope|ghostty}' >&2; exit 2 ;;
+    handy) "$HOME/.local/bin/update_handy" ;;
+    *) echo 'Usage: update_fedora_extras {firmware|extensions|bazecor|rustdesk|streamdeck|gamescope|ghostty|handy}' >&2; exit 2 ;;
 esac

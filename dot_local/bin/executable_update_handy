@@ -1,0 +1,114 @@
+#!/bin/bash
+set -euo pipefail
+
+if [[ ! -f /etc/fedora-release ]]; then
+    echo 'Fedora only' >&2
+    exit 2
+fi
+
+commit=$(git ls-remote https://github.com/gaborbernat/Handy.git refs/heads/main | cut -f1)
+if [[ ! $commit =~ ^[0-9a-f]{40}$ ]]; then
+    echo 'Cannot find Handy fork main commit' >&2
+    exit 1
+fi
+
+update_launchers() {
+    if [[ -f $HOME/.config/autostart/Handy.desktop ]]; then
+        sed -i "s|^Exec=.*|Exec=$HOME/.local/bin/handy|" "$HOME/.config/autostart/Handy.desktop"
+    fi
+    if [[ -f /usr/share/applications/Handy.desktop ]]; then
+        mkdir -p "$HOME/.local/share/applications"
+        sed "s|^Exec=.*|Exec=$HOME/.local/bin/handy|" /usr/share/applications/Handy.desktop \
+            >"$HOME/.local/share/applications/Handy.desktop"
+    fi
+}
+
+install_dir="$HOME/.local/share/handy"
+appimage="$install_dir/Handy.AppImage"
+if [[ -x $appimage && -f $install_dir/build-id ]] && [[ $(<"$install_dir/build-id") == "$commit" ]]; then
+    update_launchers
+    printf 'Handy %s is current\n' "${commit:0:7}"
+    exit 0
+fi
+
+for package in alsa-lib-devel clang-devel cmake glslc gtk-layer-shell-devel gtk3-devel \
+    libappindicator-gtk3-devel libevdev-devel openblas-devel openssl3-libs \
+    pkgconf-pkg-config librsvg2-devel vulkan-headers vulkan-loader-devel webkit2gtk4.1-devel; do
+    if ! rpm -q "$package" >/dev/null; then
+        printf 'Missing Handy build dependency: %s\n' "$package" >&2
+        exit 1
+    fi
+done
+
+if ! command -v bun >/dev/null; then
+    npm install --prefix "$HOME/.local" bun
+    mkdir -p "$HOME/.local/bin"
+    ln -sf ../node_modules/.bin/bun "$HOME/.local/bin/bun"
+fi
+
+cache="$HOME/.cache/handy-build"
+source="$cache/source"
+mkdir -p "$cache"
+if [[ ! -d $source/.git ]]; then
+    git clone --filter=blob:none https://github.com/gaborbernat/Handy.git "$source"
+fi
+git -C "$source" fetch --depth=1 origin main
+git -C "$source" checkout --detach --force "$commit"
+
+openssl_version=$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}' openssl3-libs)
+openssl_root="$cache/openssl3/$openssl_version"
+if [[ ! -f $openssl_root/usr/include/openssl/ssl.h ]]; then
+    mkdir -p "$openssl_root"
+    rpm_path="$cache/openssl3/openssl3-devel-$openssl_version.rpm"
+    dnf --enablerepo=updates-testing download --destdir "$cache/openssl3" "openssl3-devel-$openssl_version"
+    (cd "$openssl_root" && rpm2cpio "$rpm_path" | cpio -idm --quiet)
+fi
+for library in crypto ssl; do
+    ln -sfn "/usr/lib64/lib$library.so.3" "$openssl_root/usr/lib64/lib$library.so.3"
+done
+
+linuxdeploy="$HOME/.cache/tauri/linuxdeploy-x86_64.AppImage"
+if [[ ! -x $linuxdeploy ]]; then
+    mkdir -p "$(dirname "$linuxdeploy")"
+    curl -fsSL --retry 3 -o "$linuxdeploy.new" \
+        https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+    chmod 755 "$linuxdeploy.new"
+    mv "$linuxdeploy.new" "$linuxdeploy"
+fi
+
+export OPENSSL_INCLUDE_DIR="$openssl_root/usr/include"
+export OPENSSL_LIB_DIR="$openssl_root/usr/lib64"
+export OPENSSL_NO_VENDOR=1
+export LINUXDEPLOY_EXCLUDED_LIBRARIES='libvulkan.so*;libwayland-client.so*'
+export ARCH=x86_64
+
+(cd "$source" && bun install --frozen-lockfile)
+(cd "$source/src-tauri" && cargo build --release --jobs 8)
+libdir=$(find "$source/src-tauri/target/release/build" -path '*/out/lib64/transcribe-link.json' -printf '%h\n' -quit)
+if [[ -z $libdir ]]; then
+    echo 'Cannot find transcribe runtime library' >&2
+    exit 1
+fi
+export LD_LIBRARY_PATH="$libdir${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+bundle_dir="$source/src-tauri/target/release/bundle/appimage"
+rm -rf "$bundle_dir/Handy.AppDir"
+rm -f "$bundle_dir"/*AppImage
+if ! (cd "$source" && bun tauri build --bundles appimage); then
+    if [[ ! -d $bundle_dir/Handy.AppDir ]]; then
+        echo 'Handy AppDir was not produced' >&2
+        exit 1
+    fi
+    (cd "$bundle_dir" && "$linuxdeploy" --appimage-extract-and-run \
+        --appdir Handy.AppDir --plugin gtk --output appimage)
+fi
+
+bundle=$(find "$bundle_dir" -maxdepth 1 -name 'Handy*AppImage' -print -quit)
+if [[ -z $bundle ]]; then
+    echo 'Handy AppImage was not produced' >&2
+    exit 1
+fi
+install -D -m 755 "$bundle" "$appimage.new"
+mv "$appimage.new" "$appimage"
+install -m 644 /dev/stdin "$install_dir/build-id" <<<"$commit"
+update_launchers
+printf 'Installed Handy %s from local source\n' "${commit:0:7}"
