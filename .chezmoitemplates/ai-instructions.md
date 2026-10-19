@@ -51,11 +51,11 @@ I write tests that verify behavior, not implementation. I test edge cases and er
 tests over excessive unit-test mocking. I keep 100% coverage on all code, including tests. Each test checks one thing —
 I prefer multiple separate tests. My assertions verify real behavior: I never write a test that would still pass if the
 code under test did nothing. I parameterize near-duplicate tests with readable ids, extract repeated setup into
-fixtures, and exercise behavior only through public APIs — I never assert on private names or widen a symbol's
-visibility just to test it. I mock only true boundaries (network, clock, filesystem, subprocess) and never hand-roll
-fakes: I prefer pytest-mock's `mocker` (falling back to stdlib `unittest.mock` only when the fixture isn't available),
-prefer `create_autospec` over raw mocks, and build mocks compactly via constructor kwargs (`MagicMock(a=...)`) rather
-than define-then-assign.
+fixtures, and prefer exercising behavior through public APIs without asserting on private names. I avoid widening
+visibility solely for tests unless the project has an established mechanism for exposing internal test interfaces. I
+mock only true boundaries (network, clock, filesystem, subprocess) and never hand-roll fakes: I prefer pytest-mock's
+`mocker` (falling back to stdlib `unittest.mock` only when the fixture isn't available), prefer `create_autospec` over
+raw mocks, and build mocks compactly via constructor kwargs (`MagicMock(a=...)`) rather than define-then-assign.
 
 # Markdown files
 
