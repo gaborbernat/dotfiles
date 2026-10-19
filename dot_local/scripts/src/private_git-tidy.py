@@ -750,8 +750,8 @@ def run_git(cmd: list[str], opts: Options, *, capture: bool = False, check: bool
 
 
 def run_git_ok(cmd: list[str], opts: Options) -> bool:
-    """Run a mutating git command, returning whether it succeeded (True in dry-run)."""
-    if opts.dry_run:
+    """Return whether Git succeeds, skipping writes in dry-run."""
+    if opts.dry_run and not _is_readonly_git(cmd):
         return True
     return subprocess.run(cmd, capture_output=True, text=True, check=False).returncode == 0
 
