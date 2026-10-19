@@ -87,6 +87,7 @@ load-opener-sock-gc.sh
 .config/systemd
 enable-opener-sock-gc-timer.sh
 .local/bin/agent-awake
+.local/bin/code
 enable-agent-awake.sh
 .local/bin/rustdesk-pin-primary
 enable-rustdesk-pin-primary.sh
