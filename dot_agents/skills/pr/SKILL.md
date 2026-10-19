@@ -3,8 +3,8 @@ name: pr
 description: Creates or updates a PR with title, description, assignees, reviewers, and labels. Use when asked to create a PR, update a PR, write or improve a PR title/description, or prepare a pull request for review.
 ---
 
-The title and description should communicate the value and reasoning behind the changes, not describe what the code does
-line-by-line.
+The title and description should make the PR easier to review. Briefly state the change and why it is needed, then add
+only context the reviewer cannot readily infer from the diff or CI.
 
 ## Base
 
@@ -36,19 +36,21 @@ Keep titles under 72 characters.
 
 ## Description Format
 
-Write in paragraphs, not bullet lists. Use 1-3 emoji sparingly throughout to highlight key points. Once the title and
-body are drafted, run them through the `/no-slop` skill and apply its edits before creating or updating the PR.
+Prefer concise prose over bullet-point walls. A small PR may need only one or two sentences. Run the title and body
+through `/no-slop` before publishing; the reviewer should not have to edit generated prose to find the useful context.
 
-**Structure**:
+**Review context**:
 
-1. **Opening paragraph**: State the motivation. Why was this change needed? What problem does it solve? What's the user
-   or developer benefit?
+State the problem and intended outcome briefly. Explain why this implementation was chosen when the reason is not
+apparent from the code: upstream constraints, compatibility requirements, prior art, or a trade-off between plausible
+alternatives. Research and link the dependency documentation, upstream issues, specifications, or earlier work that
+supports the decision. Put that context directly in the description rather than asking the user to copy it in.
 
-1. **Approach paragraph**: Explain how the solution works at a high level. Focus on the design decisions and trade-offs,
-   not implementation details.
+For larger changes, include an architecture overview or Mermaid diagram when it reduces the reviewer's effort. Scale the
+explanation to the change; do not fill a fixed template or describe functions, files, and edits in sequence.
 
-1. **Impact paragraph** (if applicable): Note any behavioral changes, migration steps, or things reviewers should pay
-   attention to.
+Judge descriptions by their usefulness, regardless of whether an agent helped write them. PRs that ignore this guidance
+may be closed without feedback. This is a writing standard, not authorization to close PRs or post review comments.
 
 **Formatting**:
 
@@ -66,19 +68,17 @@ body are drafted, run them through the `/no-slop` skill and apply its edits befo
 
 **Avoid**:
 
-- Mentioning tests or test coverage
-- Describing what specific functions or methods do
+- Routine validation reports, test counts, coverage totals, and CI status
+- Implementation walkthroughs or details already evident from the diff
+- Lists of things left unchanged, absent, or deliberately not done
+- Conversation history or instructions such as "keep X while linking Y"
 - Adding yourself as co-author
 - Bullet-point lists of file changes
 
 **Illustrative example** (follow the format; take the content and length from the change):
 
 ```
-Users signing in with Google accounts were redirected to an error page because the session token expired before the OAuth callback completed. 🔐
-
-The fix extends the token validity window during the OAuth flow and adds a retry mechanism for the callback handler. ✨ This approach preserves our security model while accommodating real-world network conditions.
-
-Existing sessions remain unaffected. The retry logic uses exponential backoff to avoid hammering the auth provider.
+Allow longer OAuth consent steps. The login token can expire while the user is still at the provider.
 ```
 
 ## Diagrams
@@ -119,7 +119,8 @@ Pick applicable labels from `enhancement`, `bug`, `documentation` based on the c
 1. Run `git log "$base"..HEAD --oneline` to see commit history
 1. Identify the primary purpose (what user/developer problem this solves)
 1. Draft title following Commitizen format with emoji
-1. Write description paragraphs explaining why and how
+1. Write a brief description of the outcome and rationale, including useful review context
+1. Remove details the diff or CI already communicates; verify that each remaining claim and link helps review
 1. Determine labels from the change type
 1. Create with `gh pr create --title "..." --body-file <file> --label "<labels>"`, or update an existing PR with
    `gh pr edit <number> --title "..." --body-file <file>` and add missing labels
