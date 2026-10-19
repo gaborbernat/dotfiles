@@ -141,18 +141,16 @@ def load_all_data(
         stale_branches = [(branch, days) for branch, days in stale_branches if branch not in branches_to_exclude]
         stale_branch_data = prepare_stale_branch_data(stale_branches, default_branch, opts, progress, task)
 
-        # Get remote-only branches (on origin/upstream but not local)
-        progress.update(task, description="Checking remote-only branches...")
-        remote_only_branches = get_remote_only_branches(default_branch, opts)
-
-        # Filter remote-only branches to only include merged ones (verify the remote tip SHA too)
+        remote_only_branches: dict[str, list[str]] = {"origin": [], "upstream": []}
         if github_repo:
-            merged_remote_branches: dict[str, list[str]] = {"origin": [], "upstream": []}
+            progress.update(task, description="Checking remote-only branches...")
+            candidates = get_remote_only_branches(default_branch, opts)
             for remote in ("origin", "upstream"):
-                merged_remote_branches[remote] = [
-                    b for b in remote_only_branches[remote] if is_ref_merged(f"{remote}/{b}", merged_pr_refs, b, opts)
+                remote_only_branches[remote] = [
+                    branch
+                    for branch in candidates[remote]
+                    if is_ref_merged(f"{remote}/{branch}", merged_pr_refs, branch, opts)
                 ]
-            remote_only_branches = merged_remote_branches
 
     return gone_branches, merged_branches, stale_branch_data, remote_only_branches
 
@@ -230,7 +228,7 @@ def get_github_repo(console: Console, opts: Options) -> Repository | None:
 
         # Extract repo path from URL
         # Handle formats like: git@github.com:owner/repo.git or https://github.com/owner/repo.git
-        if "github.com" not in remote_url and enterprise_host not in remote_url:
+        if "github.com" not in remote_url and (not enterprise_host or enterprise_host not in remote_url):
             console.print("[yellow]Warning: Not a GitHub repository, skipping PR merge check[/yellow]")
             return None
 
