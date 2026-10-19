@@ -196,6 +196,28 @@ for user in "$main_user" "$GAMING_USER"; do
     fi
 done
 
+shader_config="$gaming_home/.local/share/Steam/config/config.vdf"
+if [[ -f "$shader_config" ]] && ! grep -Fq '"EnableShaderBackgroundProcessing"' "$shader_config"; then
+    if pgrep --uid "$GAMING_USER" --exact steam >/dev/null; then
+        echo "Quit Steam for '$GAMING_USER', then rerun to enable background shader processing."
+    else
+        awk '
+            /"ShaderCacheManager"/ { manager = 1 }
+            manager && /^[[:space:]]*\{$/ && !inserted {
+                print
+                print "\t\t\t\t\t\"EnableShaderBackgroundProcessing\"\t\t\"1\""
+                inserted = 1
+                next
+            }
+            { print }
+            END { if (!inserted) exit 1 }
+        ' "$shader_config" >"$workdir/config.vdf"
+        install --owner="$GAMING_USER" --group="$GAMING_USER" --mode=0644 \
+            "$workdir/config.vdf" "$shader_config"
+        echo "Enabled background shader processing for '$GAMING_USER'."
+    fi
+fi
+
 layout="$main_home/.config/monitors.xml"
 if [[ -f "$layout" ]]; then
     install --mode=0644 "$layout" /etc/xdg/monitors.xml
