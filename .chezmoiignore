@@ -83,6 +83,9 @@ configure-gtk-headerbar.sh
 Library/LaunchAgents/com.gaborbernat.opener-sock-gc.plist
 load-opener-sock-gc.sh
 {{ end }}
+{{ if ne .chezmoi.hostname "pc" }}
+.ssh/allowed_signers
+{{ end }}
 {{ if not (and (eq .chezmoi.os "linux") (eq (get .chezmoi.osRelease "id") "fedora")) }}
 .config/systemd
 enable-opener-sock-gc-timer.sh
