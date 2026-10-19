@@ -265,11 +265,13 @@ def get_github_repo(console: Console, opts: Options) -> Repository | None:
 
 
 def get_default_branch(console: Console, opts: Options) -> str:
-    result = run_git(["git", "symbolic-ref", "refs/remotes/origin/HEAD"], opts, capture=True, check=False).strip()
-    if result:
-        return result.split("/")[-1]
-    console.print("[yellow]Warning: Could not detect default branch, using 'main'[/yellow]")
-    return "main"
+    for remote in ("origin", "upstream"):
+        result = run_git(["git", "ls-remote", "--symref", remote, "HEAD"], opts, capture=True, check=False)
+        for line in result.splitlines():
+            if line.startswith("ref: refs/heads/") and line.endswith("\tHEAD"):
+                return line.removeprefix("ref: refs/heads/").removesuffix("\tHEAD")
+    console.print("[red]Could not determine the default branch from origin or upstream[/red]")
+    raise SystemExit(2)
 
 
 def sync_default_branch(console: Console, opts: Options, default_branch: str) -> None:
