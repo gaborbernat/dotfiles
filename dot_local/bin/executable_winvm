@@ -53,7 +53,7 @@ holder_alive() {
 }
 
 up() {
-    local agent ready
+    local agent ready output deadline new_lease=false
     agent=$(owner)
     if ! holder_alive "$agent"; then
         ready="$state/holders/$agent.ready"
@@ -62,11 +62,33 @@ up() {
         setsid flock -s -o "$lock" sh -c 'touch "$1"; exec tail --pid="$2" -f /dev/null' _ "$ready" "$agent" \
             </dev/null >/dev/null 2>&1 &
         echo $! >"$state/holders/$agent"
-        until [ -f "$ready" ]; do sleep 1; done
+        new_lease=true
+        deadline=$((SECONDS + 600))
+        until [ -f "$ready" ]; do
+            if (( SECONDS >= deadline )); then
+                echo 'VM lease could not be acquired within 10 minutes' >&2
+                down
+                return 1
+            fi
+            sleep 1
+        done
         rm -f "$ready"
     fi
-    "${compose[@]}" up -d --quiet-pull 2>&1 | grep -v -e '^ Container .* Running *$' -e '^$' || true
-    until "${remote[@]}" exit 2>/dev/null; do sleep 3; done
+    if ! output=$("${compose[@]}" up -d --quiet-pull 2>&1); then
+        printf '%s\n' "$output" >&2
+        if [[ "$new_lease" == true ]]; then down; fi
+        return 1
+    fi
+    printf '%s\n' "$output" | grep -v -e '^ Container .* Running *$' -e '^$' || true
+    deadline=$((SECONDS + 600))
+    until "${remote[@]}" exit 2>/dev/null; do
+        if (( SECONDS >= deadline )); then
+            echo 'VM did not become reachable over SSH within 10 minutes' >&2
+            if [[ "$new_lease" == true ]]; then down; fi
+            return 1
+        fi
+        sleep 3
+    done
     echo "VM ready, lease held by PID $agent"
 }
 
