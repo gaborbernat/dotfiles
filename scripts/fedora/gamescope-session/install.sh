@@ -196,14 +196,13 @@ for user in "$main_user" "$GAMING_USER"; do
     fi
 done
 
-# Mutter reads monitors.xml from the system config dirs as a fallback for every user,
-# which covers the GDM greeter whatever dynamic user it runs as.
 layout="$main_home/.config/monitors.xml"
 if [[ -f "$layout" ]]; then
     install --mode=0644 "$layout" /etc/xdg/monitors.xml
     greeter_config=/var/lib/gdm/seat0/config
     if [[ -d "$greeter_config" ]]; then
-        install --mode=0644 --owner="$(stat -c %u "$greeter_config")" "$layout" "$greeter_config/monitors.xml"
+        install --mode=0644 --owner="$(stat -c %u "$greeter_config")" \
+            "$(dirname "$0")/greeter-monitors.xml" "$greeter_config/monitors.xml"
     fi
     install --mode=0644 --owner="$GAMING_USER" --group="$GAMING_USER" "$layout" "$gaming_home/.config/monitors.xml"
 fi
