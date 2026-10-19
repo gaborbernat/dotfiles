@@ -46,7 +46,8 @@ apparent from the code: upstream constraints, compatibility requirements, prior 
 alternatives. Research and link the dependency documentation, upstream issues, specifications, or earlier work that
 supports the decision. Put that context directly in the description rather than asking the user to copy it in.
 
-For larger changes, include an architecture overview or Mermaid diagram when it reduces the reviewer's effort. Scale the
+For complex PRs, concise architectural narration in prose is useful: explain how the main components interact and why
+they are arranged that way. Add Mermaid diagrams where they contribute meaningful context beyond the prose. Scale the
 explanation to the change; do not fill a fixed template or describe functions, files, and edits in sequence.
 
 Judge descriptions by their usefulness, regardless of whether an agent helped write them. PRs that ignore this guidance
@@ -69,7 +70,7 @@ may be closed without feedback. This is a writing standard, not authorization to
 **Avoid**:
 
 - Routine validation reports, test counts, coverage totals, and CI status
-- Implementation walkthroughs or details already evident from the diff
+- Line-by-line implementation walkthroughs or edit summaries already evident from the diff
 - Lists of things left unchanged, absent, or deliberately not done
 - Conversation history or instructions such as "keep X while linking Y"
 - Adding yourself as co-author

@@ -45,8 +45,8 @@ implementation was chosen. Use concise paragraphs wrapped at 80 characters.
 
 Record relevant constraints and trade-offs, with links to upstream dependency documentation, issues, specifications, or
 prior art that support the decision. Research those references when needed; do not invent a rationale to fill a body.
-For a larger change, a brief architecture explanation can help future readers understand the decision. Put detailed
-review diagrams in the PR description.
+For complex changes, concise architectural prose can explain how the main components interact and why they are arranged
+that way. Put diagrams in the PR description when they add meaningful context beyond the prose.
 
 Run the message through `/no-slop` before committing. Review generated prose yourself rather than leaving the reader to
 extract the useful context. Apply the same writing standard regardless of who or what drafted it.
@@ -56,7 +56,7 @@ extract the useful context. Apply the same writing standard regardless of who or
 - Describing what the code does line-by-line
 - Routine validation reports, test counts, coverage totals, and CI status
 - Lists of unchanged behavior, absent changes, or completed checklist items
-- Conversation history and implementation walkthroughs
+- Conversation history and line-by-line implementation walkthroughs
 - Adding Co-Authored-By with your own name
 - Bullet lists of changed files
 - Generic messages like "fix bug" or "update code"
