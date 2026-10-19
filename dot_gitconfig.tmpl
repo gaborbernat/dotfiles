@@ -3,6 +3,13 @@
     email = gaborjbernat@gmail.com
 {{- if eq .chezmoi.os "darwin" }}
     signingkey = {{ .signingkey }}
+{{- else if eq .chezmoi.hostname "pc" }}
+    signingkey = ~/.ssh/id_bernat-fedora.pub
+{{- end }}
+
+{{- if eq .chezmoi.hostname "pc" }}
+[gpg]
+    format = ssh
 {{- end }}
 
 [core]
@@ -82,7 +89,7 @@
 
 [commit]
     verbose = true
-{{- if eq .chezmoi.os "darwin" }}
+{{- if or (eq .chezmoi.os "darwin") (eq .chezmoi.hostname "pc") }}
     gpgsign = true
 {{- end }}
 
