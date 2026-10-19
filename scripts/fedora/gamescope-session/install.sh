@@ -185,7 +185,13 @@ for user in "$main_user" "$GAMING_USER"; do
     elif pgrep --uid "$user" --exact steam >/dev/null; then
         echo "Quit Steam for '$user', then rerun to add the shared library."
     else
-        index=$(grep -cP '^\t"\d+"$' "$folders")
+        index=$(awk '
+            /^\t"[0-9]+"$/ {
+                gsub(/"/, "", $1)
+                if ($1 >= candidate) candidate = $1 + 1
+            }
+            END { print candidate + 0 }
+        ' "$folders")
         {
             sed '$d' "$folders"
             printf '\t"%s"\n\t{\n\t\t"path"\t\t"%s"\n\t\t"label"\t\t""\n\t\t"apps"\n\t\t{\n\t\t}\n\t}\n}\n' \
