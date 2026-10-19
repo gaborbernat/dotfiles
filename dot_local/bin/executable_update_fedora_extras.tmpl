@@ -208,22 +208,26 @@ update_gamescope_session() {
 
 STREAMDECK_WORK=
 STREAMDECK_RESTART=false
+STREAMDECK_SWAPPED=()
 
 streamdeck_cleanup() {
-    local result=$? backup target restore_failed=false
+    local result=$? id target restore_failed=false
     trap - EXIT
     if [[ -n "$STREAMDECK_WORK" && -d "$STREAMDECK_WORK" ]]; then
-        for backup in "$STREAMDECK_WORK"/*.previous; do
-            [[ -e "$backup" ]] || continue
-            target="$HOME/.var/app/com.core447.StreamController/data/plugins/${backup##*/}"
-            target=${target%.previous}
-            if [[ ! -e "$target" ]]; then
-                if ! mv "$backup" "$target"; then
+        if (( result != 0 )); then
+            for id in "${STREAMDECK_SWAPPED[@]}"; do
+                target="$HOME/.var/app/com.core447.StreamController/data/plugins/$id"
+                if ! rm -rf -- "$target"; then
+                    restore_failed=true
+                    result=1
+                    continue
+                fi
+                if [[ -e "$STREAMDECK_WORK/$id.previous" ]] && ! mv "$STREAMDECK_WORK/$id.previous" "$target"; then
                     restore_failed=true
                     result=1
                 fi
-            fi
-        done
+            done
+        fi
         if [[ "$restore_failed" == false ]]; then
             rm -rf "$STREAMDECK_WORK"
         else
@@ -317,6 +321,15 @@ update_streamdeck() {
             return 1
         fi
     fi
+    for id in "${updates[@]}"; do
+        target="$plugins_dir/$id"
+        if [[ -e "$target" ]]; then
+            mv "$target" "$STREAMDECK_WORK/$id.previous"
+        fi
+        STREAMDECK_SWAPPED+=("$id")
+        mv "$STREAMDECK_WORK/$id" "$target"
+        printf 'Updated %s\n' "$id"
+    done
     if [[ "$settings_changed" == true ]]; then
         if [[ -f "$settings" ]]; then
             jq '.store["auto-update"] = false' "$settings" >"$STREAMDECK_WORK/settings.json"
@@ -326,17 +339,6 @@ update_streamdeck() {
         mv "$STREAMDECK_WORK/settings.json" "$settings"
         echo 'Disabled StreamController store auto-updates to preserve the OSPlugin patch'
     fi
-    for id in "${updates[@]}"; do
-        target="$plugins_dir/$id"
-        if [[ -e "$target" ]]; then
-            mv "$target" "$STREAMDECK_WORK/$id.previous"
-        fi
-        if ! mv "$STREAMDECK_WORK/$id" "$target"; then
-            [[ ! -e "$STREAMDECK_WORK/$id.previous" ]] || mv "$STREAMDECK_WORK/$id.previous" "$target"
-            return 1
-        fi
-        printf 'Updated %s\n' "$id"
-    done
 }
 
 case "${1:-}" in
