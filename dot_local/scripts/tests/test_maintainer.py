@@ -129,6 +129,47 @@ def test_check_pr_status_returns_failed_check_url() -> None:
     assert check_pr_status(pr)[3] == check_run.details_url
 
 
+def test_check_pr_status_ignores_superseded_workflow() -> None:
+    old = _action_check_run(1, 10, "cancelled")
+    old.configure_mock(name="unexpanded matrix")
+    current = _action_check_run(2, 20, "success")
+    pr = MagicMock(mergeable=True, mergeable_state="clean", head=MagicMock(sha="head"))
+    pr.base.repo.get_commit.return_value.get_combined_status.return_value.statuses = []
+    pr.base.repo.get_commit.return_value.get_check_runs.return_value = [old, current]
+    pr.base.repo.get_workflow_runs.return_value = [
+        _workflow_run(1, 10, "cancelled"),
+        _workflow_run(2, 20, "success"),
+    ]
+
+    assert check_pr_status(pr)[0] == "success"
+
+
+def test_check_pr_status_keeps_other_current_workflows() -> None:
+    current = _action_check_run(2, 20, "success")
+    failing = _action_check_run(3, 30, "failure")
+    pr = MagicMock(mergeable=True, mergeable_state="clean", head=MagicMock(sha="head"))
+    pr.base.repo.get_commit.return_value.get_combined_status.return_value.statuses = []
+    pr.base.repo.get_commit.return_value.get_check_runs.return_value = [current, failing]
+    pr.base.repo.get_workflow_runs.return_value = [
+        _workflow_run(2, 20, "success"),
+        _workflow_run(3, 30, "failure", workflow_id=2),
+    ]
+
+    assert check_pr_status(pr)[0] == "failed"
+
+
+def test_check_pr_status_waits_for_latest_workflow() -> None:
+    current = _action_check_run(2, 20, "success")
+    pr = MagicMock(mergeable=True, mergeable_state="clean", head=MagicMock(sha="head"))
+    pr.base.repo.get_commit.return_value.get_combined_status.return_value.statuses = []
+    pr.base.repo.get_commit.return_value.get_check_runs.return_value = [current]
+    workflow = _workflow_run(2, 20, None)
+    workflow.status = "in_progress"
+    pr.base.repo.get_workflow_runs.return_value = [workflow]
+
+    assert check_pr_status(pr)[0] == "failed"
+
+
 def test_check_pr_status_uses_latest_legacy_status() -> None:
     statuses = [
         MagicMock(id=1, context="ci", state="failure"),
@@ -145,3 +186,24 @@ def _check_run(run_id: int, app_id: int, conclusion: str) -> MagicMock:
     check_run = MagicMock(id=run_id, app=MagicMock(id=app_id), status="completed", conclusion=conclusion)
     check_run.configure_mock(name="test")
     return check_run
+
+
+def _action_check_run(run_id: int, suite_id: int, conclusion: str) -> MagicMock:
+    check_run = _check_run(run_id, 1, conclusion)
+    check_run.app.slug = "github-actions"
+    check_run.check_suite.id = suite_id
+    return check_run
+
+
+def _workflow_run(run_id: int, suite_id: int, conclusion: str | None, *, workflow_id: int = 1) -> MagicMock:
+    workflow = MagicMock(
+        id=run_id,
+        workflow_id=workflow_id,
+        event="pull_request",
+        check_suite_id=suite_id,
+        status="completed",
+        conclusion=conclusion,
+        html_url=f"https://github.com/example/repo/actions/runs/{run_id}",
+    )
+    workflow.configure_mock(name="PR gate")
+    return workflow

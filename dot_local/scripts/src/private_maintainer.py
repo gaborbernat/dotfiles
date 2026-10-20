@@ -28,7 +28,10 @@ from rich_argparse import RichHelpFormatter
 from truststore import inject_into_ssl
 
 if TYPE_CHECKING:
+    from github.CheckRun import CheckRun
+    from github.CommitStatus import CommitStatus
     from github.PullRequest import PullRequest
+    from github.WorkflowRun import WorkflowRun
 
 __all__: Final = ["check_pr_status", "display_failed_prs", "display_mergeable_prs", "get_token"]
 
@@ -281,7 +284,7 @@ def open_failed_prs(console: Console, failed_prs: list[tuple[str, PullRequest, s
         webbrowser.open(pr.html_url)
 
 
-def check_pr_status(pr: PullRequest) -> tuple[str, str, str | None, str | None]:  # noqa: PLR0911
+def check_pr_status(pr: PullRequest) -> tuple[str, str, str | None, str | None]:
     """
     Check if a PR is ready to merge.
 
@@ -298,29 +301,71 @@ def check_pr_status(pr: PullRequest) -> tuple[str, str, str | None, str | None]:
     # Evaluate CI on the true head commit, not get_commits()[-1] (truncated past 250 commits).
     head_commit = pr.base.repo.get_commit(pr.head.sha)
     combined_status = head_commit.get_combined_status()
-    check_runs = head_commit.get_check_runs()
+    if (current := _current_check_runs(pr, list(head_commit.get_check_runs()))) is None:
+        return "failed", "No GitHub Actions runs found", None, None
+    check_runs, workflows = current
 
     legacy_statuses = {status.context: status for status in sorted(combined_status.statuses, key=lambda item: item.id)}
     check_run_list = {
         (check_run.app.id, check_run.name): check_run for check_run in sorted(check_runs, key=lambda item: item.id)
     }
 
-    if not legacy_statuses and not check_run_list:
+    if failure := _check_failure(list(legacy_statuses.values()), list(check_run_list.values())):
+        return failure
+    if failure := _workflow_failure(workflows):
+        return failure
+
+    return "success", "", pr.head.sha, None
+
+
+def _current_check_runs(pr: PullRequest, check_runs: list[CheckRun]) -> tuple[list[CheckRun], list[WorkflowRun]] | None:
+    if not any(check_run.app.slug == "github-actions" for check_run in check_runs):
+        return check_runs, []
+
+    latest: dict[tuple[int, str], WorkflowRun] = {}
+    for workflow in sorted(pr.base.repo.get_workflow_runs(head_sha=pr.head.sha), key=lambda item: item.id):
+        latest[workflow.workflow_id, workflow.event] = workflow
+    if not latest:
+        return None
+
+    suites = {workflow.check_suite_id for workflow in latest.values()}
+    return (
+        [
+            check_run
+            for check_run in check_runs
+            if check_run.app.slug != "github-actions" or check_run.check_suite.id in suites
+        ],
+        list(latest.values()),
+    )
+
+
+def _check_failure(
+    statuses: list[CommitStatus], check_runs: list[CheckRun]
+) -> tuple[str, str, None, str | None] | None:
+    if not statuses and not check_runs:
         return "failed", "No CI checks found", None, None
 
-    for status in legacy_statuses.values():
+    for status in statuses:
         if status.state in ("error", "failure"):
             return "failed", f"Check failed: {status.context}", None, status.target_url
         if status.state == "pending":
             return "failed", f"Check pending: {status.context}", None, status.target_url
 
-    for check_run in check_run_list.values():
+    for check_run in check_runs:
         if check_run.status != "completed":
             return "failed", f"Check not completed: {check_run.name}", None, check_run.details_url
         if check_run.conclusion not in ("success", "neutral", "skipped"):
             return "failed", f"Check failed: {check_run.name} ({check_run.conclusion})", None, check_run.details_url
+    return None
 
-    return "success", "", pr.head.sha, None
+
+def _workflow_failure(workflows: list[WorkflowRun]) -> tuple[str, str, None, str] | None:
+    for workflow in workflows:
+        if workflow.status != "completed":
+            return "failed", f"Workflow not completed: {workflow.name}", None, workflow.html_url
+        if workflow.conclusion not in ("success", "neutral", "skipped"):
+            return "failed", f"Workflow failed: {workflow.name} ({workflow.conclusion})", None, workflow.html_url
+    return None
 
 
 def approve_and_merge(console: Console, repo_name: str, pr: PullRequest, checked_sha: str) -> None:
