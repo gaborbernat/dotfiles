@@ -11,6 +11,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 import webbrowser
 from argparse import ArgumentParser, Namespace
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -28,7 +29,7 @@ from truststore import inject_into_ssl
 if TYPE_CHECKING:
     from github.PullRequest import PullRequest
 
-__all__: Final = ["check_pr_status"]
+__all__: Final = ["check_pr_status", "get_token"]
 
 # Mirrors the primary and maintenance projects in bernat-tech/data/projects.yaml (presentations excluded);
 # keep both in sync. toml-fmt covers its monorepo components; pyproject-fmt and tox-toml-fmt are listed
@@ -82,9 +83,9 @@ def main() -> None:
     opts = parse_cli()
     console = Console()
 
-    token = os.environ.get("GITHUB_TOKEN")
+    token = get_token()
     if not token:
-        console.print("[red]GITHUB_TOKEN not set, cannot continue.[/red]")
+        console.print("[red]No GitHub token found. Set GITHUB_TOKEN or run gh auth login.[/red]")
         raise SystemExit(1)
 
     inject_into_ssl()
@@ -96,6 +97,17 @@ def main() -> None:
     except GithubException as exc:
         console.print(f"[red]GitHub API error: {exc}[/red]")
         raise SystemExit(1) from exc
+
+
+def get_token() -> str | None:
+    if token := os.environ.get("GITHUB_TOKEN"):
+        return token
+
+    try:
+        result = subprocess.run(("gh", "auth", "token"), capture_output=True, check=True, text=True)
+        return result.stdout.strip() or None
+    except OSError, subprocess.CalledProcessError:
+        return None
 
 
 class Options(Namespace):

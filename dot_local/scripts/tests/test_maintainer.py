@@ -1,10 +1,50 @@
 from __future__ import annotations
 
-from unittest.mock import MagicMock
+import subprocess
+from unittest.mock import MagicMock, patch
 
 import pytest
 
-from private_maintainer import check_pr_status
+from private_maintainer import check_pr_status, get_token
+
+
+def test_get_token_prefers_environment() -> None:
+    with (
+        patch.dict("os.environ", {"GITHUB_TOKEN": "environment-token"}),
+        patch("private_maintainer.subprocess.run") as gh,
+    ):
+        assert get_token() == "environment-token"
+    gh.assert_not_called()
+
+
+def test_get_token_uses_gh_auth() -> None:
+    completed = subprocess.CompletedProcess(("gh", "auth", "token"), 0, stdout="gh-token\n")
+    with (
+        patch.dict("os.environ", {"GITHUB_TOKEN": ""}),
+        patch("private_maintainer.subprocess.run", return_value=completed),
+    ):
+        assert get_token() == "gh-token"
+
+
+@pytest.mark.parametrize(
+    "error",
+    [
+        pytest.param(FileNotFoundError(), id="gh missing"),
+        pytest.param(subprocess.CalledProcessError(1, ("gh", "auth", "token")), id="gh not authenticated"),
+    ],
+)
+def test_get_token_handles_gh_failure(error: OSError | subprocess.CalledProcessError) -> None:
+    with patch.dict("os.environ", {"GITHUB_TOKEN": ""}), patch("private_maintainer.subprocess.run", side_effect=error):
+        assert get_token() is None
+
+
+def test_get_token_rejects_empty_gh_output() -> None:
+    completed = subprocess.CompletedProcess(("gh", "auth", "token"), 0, stdout="\n")
+    with (
+        patch.dict("os.environ", {"GITHUB_TOKEN": ""}),
+        patch("private_maintainer.subprocess.run", return_value=completed),
+    ):
+        assert get_token() is None
 
 
 @pytest.mark.parametrize(
