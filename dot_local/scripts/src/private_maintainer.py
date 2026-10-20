@@ -14,7 +14,7 @@ import os
 import webbrowser
 from argparse import ArgumentParser, Namespace
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Final
 
 from github import Github
 from github.Auth import Token
@@ -27,6 +27,8 @@ from truststore import inject_into_ssl
 
 if TYPE_CHECKING:
     from github.PullRequest import PullRequest
+
+__all__: Final = ["check_pr_status"]
 
 # Mirrors the primary and maintenance projects in bernat-tech/data/projects.yaml (presentations excluded);
 # keep both in sync. toml-fmt covers its monorepo components; pyproject-fmt and tox-toml-fmt are listed
@@ -274,19 +276,21 @@ def check_pr_status(pr: PullRequest) -> tuple[str, str, str | None]:  # noqa: PL
     combined_status = head_commit.get_combined_status()
     check_runs = head_commit.get_check_runs()
 
-    legacy_statuses = combined_status.statuses
-    check_run_list = list(check_runs)
+    legacy_statuses = {status.context: status for status in sorted(combined_status.statuses, key=lambda item: item.id)}
+    check_run_list = {
+        (check_run.app.id, check_run.name): check_run for check_run in sorted(check_runs, key=lambda item: item.id)
+    }
 
     if not legacy_statuses and not check_run_list:
         return "failed", "No CI checks found", None
 
-    for status in legacy_statuses:
+    for status in legacy_statuses.values():
         if status.state in ("error", "failure"):
             return "failed", f"Check failed: {status.context}", None
         if status.state == "pending":
             return "failed", f"Check pending: {status.context}", None
 
-    for check_run in check_run_list:
+    for check_run in check_run_list.values():
         if check_run.status != "completed":
             return "failed", f"Check not completed: {check_run.name}", None
         if check_run.conclusion not in ("success", "neutral", "skipped"):
