@@ -1,11 +1,13 @@
 from __future__ import annotations
 
 import subprocess
+from io import StringIO
 from unittest.mock import MagicMock, patch
 
 import pytest
+from rich.console import Console
 
-from private_maintainer import check_pr_status, get_token
+from private_maintainer import check_pr_status, display_failed_prs, display_mergeable_prs, get_token
 
 
 def test_get_token_prefers_environment() -> None:
@@ -47,6 +49,44 @@ def test_get_token_rejects_empty_gh_output() -> None:
         assert get_token() is None
 
 
+def test_display_mergeable_prs_links_pr() -> None:
+    console = Console(file=StringIO(), force_terminal=True, record=True)
+    pr = MagicMock(number=1, html_url="https://github.com/example/repo/pull/1", title="Update", user=None)
+
+    display_mergeable_prs(console, [("repo", pr, "head")])
+
+    assert 'href="https://github.com/example/repo/pull/1"' in console.export_html()
+
+
+@pytest.mark.parametrize(
+    ("reason_url", "expected_url"),
+    [
+        pytest.param(
+            "https://github.com/example/repo/actions/runs/1",
+            "https://github.com/example/repo/actions/runs/1",
+            id="failed check",
+        ),
+        pytest.param(None, "https://github.com/example/repo/pull/1/checks", id="checks fallback"),
+    ],
+)
+def test_display_failed_prs_links_reason(reason_url: str | None, expected_url: str) -> None:
+    console = Console(file=StringIO(), force_terminal=True, record=True)
+    pr = MagicMock(number=1, html_url="https://github.com/example/repo/pull/1", title="Update")
+
+    display_failed_prs(console, [("repo", pr, "Check failed", reason_url)])
+
+    assert f'href="{expected_url}"' in console.export_html()
+
+
+def test_display_failed_prs_links_pr() -> None:
+    console = Console(file=StringIO(), force_terminal=True, record=True)
+    pr = MagicMock(number=1, html_url="https://github.com/example/repo/pull/1", title="Update")
+
+    display_failed_prs(console, [("repo", pr, "Check failed", None)])
+
+    assert 'href="https://github.com/example/repo/pull/1"' in console.export_html()
+
+
 @pytest.mark.parametrize(
     ("older", "newer", "expected"),
     [
@@ -77,6 +117,16 @@ def test_check_pr_status_keeps_checks_from_distinct_apps() -> None:
     pr.base.repo.get_commit.return_value.get_check_runs.return_value = runs
 
     assert check_pr_status(pr)[0] == "failed"
+
+
+def test_check_pr_status_returns_failed_check_url() -> None:
+    check_run = _check_run(1, 1, "failure")
+    check_run.details_url = "https://github.com/example/repo/actions/runs/1"
+    pr = MagicMock(mergeable=True, mergeable_state="clean", head=MagicMock(sha="head"))
+    pr.base.repo.get_commit.return_value.get_combined_status.return_value.statuses = []
+    pr.base.repo.get_commit.return_value.get_check_runs.return_value = [check_run]
+
+    assert check_pr_status(pr)[3] == check_run.details_url
 
 
 def test_check_pr_status_uses_latest_legacy_status() -> None:

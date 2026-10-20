@@ -23,13 +23,14 @@ from github.GithubException import GithubException
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
+from rich.text import Text
 from rich_argparse import RichHelpFormatter
 from truststore import inject_into_ssl
 
 if TYPE_CHECKING:
     from github.PullRequest import PullRequest
 
-__all__: Final = ["check_pr_status", "get_token"]
+__all__: Final = ["check_pr_status", "display_failed_prs", "display_mergeable_prs", "get_token"]
 
 # Mirrors the primary and maintenance projects in bernat-tech/data/projects.yaml (presentations excluded);
 # keep both in sync. toml-fmt covers its monorepo components; pyproject-fmt and tox-toml-fmt are listed
@@ -152,10 +153,10 @@ def run(console: Console, token: str, opts: Options) -> None:
 
 def scan_repositories(
     console: Console, token: str
-) -> tuple[list[tuple[str, PullRequest, str]], list[tuple[str, PullRequest, str]]]:
+) -> tuple[list[tuple[str, PullRequest, str]], list[tuple[str, PullRequest, str, str | None]]]:
     """Scan all repositories for open PRs and categorize them."""
     mergeable_prs: list[tuple[str, PullRequest, str]] = []
-    failed_prs: list[tuple[str, PullRequest, str]] = []
+    failed_prs: list[tuple[str, PullRequest, str, str | None]] = []
 
     with Progress(
         SpinnerColumn(),
@@ -192,14 +193,14 @@ def scan_repositories(
 
 def scan_single_repository(
     token: str, repo_path: str
-) -> tuple[list[tuple[str, PullRequest, str]], list[tuple[str, PullRequest, str]], list[str], str]:
+) -> tuple[list[tuple[str, PullRequest, str]], list[tuple[str, PullRequest, str, str | None]], list[str], str]:
     """Scan a single repository for PRs. Uses a per-thread client (PyGithub sessions aren't shared-safe)."""
     repo = Github(auth=Token(token)).get_repo(repo_path)
     repo_name = repo.name
     prs = repo.get_pulls(state="open", sort="created", direction="asc")
 
     mergeable_prs: list[tuple[str, PullRequest, str]] = []
-    failed_prs: list[tuple[str, PullRequest, str]] = []
+    failed_prs: list[tuple[str, PullRequest, str, str | None]] = []
     pr_titles: list[str] = []
 
     for pr in prs:
@@ -208,12 +209,12 @@ def scan_single_repository(
         if (user := pr.user) is None or user.type != "Bot" or user.login not in BOT_AUTHORS:
             continue
 
-        check_status, reason, checked_sha = check_pr_status(pr)
+        check_status, reason, checked_sha, reason_url = check_pr_status(pr)
         if check_status == "success":
             assert checked_sha is not None
             mergeable_prs.append((repo_name, pr, checked_sha))
         else:
-            failed_prs.append((repo_name, pr, reason))
+            failed_prs.append((repo_name, pr, reason, reason_url))
 
         pr_titles.append(f"#{pr.number} {pr.title}")
 
@@ -230,7 +231,12 @@ def display_mergeable_prs(console: Console, mergeable_prs: list[tuple[str, PullR
     table.add_column("Author", style="blue")
 
     for repo_name, pr, _checked_sha in mergeable_prs:
-        table.add_row(repo_name, f"#{pr.number}", pr.title, pr.user.login if pr.user else "unknown")
+        table.add_row(
+            repo_name,
+            Text(f"#{pr.number}", style=f"link {pr.html_url}"),
+            pr.title,
+            pr.user.login if pr.user else "unknown",
+        )
 
     console.print(table)
     console.print()
@@ -245,7 +251,7 @@ def process_mergeable_prs(console: Console, opts: Options, mergeable_prs: list[t
             approve_and_merge(console, repo_name, pr, checked_sha)
 
 
-def display_failed_prs(console: Console, failed_prs: list[tuple[str, PullRequest, str]]) -> None:
+def display_failed_prs(console: Console, failed_prs: list[tuple[str, PullRequest, str, str | None]]) -> None:
     """Display table of PRs that need manual review."""
     console.print("[bold yellow]⚠️  PRs requiring manual review:[/bold yellow]")
     table = Table(show_header=True)
@@ -254,26 +260,32 @@ def display_failed_prs(console: Console, failed_prs: list[tuple[str, PullRequest
     table.add_column("Title", style="yellow")
     table.add_column("Reason", style="red")
 
-    for repo_name, pr, reason in failed_prs:
-        table.add_row(repo_name, f"#{pr.number}", pr.title, reason)
+    for repo_name, pr, reason, reason_url in failed_prs:
+        check_url = reason_url or f"{pr.html_url}/checks"
+        table.add_row(
+            repo_name,
+            Text(f"#{pr.number}", style=f"link {pr.html_url}"),
+            pr.title,
+            Text(reason, style=f"link {check_url}"),
+        )
 
     console.print(table)
     console.print()
 
 
-def open_failed_prs(console: Console, failed_prs: list[tuple[str, PullRequest, str]]) -> None:
+def open_failed_prs(console: Console, failed_prs: list[tuple[str, PullRequest, str, str | None]]) -> None:
     """Open PRs that need manual review in browser."""
     console.print("[bold]Opening failed PRs in browser...[/bold]")
-    for repo_name, pr, _reason in failed_prs:
+    for repo_name, pr, _reason, _reason_url in failed_prs:
         console.print(f"[dim]Opening {repo_name}#{pr.number}...[/dim]")
         webbrowser.open(pr.html_url)
 
 
-def check_pr_status(pr: PullRequest) -> tuple[str, str, str | None]:  # noqa: PLR0911
+def check_pr_status(pr: PullRequest) -> tuple[str, str, str | None, str | None]:  # noqa: PLR0911
     """
     Check if a PR is ready to merge.
 
-    Returns a tuple of (status, reason) where status is one of:
+    Returns status, reason, checked SHA, and the URL for the failed check. Status is one of:
     - "success": All checks passed, ready to merge
     - "failed": Some checks failed or other issues
 
@@ -281,7 +293,7 @@ def check_pr_status(pr: PullRequest) -> tuple[str, str, str | None]:  # noqa: PL
     """
     # mergeable is True/False/None; None means GitHub hasn't computed it yet, so don't act on stale data.
     if pr.mergeable is not True or pr.mergeable_state in ("unknown", "dirty"):
-        return "failed", f"Not mergeable (mergeable={pr.mergeable}, state={pr.mergeable_state})", None
+        return "failed", f"Not mergeable (mergeable={pr.mergeable}, state={pr.mergeable_state})", None, None
 
     # Evaluate CI on the true head commit, not get_commits()[-1] (truncated past 250 commits).
     head_commit = pr.base.repo.get_commit(pr.head.sha)
@@ -294,21 +306,21 @@ def check_pr_status(pr: PullRequest) -> tuple[str, str, str | None]:  # noqa: PL
     }
 
     if not legacy_statuses and not check_run_list:
-        return "failed", "No CI checks found", None
+        return "failed", "No CI checks found", None, None
 
     for status in legacy_statuses.values():
         if status.state in ("error", "failure"):
-            return "failed", f"Check failed: {status.context}", None
+            return "failed", f"Check failed: {status.context}", None, status.target_url
         if status.state == "pending":
-            return "failed", f"Check pending: {status.context}", None
+            return "failed", f"Check pending: {status.context}", None, status.target_url
 
     for check_run in check_run_list.values():
         if check_run.status != "completed":
-            return "failed", f"Check not completed: {check_run.name}", None
+            return "failed", f"Check not completed: {check_run.name}", None, check_run.details_url
         if check_run.conclusion not in ("success", "neutral", "skipped"):
-            return "failed", f"Check failed: {check_run.name} ({check_run.conclusion})", None
+            return "failed", f"Check failed: {check_run.name} ({check_run.conclusion})", None, check_run.details_url
 
-    return "success", "", pr.head.sha
+    return "success", "", pr.head.sha, None
 
 
 def approve_and_merge(console: Console, repo_name: str, pr: PullRequest, checked_sha: str) -> None:
