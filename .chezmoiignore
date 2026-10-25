@@ -40,7 +40,7 @@ install-astra-monitor.sh
 install-ddc-brightness.sh
 enable-vscode-repo.sh
 configure-fedora-keyboard.sh
-configure-fedora-handy.sh
+configure-fedora-tuxtalk.sh
 configure-fedora-monitors.sh
 configure-fedora-gamemode.sh
 configure-fedora-panel.sh
@@ -52,7 +52,7 @@ set-fedora-fish-shell.sh
 install-kooha.sh
 install-rustdesk.sh
 install-ghostty.sh
-install-handy.sh
+install-tuxtalk.sh
 install-selected-flatpaks.sh
 install-streamcontroller-icons.sh
 install-streamcontroller-plugins.sh

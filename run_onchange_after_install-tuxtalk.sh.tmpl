@@ -1,0 +1,6 @@
+{{- if ne (env "SKIP_DNF_INSTALL") "1" -}}
+#!/bin/bash
+set -euo pipefail
+
+"$HOME/.local/bin/update_fedora_extras" tuxtalk
+{{ end -}}

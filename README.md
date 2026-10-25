@@ -78,12 +78,11 @@ brightness extensions, the latest stable Bazecor AppImage, StreamController plug
 Distrobox containers. It also builds Ghostty from the latest upstream `main` source with the closed-tab restore patch
 from [PR #14653](https://github.com/ghostty-org/ghostty/pull/14653). When that PR merges, the update uses upstream
 without the patch. Project mise files are outside that upgrade. Dash to Panel stays pinned to the patched chezmoi
-install. Handy builds locally from [the fork's main branch](https://github.com/gaborbernat/Handy) with the Fedora folder
-opener fix, then `u` rebuilds it when the fork changes. The local AppImage uses WebKit's DMA-BUF renderer for the live
-view. StreamController's store auto-update is disabled because it replaces the patched OSPlugin; `u` stages plugin
-updates, reapplies the patch, and keeps the installed version if the patch fails. Avoid the app's manual **Update All**
-action, which bypasses this check. This setting also pauses store icon and wallpaper updates. Docker image updates keep
-local images, stopped containers, and volumes intact.
+install. `u` installs new [TuxTalk](https://github.com/ronb1964/TuxTalk) RPM releases after checking their SHA-256
+digest, and Super+D toggles dictation. StreamController's store auto-update is disabled because it replaces the patched
+OSPlugin; `u` stages plugin updates, reapplies the patch, and keeps the installed version if the patch fails. Avoid the
+app's manual **Update All** action, which bypasses this check. This setting also pauses store icon and wallpaper
+updates. Docker image updates keep local images, stopped containers, and volumes intact.
 
 GNOME uses Dash to Panel for a top taskbar on each monitor. Until Fedora's RPM supports indicator mirroring, chezmoi
 installs [the upstream change](https://github.com/home-sweet-gnome/dash-to-panel/pull/2570) as a user extension. Astra
