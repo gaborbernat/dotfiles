@@ -1,6 +1,6 @@
 #!/bin/bash
-# Service hash: {{ include "dot_config/systemd/user/opener-sock-gc.service" | sha256sum }}
-# Timer hash: {{ include "dot_config/systemd/user/opener-sock-gc.timer" | sha256sum }}
+# Service hash: {{ include "dot_config/systemd/private_user/opener-sock-gc.service" | sha256sum }}
+# Timer hash: {{ include "dot_config/systemd/private_user/opener-sock-gc.timer" | sha256sum }}
 set -euo pipefail
 
 # Without linger the user manager, and with it the timer, stops once the last session ends,
