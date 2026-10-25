@@ -78,11 +78,10 @@ brightness extensions, the latest stable Bazecor AppImage, StreamController plug
 Distrobox containers. It also builds Ghostty from the latest upstream `main` source with the closed-tab restore patch
 from [PR #14653](https://github.com/ghostty-org/ghostty/pull/14653). When that PR merges, the update uses upstream
 without the patch. Project mise files are outside that upgrade. Dash to Panel stays pinned to the patched chezmoi
-install. `u` installs new [TuxTalk](https://github.com/ronb1964/TuxTalk) RPM releases after checking their SHA-256
-digest, and Super+D toggles dictation. StreamController's store auto-update is disabled because it replaces the patched
-OSPlugin; `u` stages plugin updates, reapplies the patch, and keeps the installed version if the patch fails. Avoid the
-app's manual **Update All** action, which bypasses this check. This setting also pauses store icon and wallpaper
-updates. Docker image updates keep local images, stopped containers, and volumes intact.
+install. StreamController's store auto-update is disabled because it replaces the patched OSPlugin; `u` stages plugin
+updates, reapplies the patch, and keeps the installed version if the patch fails. Avoid the app's manual **Update All**
+action, which bypasses this check. This setting also pauses store icon and wallpaper updates. Docker image updates keep
+local images, stopped containers, and volumes intact.
 
 GNOME uses Dash to Panel for a top taskbar on each monitor. Until Fedora's RPM supports indicator mirroring, chezmoi
 installs [the upstream change](https://github.com/home-sweet-gnome/dash-to-panel/pull/2570) as a user extension. Astra
@@ -95,9 +94,11 @@ patch stops applying. xremap handles selected Super-key application shortcuts. T
 windows on the focused screen and moves the MX Master pointer to the LG TV once when that mouse becomes active. Ghostty
 handles its own Super-key shortcuts. The `agent-awake` user service inhibits suspend while a Codex, Claude, or ChatGPT
 client is open; it leaves display blanking available. The `rustdesk-pin-primary` user service keeps RustDesk's Wayland
-screen share on the primary monitor, so unplugging a monitor no longer brings back the screen picker. The first apply
-also sets Fish as the login shell, enables SSH, Mosh, and Eternal Terminal, and adds the account to the `docker` and
-`gamemode` groups. Log out and back in for the group, shell, and newly installed GNOME extension changes.
+screen share on the primary monitor, so unplugging a monitor no longer brings back the screen picker. Chezmoi installs
+the [TuxTalk](https://github.com/ronb1964/TuxTalk) release RPM once, after checking its SHA-256 digest, and binds
+Super+D to toggle dictation; TuxTalk's own updater installs later releases. The first apply also sets Fish as the login
+shell, enables SSH, Mosh, and Eternal Terminal, and adds the account to the `docker` and `gamemode` groups. Log out and
+back in for the group, shell, and newly installed GNOME extension changes.
 
 The Antec Flux Pro display needs a [separate community driver](scripts/fedora/flux-pro/setup.sh). Review its
 [sensor configuration](scripts/fedora/flux-pro/config.conf) for this machine, then install it with:
