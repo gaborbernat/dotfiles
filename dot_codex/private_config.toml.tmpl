@@ -1,5 +1,4 @@
 {{- $work := joinPath .chezmoi.homeDir ".local/share/chezmoi-private/codex_work.toml" -}}
-model_reasoning_effort = "medium"
 suppress_unstable_features_warning = true
 developer_instructions = "Do not add AI co-author trailers or generated-by attribution to commits or pull requests."
 
@@ -12,7 +11,7 @@ approvals_reviewer = "auto_review"
 
 # ─── Permissions (parity with Claude Code — read all, write workspace, network on) ──
 default_permissions = "dev"
-{{ output "sh" "-c" `awk '/^\[/{exit} /^(model|notify|service_tier) = /' "$HOME/.codex/config.toml" 2>/dev/null || true` }}
+{{ output "sh" "-c" `awk '/^\[/{exit} /^(model|model_reasoning_effort|notify|service_tier|daybreak) = /' "$HOME/.codex/config.toml" 2>/dev/null || true` }}
 [permissions.dev.filesystem]
 ":root" = "read"
 ":workspace_roots" = "write"
