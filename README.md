@@ -89,13 +89,16 @@ GNOME uses Dash to Panel for a top taskbar on each monitor. Until Fedora's RPM s
 installs [the upstream change](https://github.com/home-sweet-gnome/dash-to-panel/pull/2570) as a user extension. Astra
 Monitor, Copyous, and DDC brightness then appear on both panels. The patched build also adds "Move to" entries to a
 taskbar app's right-click menu, naming each monitor by model and the BenQ pair by position; switching back to the RPM
-drops them. xremap handles selected Super-key application shortcuts. The focused-monitor extension opens new windows on
-the focused screen and moves the MX Master pointer to the LG TV once when that mouse becomes active. Ghostty handles its
-own Super-key shortcuts. The `agent-awake` user service inhibits suspend while a Codex, Claude, or ChatGPT client is
-open; it leaves display blanking available. The `rustdesk-pin-primary` user service keeps RustDesk's Wayland screen
-share on the primary monitor, so unplugging a monitor no longer brings back the screen picker. The first apply also sets
-Fish as the login shell, enables SSH, Mosh, and Eternal Terminal, and adds the account to the `docker` and `gamemode`
-groups. Log out and back in for the group, shell, and newly installed GNOME extension changes.
+drops them. AppIndicator also runs as a patched user copy of the RPM build: v66 breaks tray registration for the rest of
+the session when vicinae publishes its icon before its bus name
+([#675](https://github.com/ubuntu/gnome-shell-extension-appindicator/issues/675)), and the copy retires itself once the
+patch stops applying. xremap handles selected Super-key application shortcuts. The focused-monitor extension opens new
+windows on the focused screen and moves the MX Master pointer to the LG TV once when that mouse becomes active. Ghostty
+handles its own Super-key shortcuts. The `agent-awake` user service inhibits suspend while a Codex, Claude, or ChatGPT
+client is open; it leaves display blanking available. The `rustdesk-pin-primary` user service keeps RustDesk's Wayland
+screen share on the primary monitor, so unplugging a monitor no longer brings back the screen picker. The first apply
+also sets Fish as the login shell, enables SSH, Mosh, and Eternal Terminal, and adds the account to the `docker` and
+`gamemode` groups. Log out and back in for the group, shell, and newly installed GNOME extension changes.
 
 The Antec Flux Pro display needs a [separate community driver](scripts/fedora/flux-pro/setup.sh). Review its
 [sensor configuration](scripts/fedora/flux-pro/config.conf) for this machine, then install it with:

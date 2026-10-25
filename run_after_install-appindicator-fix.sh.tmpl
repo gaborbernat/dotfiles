@@ -1,0 +1,33 @@
+#!/bin/bash
+set -euo pipefail
+
+uuid=appindicatorsupport@rgcjonas.gmail.com
+system="/usr/share/gnome-shell/extensions/$uuid"
+override="$HOME/.local/share/gnome-shell/extensions/$uuid"
+patch={{ joinPath .chezmoi.sourceDir "scripts/fedora/appindicator-scan-service.diff" | quote }}
+
+if [[ ! -d "$system" ]]; then
+    exit 0
+fi
+
+build_id="$(rpm -q gnome-shell-extension-appindicator):$(sha256sum "$patch" | cut -d' ' -f1)"
+if [[ -f "$override/.build-id" && $(<"$override/.build-id") == "$build_id" ]]; then
+    exit 0
+fi
+
+work=$(mktemp -d)
+trap 'rm -rf "$work"' EXIT
+cp -a "$system" "$work/$uuid"
+# Once upstream fixes https://github.com/ubuntu/gnome-shell-extension-appindicator/issues/675 the patch stops
+# applying, and the RPM build takes over again
+if ! git -C "$work/$uuid" apply --check "$patch" 2>/dev/null; then
+    rm -rf "$override"
+    echo "AppIndicator patch no longer applies; using the RPM extension (log out and back in to load it)"
+    exit 0
+fi
+git -C "$work/$uuid" apply "$patch"
+printf '%s\n' "$build_id" >"$work/$uuid/.build-id"
+rm -rf "$override"
+mkdir -p "$(dirname "$override")"
+mv "$work/$uuid" "$override"
+echo "Installed patched AppIndicator (log out and back in to load it)"

@@ -1,0 +1,14 @@
+--- a/statusNotifierWatcher.js
++++ b/statusNotifierWatcher.js
+@@ -179,8 +179,10 @@
+                 const ids = [null, ...services].map(s => Util.indicatorId(s, name, path));
+
+                 if (ids.every(id => !this._items.has(id))) {
++                    // A connection without a well-known name falls back to its unique name, keeping
++                    // RegisteredStatusNotifierItems packable and the id equal to the dedupe key above
+                     const service = services.find(s =>
+-                        s?.startsWith('org.kde.StatusNotifierItem')) ?? services[0];
++                        s?.startsWith('org.kde.StatusNotifierItem')) ?? services[0] ?? name;
+                     const id = Util.indicatorId(
+                         path === DEFAULT_ITEM_OBJECT_PATH ? service : null,
+                         name, path);
