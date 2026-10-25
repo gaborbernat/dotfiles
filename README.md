@@ -249,8 +249,6 @@ Forks made for this setup:
 - [gaborbernat/TuxTalk](https://github.com/gaborbernat/TuxTalk): its GNOME Shell extension draws the recording indicator
   at the monitor's own scale, next to the focused window. It runs from a local checkout; the dotfiles still install the
   upstream RPM.
-- [gaborbernat/Handy](https://github.com/gaborbernat/Handy): local Linux builds of Handy, unused since TuxTalk replaced
-  it.
 
 ## Updating
 

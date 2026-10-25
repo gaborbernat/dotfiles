@@ -12,7 +12,7 @@ tuxtalk_path=
 while IFS= read -r path; do
     binding="$schema.custom-keybinding:$path"
     case $(gsettings get "$binding" name) in
-        "'TuxTalk Dictation'" | "'Handy Dictation'") tuxtalk_path=$path ;;
+        "'TuxTalk Dictation'") tuxtalk_path=$path ;;
     esac
 done < <(grep -oE '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/[^/]+/' <<< "$bindings")
 
