@@ -1,3 +1,80 @@
+diff --git a/src/appIcons.js b/src/appIcons.js
+--- a/src/appIcons.js
++++ b/src/appIcons.js
+@@ -909,0 +910 @@
++      this._menu.updateMoveItems()
+@@ -1925,0 +1927,3 @@
++    this._moveSection = new PopupMenu.PopupMenuSection()
++    this.addMenuItem(this._moveSection)
++
+@@ -1963,0 +1968,29 @@
++  updateMoveItems() {
++    this._moveSection.removeAll()
++
++    let windows = this.sourceActor.window
++      ? [this.sourceActor.window]
++      : getInterestingWindows(this._app, this.sourceActor.dtpPanel.monitor)
++
++    getMonitorLabels().forEach((label, index) => {
++      let movable = windows.filter((w) => w.get_monitor() != index)
++      if (!movable.length) return
++
++      let title = _('Move to %s').format(label)
++      if (windows.length == 1) {
++        this._moveSection.addAction(title, () =>
++          movable[0].move_to_monitor(index),
++        )
++        return
++      }
++
++      let item = new PopupMenu.PopupSubMenuMenuItem(title)
++      movable.forEach((w) =>
++        item.menu.addAction(w.get_title() || this._app.get_name(), () =>
++          w.move_to_monitor(index),
++        ),
++      )
++      this._moveSection.addMenuItem(item)
++    })
++  }
++
+@@ -1996,0 +2030,37 @@
++function getMonitorLabels() {
++  let monitorManager = global.backend.get_monitor_manager()
++  let monitors = []
++
++  monitorManager
++    .get_monitors()
++    .filter((m) => m.is_active())
++    .forEach((m) => {
++      let index = monitorManager.get_monitor_for_connector(m.get_connector())
++      let product = m.get_product()
++      if (index < 0) return
++
++      monitors[index] = {
++        // EDIDs without a model name report the product code in hex
++        model: product?.startsWith('0x') ? m.get_display_name() : product,
++        connector: m.get_connector(),
++      }
++    })
++
++  return monitors.map((m, index) => {
++    let twins = monitors
++      .map((other, otherIndex) => ({ ...other, index: otherIndex }))
++      .filter((other) => other.model == m.model)
++      .sort(
++        (a, b) =>
++          Main.layoutManager.monitors[a.index].x -
++          Main.layoutManager.monitors[b.index].x,
++      )
++
++    if (twins.length == 1) return m.model
++    // A matched pair reads better by where each panel sits than by its port
++    if (twins.length == 2)
++      return `${m.model.split(' ')[0]} ${twins[0].index == index ? _('Left') : _('Right')}`
++    return `${m.model} (${m.connector})`
++  })
++}
++
 diff --git a/src/panel.js b/src/panel.js
 --- a/src/panel.js
 +++ b/src/panel.js

@@ -38,8 +38,9 @@ if [[ -f "$system_schema" ]] && grep -q 'name="clone-main-panel"' "$system_schem
     fi
     gsettings set "$schema" clone-main-panel true
 else
-    if [[ ! -f "$override/panel.js" ]] || \
-        [[ $(sha256sum "$override/panel.js" | cut -d' ' -f1) != e6668dd6bef3ea7ab669d51400d75e1e48684b803850e515aeb3f2d997cf8703 ]]; then
+    if [[ ! -f "$override/panel.js" || ! -f "$override/appIcons.js" ]] || \
+        [[ $(sha256sum "$override/panel.js" | cut -d' ' -f1) != e6668dd6bef3ea7ab669d51400d75e1e48684b803850e515aeb3f2d997cf8703 ]] || \
+        [[ $(sha256sum "$override/appIcons.js" | cut -d' ' -f1) != 050741a10e5755dd51322e10d70b43e27ed4584092e1707203e8083bb41d95c2 ]]; then
         archive=$(mktemp --suffix=.tar.gz)
         source=$(mktemp -d)
         trap 'rm -f "$archive"; rm -rf "$source"' EXIT
