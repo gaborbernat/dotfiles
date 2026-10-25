@@ -70,6 +70,7 @@ install-copilot-cli.sh
 configure-fedora-font.sh
 configure-fedora-vicinae.sh
 configure-fedora-workspaces.sh
+configure-fedora-power.sh
 {{ end }}
 {{ if eq .chezmoi.os "darwin" }}
 install-apt-packages.sh
