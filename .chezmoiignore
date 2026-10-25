@@ -8,6 +8,7 @@ scripts/
 **/.venv
 **/__pycache__
 **/.ruff_cache
+**/tests
 # Binary plists - apps rewrite these constantly
 Library/Preferences/*.plist
 {{ if ne .chezmoi.os "darwin" }}
