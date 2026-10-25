@@ -240,6 +240,18 @@ Fedora adds [Astra Monitor](https://github.com/AstraExt/astra-monitor),
 [ccstatusline](https://github.com/sirmalloc/ccstatusline) · [Codex](https://github.com/openai/codex) ·
 [Copilot CLI](https://docs.github.com/en/copilot/get-started/cli-quickstart) · [OpenCode](https://opencode.ai/)
 
+### Forks
+
+Forks made for this setup:
+
+- [gaborbernat/ghostty](https://github.com/gaborbernat/ghostty): the `feat/gtk-undo-upstream` branch is the source of PR
+  #14653 and of `scripts/fedora/ghostty-undo.diff`.
+- [gaborbernat/TuxTalk](https://github.com/gaborbernat/TuxTalk): its GNOME Shell extension draws the recording indicator
+  at the monitor's own scale, next to the focused window. It runs from a local checkout; the dotfiles still install the
+  upstream RPM.
+- [gaborbernat/Handy](https://github.com/gaborbernat/Handy): local Linux builds of Handy, unused since TuxTalk replaced
+  it.
+
 ## Updating
 
 ```bash
