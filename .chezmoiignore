@@ -65,7 +65,6 @@ install-copilot-cli.sh
 .config/distrobox
 .local/share/applications/bazecor.desktop
 .local/bin/bluebubbles-start-hidden
-.local/bin/steam
 .config/Code
 configure-fedora-font.sh
 configure-fedora-vicinae.sh
