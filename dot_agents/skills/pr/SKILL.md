@@ -1,10 +1,14 @@
 ---
 name: pr
-description: Creates or updates a PR with title, description, assignees, reviewers, and labels. Use when asked to create a PR, update a PR, write or improve a PR title/description, or prepare a pull request for review.
+description: Creates or updates a PR with title, description and labels. Use when asked to create a PR, update a PR, write or improve a PR title/description, or prepare a pull request for review.
 ---
 
-The title and description should make the PR easier to review. Briefly state the change and why it is needed, then add
-only context the reviewer cannot readily infer from the diff or CI.
+# PR
+
+Start from the full diff (see **Base**). The code documents itself, so the title and description do not explain it.
+Write for a product owner: what changes for the people and systems that depend on this work, and why it was worth doing.
+The only technical content is the architecture of the solution: which components take on which responsibility and how
+they interact. Leave out which files change and how the code achieves it; a reviewer reads that in the diff.
 
 ## Base
 
@@ -18,7 +22,7 @@ base=$(git rev-parse --abbrev-ref "$remote/HEAD")
 
 ## Title Format
 
-Follow Commitizen conventions with one emoji matching the change type, as in the `/commit` skill:
+Follow Commitizen conventions with 1-2 relevant emoji:
 
 ```
 <emoji> <type>(<scope>): <short summary>
@@ -32,61 +36,78 @@ Follow Commitizen conventions with one emoji matching the change type, as in the
 - `🐛 fix(api): resolve race condition in request handler`
 - `♻️ refactor(core): simplify state management flow`
 
-Keep titles under 72 characters.
+Keep titles under 72 characters. The emoji goes at the start, pick one that matches the change type.
 
 ## Description Format
 
-Prefer concise prose over bullet-point walls. A small PR may need only one or two sentences. Run the title and body
-through `/no-slop` before publishing; the reviewer should not have to edit generated prose to find the useful context.
+Prefer paragraphs. When the content is a set of parallel items (rollout steps, open questions, options), distill it into
+a short bullet list instead. Use rich formatting where it makes a paragraph easier to read: **bold** for the one term a
+reader must not miss, *italics* for a defined term, `>` quotes for upstream text you rely on, and indentation for nested
+detail.
 
-**Review context**:
+Do not start with a header. A long description separates its main topics (for example impact, architecture, rollout)
+with `###` headings after the opening paragraph. Use 1-3 emoji sparingly throughout to highlight key points. Once the
+title and body are drafted, strip the AI slop out of them before creating or updating the PR. The `no-slop` skill does
+that where it is installed; otherwise work through the **Avoid** list below by hand.
 
-State the problem and intended outcome briefly. Explain why this implementation was chosen when the reason is not
-apparent from the code: upstream constraints, compatibility requirements, prior art, or a trade-off between plausible
-alternatives. Research and link the dependency documentation, upstream issues, specifications, or earlier work that
-supports the decision. Put that context directly in the description rather than asking the user to copy it in.
+**Structure**:
 
-For complex PRs, concise architectural narration in prose is useful: explain how the main components interact and why
-they are arranged that way. Add Mermaid diagrams where they contribute meaningful context beyond the prose. Scale the
-explanation to the change; do not fill a fixed template or describe functions, files, and edits in sequence.
+1. **Opening paragraph**: State the motivation and the impact, from the product owner's point of view. What problem did
+   users, operators or dependent teams have, and what can they do, or stop worrying about, once this merges?
 
-Judge descriptions by their usefulness, regardless of whether an agent helped write them. PRs that ignore this guidance
-may be closed without feedback. This is a writing standard, not authorization to close PRs or post review comments.
+2. **Architecture paragraph**: Describe the design at the level of components and responsibilities: what owns what, how
+   the parts talk to each other, and the trade-off behind that shape. No file names, function names, or step-by-step
+   mechanics.
+
+3. **Impact paragraph** (if applicable): Note behavior changes someone outside the code would notice, and rollout or
+   migration steps.
 
 **Formatting**:
 
-- Do not start with a header like "## Summary"
 - Use backticks \`\` for quoting code, variables, file names, and technical terms (not double quotes "")
+- Link each external repo, service, tool or standard at its first mention; put later mentions in backticks, and spell a
+  project by its published name (`requests-oauthlib`, not `requests_oauthlib`). Mermaid labels follow the same naming
+- Keep every paragraph under 100 words. When one grows past that, split it at a change of topic
 - Never hard-wrap the body. Write each paragraph as one physical line — GitHub renders the markdown, so manual line
   breaks mid-paragraph show up as broken lines in the rendered PR
-- Only state what the diff or a reference proves. No speculation about behavior, performance, or intent, and no
-  marketing or hype language
-- When a reference exists (issue, ticket, design doc, spec, benchmark, prior PR or commit), weave the link into the
-  sentence it supports rather than dumping it in a footer
+- Only state what the diff or a reference proves. Don't speculate about behavior, performance, or intent you can't back
+  up
+- Link every claim about context, or about how something outside this repo behaves, inside the sentence it supports, not
+  in a footer. Look for the issue, ticket, design doc, spec, benchmark, prior PR or commit, and for the upstream
+  dependency's own source (a permalink to the exact lines), documentation or release notes that show the behavior the
+  change relies on. A reviewer should be able to check each statement in one click
 - Set the body from a file: write it with the Write tool, then `gh pr create/edit --body-file <file>`. Never pass the
   body inline (`--body "..."` or a heredoc) — the shell runs backticks and `$(...)` as command substitution and mangles
   every code span. A file avoids all shell escaping
 
 **Avoid**:
 
-- Routine validation reports, test counts, coverage totals, and CI status
-- Line-by-line implementation walkthroughs or edit summaries already evident from the diff
-- Lists of things left unchanged, absent, or deliberately not done
-- Conversation history or instructions such as "keep X while linking Y"
+- Mentioning tests or test coverage
+- Explaining the code: what specific files, functions or methods do, or how the change is implemented step by step
 - Adding yourself as co-author
+- Starting with a header like "## Summary" (headings come after the opening paragraph, and only in long descriptions)
 - Bullet-point lists of file changes
+- Hard-wrapping paragraphs with manual mid-paragraph newlines
+- Marketing or hype language, and any claim or assumption not grounded in the diff or a cited reference
+- AI slop: filler phrases, throat-clearing openers, emphasis crutches, adverbs, vague declaratives, em dashes, passive
+  voice, "not X but Y" contrasts, false agency (inanimate objects doing human verbs)
 
-**Illustrative example** (follow the format; take the content and length from the change):
+**Good example**:
 
 ```
-Allow longer OAuth consent steps. The login token can expire while the user is still at the provider.
+Users signing in with Google accounts were redirected to an error page because the session token expired before the OAuth callback completed. 🔐 This became more frequent as our user base grew internationally, where network latency is higher.
+
+The fix extends the token validity window during the OAuth flow and adds a retry mechanism for the callback handler. ✨ This approach preserves our security model while accommodating real-world network conditions.
+
+Existing sessions remain unaffected. The retry logic uses exponential backoff to avoid hammering the auth provider.
 ```
 
 ## Diagrams
 
-Include a mermaid diagram only when the graph is non-trivial and genuinely makes the change easier to grasp than prose
-alone — architecture, request/data flow, state transitions, or how components relate. Skip it for trivial or
-self-evident graphs (a couple of nodes, a linear A→B→C flow) and never add one just to decorate.
+Diagrams belong with the architecture paragraph. Add a mermaid diagram when the design has enough moving parts that a
+picture explains it faster than prose: components and who owns what, a request or data flow across them, state
+transitions, or a before/after of the structure. Skip it for trivial or self-evident graphs (a couple of nodes, a linear
+A→B→C flow), and never add one just to decorate; a PR with no meaningful graph has no diagram.
 
 Color the diagram so it is easy on the eye and stays legible in both GitHub light and dark themes. Don't rely on default
 theme colors — they wash out on one side. Set explicit fills with `classDef`, using soft mid-tone fills, a saturated
@@ -116,12 +137,26 @@ Pick applicable labels from `enhancement`, `bug`, `documentation` based on the c
 
 ## Workflow
 
+### Creating a new PR
+
 1. Run `git diff "$base"...HEAD` to see all changes
-1. Run `git log "$base"..HEAD --oneline` to see commit history
-1. Identify the primary purpose (what user/developer problem this solves)
-1. Draft title following Commitizen format with emoji
-1. Write a brief description of the outcome and rationale, including useful review context
-1. Remove details the diff or CI already communicates; verify that each remaining claim and link helps review
-1. Determine labels from the change type
-1. Create with `gh pr create --title "..." --body-file <file> --label "<labels>"`, or update an existing PR with
-   `gh pr edit <number> --title "..." --body-file <file>` and add missing labels
+2. Run `git log "$base"..HEAD --oneline` to see commit history
+3. Identify the primary purpose (what user/developer problem this solves)
+4. Draft title following Commitizen format with emoji
+5. Write description paragraphs: the impact and why, then the architecture
+6. Determine labels from the change type
+7. Create with:
+
+```bash
+gh pr create --title "..." --body-file <file> --label "<labels>"
+```
+
+### Updating an existing PR
+
+1. Run `git diff "$base"...HEAD` to see all changes
+2. Run `git log "$base"..HEAD --oneline` to see commit history
+3. Identify the primary purpose (what user/developer problem this solves)
+4. Draft title following Commitizen format with emoji
+5. Write description paragraphs: the impact and why, then the architecture
+6. Determine labels from the change type
+7. Update with `gh pr edit <number> --title "..." --body-file <file>` and add missing labels
