@@ -94,11 +94,12 @@ patch stops applying. xremap handles selected Super-key application shortcuts. T
 windows on the focused screen and moves the MX Master pointer to the LG TV once when that mouse becomes active. Ghostty
 handles its own Super-key shortcuts. The `agent-awake` user service inhibits suspend while a Codex, Claude, or ChatGPT
 client is open; it leaves display blanking available. The `rustdesk-pin-primary` user service keeps RustDesk's Wayland
-screen share on the primary monitor, so unplugging a monitor no longer brings back the screen picker. Chezmoi installs
-the [TuxTalk](https://github.com/ronb1964/TuxTalk) release RPM once, after checking its SHA-256 digest, and binds
-Super+D to toggle dictation; TuxTalk's own updater installs later releases. The first apply also sets Fish as the login
-shell, enables SSH, Mosh, and Eternal Terminal, and adds the account to the `docker` and `gamemode` groups. Log out and
-back in for the group, shell, and newly installed GNOME extension changes.
+screen share on the HDMI dummy plug, or the primary monitor without it, so a connection while the displays are off or
+unplugged no longer brings back the screen picker. GNOME refuses screen sharing while the session is locked. Chezmoi
+installs the [TuxTalk](https://github.com/ronb1964/TuxTalk) release RPM once, after checking its SHA-256 digest, and
+binds Super+D to toggle dictation; TuxTalk's own updater installs later releases. The first apply also sets Fish as the
+login shell, enables SSH, Mosh, and Eternal Terminal, and adds the account to the `docker` and `gamemode` groups. Log
+out and back in for the group, shell, and newly installed GNOME extension changes.
 
 The Antec Flux Pro display needs a [separate community driver](scripts/fedora/flux-pro/setup.sh). Review its
 [sensor configuration](scripts/fedora/flux-pro/config.conf) for this machine, then install it with:

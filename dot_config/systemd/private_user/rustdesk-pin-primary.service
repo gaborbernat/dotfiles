@@ -1,5 +1,5 @@
 [Unit]
-Description=Pin RustDesk Wayland screen share to the primary monitor
+Description=Pin RustDesk Wayland screen share to the HDMI dummy plug or primary monitor
 PartOf=graphical-session.target
 After=graphical-session.target
 
