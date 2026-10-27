@@ -20,7 +20,8 @@ before it is posted.
    its merge base, including tests and prose, with `/style`. Each violation is a finding.
 1. Turn each finding into one inline comment anchored to the diff line or line range it concerns. A point about the
    whole PR (layout, scope, an approach to rethink) goes in the review body instead. Write as a colleague, using "we"
-   for the team ("We drop…", "We reproduced it…").
+   for the team ("We drop…", "We reproduced it…"). Link every reference in full: an issue or PR in another repository is
+   a markdown link to its URL, never the bare `repo#123` short form.
 
    A correctness, behavior, build, documentation or maintainability finding uses three bold headings:
 
