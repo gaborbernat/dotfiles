@@ -1,16 +1,15 @@
 ---
 name: revr
-description: Review one pull request by number, or all open pull requests not authored by the authenticated GitHub user, and draft a GitHub review with comments anchored to diff lines. Use for an adversarial PR review that proposes changes for the user to approve and post, without editing code.
+description: Review one pull request, given by number, and draft a GitHub review with comments anchored to diff lines. Use for an adversarial PR review that proposes changes for the user to approve and post, without editing code.
 ---
 
 Work in the repository selected by the user, or the current repository when none is named. This skill never edits,
 commits or pushes code and never changes PR metadata; its output is a review draft that the user approves before it is
 posted.
 
-1. If given a PR number, review that PR, regardless of author. Otherwise, get the current account from `gh api user`,
-   list every open PR in the repository with pagination, and skip PRs authored by that account. Report when none
-   qualify.
-1. Inspect each PR's description, base and head commits, full diff, surrounding code, existing review threads, and
+1. Review the PR whose number the user gave, regardless of author. Without a number, ask for one; never pick PRs
+   yourself.
+1. Inspect the PR's description, base and head commits, full diff, surrounding code, existing review threads, and
    relevant checks. Use an isolated worktree at the PR's exact head commit so other branches and uncommitted work stay
    intact. Review adversarially for correctness, performance, and maintainability; investigate plausible failures and
    keep only findings supported by evidence (the code path, the dependency's source, a reproducing test run in the
@@ -36,7 +35,7 @@ posted.
 1. Validate every anchor against the PR's diff at the reviewed head (`gh api repos/{owner}/{repo}/pulls/{n}/files`): a
    comment's `line`, and `start_line` for a range, must fall inside one hunk of that file, on side `RIGHT` for added or
    context lines and `LEFT` for removed lines. Re-anchor or move to the body any comment that fails.
-1. Apply `/no-slop` to every comment and the body, then use `/style` to audit the draft. Repeat after any edit.
+1. Apply `/no-slop` to every comment and the body, and `/simp` to any code example in them. Repeat after any edit.
 1. Present the draft to the user and stop: the event, the body, then each comment as `path:line` (or `path:start-end`)
    with its text, ranked by severity. Do not post anything until the user approves; apply their edits and present again
    when they change the draft. Approval covers only the draft shown.
