@@ -117,7 +117,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/notify.sh PermissionRequest '❓' permission.aiff"
+            "command": "~/.claude/hooks/notify.sh PermissionRequest '❓'{{ if ne .chezmoi.hostname "pc" }} permission.aiff{{ end }}"
           }
         ]
       }
@@ -146,7 +146,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/notify.sh Notification '❗' waiting.aiff"
+            "command": "~/.claude/hooks/notify.sh Notification '❗'{{ if ne .chezmoi.hostname "pc" }} waiting.aiff{{ end }}"
           }
         ]
       }
@@ -156,7 +156,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "~/.claude/hooks/notify.sh Stop '💤' complete.aiff"
+            "command": "~/.claude/hooks/notify.sh Stop '💤'{{ if ne .chezmoi.hostname "pc" }} complete.aiff{{ end }}"
           }
         ]
       }
