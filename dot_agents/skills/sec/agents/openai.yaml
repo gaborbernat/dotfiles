@@ -1,0 +1,4 @@
+interface:
+  display_name: "Security Report"
+  short_description: "Validate a security report, open advisories and fix PRs"
+  default_prompt: "Use $sec to triage the security report I provide for the current repository."
