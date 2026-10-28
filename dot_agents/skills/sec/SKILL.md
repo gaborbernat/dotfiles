@@ -168,11 +168,21 @@ flowchart LR
 
 ## Prose
 
-Read `/no-slop` in full, with every reference it points to, and apply each instruction and listed pattern by hand to the
-advisory summary and body, every PR title and body, every commit message, and the report to the user. Run its scorer as
-well, but a passing `GATE` is not the end of the pass: work through the `ADVISORY` and `VOICE` findings and the patterns
-the scorer cannot check. Repeat the pass after every edit. Check each claim against the evidence; a sentence nothing
-proves comes out.
+Apply every `/no-slop` rule to every advisory summary and body, issue title and body, PR title and body, commit message,
+and the report to the user. Read `/no-slop` in full, with each reference it points to (phrases, lexicon, structures,
+voice, code, examples), and check every sentence against each instruction and listed pattern by hand. Run its scorer
+too, but a passing `GATE` does not end the pass: work through each `ADVISORY` and `VOICE` finding and the patterns the
+scorer cannot check. Repeat the full pass after every edit.
+
+Write concise, factual text in a neutral register:
+
+- State what happens, to whom, under which precondition, and cite the evidence. Leave out adjectives that rate the
+  finding (`critical`, `serious`, `dangerous`, `trivially`), urgency, and alarm. Severity lives in the CVSS score and
+  the two ratings.
+- Claim only what the reproduction or a cited source shows. Name what is not established instead of implying it. A
+  sentence nothing proves comes out.
+- Say each thing once. Cut restatements, preambles, summaries of what a section is about to say, and filler transitions.
+- Prefer short declarative sentences with concrete subjects: the function, the file, the account, the command.
 
 ## Review and green
 
