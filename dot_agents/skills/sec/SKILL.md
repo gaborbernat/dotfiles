@@ -1,6 +1,6 @@
 ---
 name: sec
-description: Triage a security report the user provides, validate each finding, open a private GitHub security advisory for every confirmed vulnerability, and open a public fix PR for every confirmed bug or vulnerability, then review, fix and drive each PR to green. Use when handed a scanner or researcher report to act on.
+description: Triage a security report the user provides, validate each finding, open a private GitHub security advisory for every confirmed vulnerability and a public issue for every confirmed bug, then fix each through a PR driven to green after an adversarial review. Use when handed a scanner or researcher report to act on.
 ---
 
 Work in the repository the report concerns, or the current repository when none is named. The user provides the report
@@ -38,14 +38,9 @@ Work in the repository the report concerns, or the current repository when none 
    evidence, before opening anything. Proceed without waiting unless the user asks to stop; a later disagreement
    reclassifies the finding.
 
-## Fix
-
-1. Fix each valid finding on its own branch from the default branch, so each PR carries one finding. Follow the
-   repository's instructions and conventions, add a test that fails before the fix and passes after, and update every
-   documentation page the fix makes inaccurate. Run `/simp` over the diff and the repository's checks, then commit with
-   `/commit`.
-1. Push the branch. When the finding is a vulnerability, create the advisory (below) before opening the PR, so the PR
-   can link it; then open the PR and add its link to the advisory.
+Finish triage for every finding before filing anything, then work in three phases, each one complete for all findings
+before the next starts: validate, file (an **Advisory** for each vulnerability, an **Issue** for each bug), then fix
+through one **PR** per finding.
 
 ## Advisory
 
@@ -61,8 +56,9 @@ gh api -X POST repos/{owner}/{repo}/security-advisories --input advisory.json
 3.1 vector you justify metric by metric from the reproduction; when the evidence leaves a metric between two values,
 pick the less severe one, so the score errs low rather than high), `cwe_ids`, and `vulnerabilities` with the package
 `ecosystem` and `name`, the `vulnerable_version_range` you confirmed, and `patched_versions` left empty until a release
-ships the fix. Write the body to a file and pass it as JSON; never inline it in the shell. After the PR exists, update
-the advisory with `gh api -X PATCH repos/{owner}/{repo}/security-advisories/{ghsa_id} --input advisory.json` to link it.
+ships the fix. Write the body to a file and pass it as JSON; never inline it in the shell. Once the fix PR exists,
+update the advisory with `gh api -X PATCH repos/{owner}/{repo}/security-advisories/{ghsa_id} --input advisory.json` to
+add the fix paragraph and PR link under **Versions tested**.
 
 Structure the description after
 [GHSA-cw65-gx24-rc82](https://github.com/pypa/virtualenv/security/advisories/GHSA-cw65-gx24-rc82), with these `##`
@@ -86,17 +82,34 @@ sections in this order:
 1. **Affected release**: a checked box per release that reproduces.
 1. **Credits**: the reporter and identifier.
 
+## Issue
+
+Open a public issue for each bug with `gh issue create --label bug --body-file <file>`. The title states the wrong
+behavior in plain words, without a Commitizen prefix. The body opens with the behavior and its effect in two or three
+sentences, then uses these `###` sections:
+
+1. **Affected code**: permalinks pinned to the commit you reproduced on.
+1. **Mechanism**: how the input reaches the wrong behavior, with links to the dependency source, documentation or man
+   pages each step relies on, and a diagram where it helps (see **Diagrams**).
+1. **Reproduction**: the reproducer in full, the command, the commit, and the output, followed by the expected behavior.
+1. **Impact**: who hits it, under which setup, and both ratings with their reasons.
+1. **Credits**: the reporter and identifier.
+
 ## PR
 
-Open one public PR per valid finding with `/pr` for the title format, link and formatting rules, and the body-file
-workflow. For this skill the body follows the structure of
-[pypa/virtualenv#3427](https://github.com/pypa/virtualenv/pull/3427) rather than `/pr`'s product-owner paragraphs, and
-it names the functions and lines involved:
+After filing, fix each valid finding on its own branch from the default branch, so each PR carries one finding. Follow
+the repository's instructions and conventions, add a test that fails before the fix and passes after, and update every
+documentation page the fix makes inaccurate. Run `/simp` over the diff and the repository's checks, commit with
+`/commit`, and push.
+
+Open one public PR per finding with `/pr` for the title format, link and formatting rules, and the body-file workflow.
+For this skill the body follows the structure of [pypa/virtualenv#3427](https://github.com/pypa/virtualenv/pull/3427)
+rather than `/pr`'s product-owner paragraphs, and it names the functions and lines involved:
 
 1. **Opening paragraph**: what the code did, with a permalink to the old lines at the merge base, what that let happen
    and to whom, and what happens after the PR. A vulnerability ends the paragraph with
    `This addresses [draft advisory <report id>](<advisory URL>).` A link to a draft advisory only works for people who
-   can see it; that is intended.
+   can see it; that is intended. A bug ends it with `Fixes #<issue>.` so the merge closes the issue.
 1. **`###` sections on the mechanism**: one per cause or per platform, each titled with its finding (for example
    `### The retry changed the mode of the link's target`). Explain the old behavior with links to the dependency docs,
    man pages or source that prove each step, then the new behavior with permalinks to the PR head. Permalinks to new
@@ -174,5 +187,5 @@ proves comes out.
 ## Report
 
 Finish with one line per finding: its report identifier, the verdict, both ratings, the advisory link for a
-vulnerability, the PR link and its check state, and anything left for the user, such as publishing the advisory or
-requesting a CVE.
+vulnerability or the issue link for a bug, the PR link and its check state, and anything left for the user, such as
+publishing the advisory or requesting a CVE.
