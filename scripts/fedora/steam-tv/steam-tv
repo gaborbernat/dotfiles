@@ -2,6 +2,10 @@
 # Opens Big Picture in the desktop session, starting Steam if needed.
 set -euo pipefail
 
+# GNOME ignores gamepad input as activity, so blanked screens stay dark when the controller connects
+/usr/bin/gdbus call --session --dest org.gnome.ScreenSaver --object-path /org/gnome/ScreenSaver \
+    --method org.gnome.ScreenSaver.SetActive false > /dev/null
+
 # A controller waking up mid-game must not yank the player out to Big Picture
 if /usr/bin/pgrep --uid "$UID" --full 'reaper SteamLaunch' > /dev/null; then
     exit 0
