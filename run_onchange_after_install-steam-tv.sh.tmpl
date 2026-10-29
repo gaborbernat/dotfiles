@@ -1,0 +1,10 @@
+#!/bin/bash
+# installer hash: {{ include "scripts/fedora/steam-tv/install.sh" | sha256sum }}
+# trigger hash: {{ include "scripts/fedora/steam-tv/steam-tv-trigger" | sha256sum }}
+# launcher hash: {{ include "scripts/fedora/steam-tv/steam-tv" | sha256sum }}
+# rule hash: {{ include "scripts/fedora/steam-tv/99-steam-tv.rules" | sha256sum }}
+# system unit hash: {{ include "scripts/fedora/steam-tv/steam-tv.service" | sha256sum }}
+# user unit hash: {{ include "scripts/fedora/steam-tv/steam-tv-user.service" | sha256sum }}
+set -euo pipefail
+
+sudo bash {{ joinPath .chezmoi.sourceDir "scripts/fedora/steam-tv/install.sh" | quote }}

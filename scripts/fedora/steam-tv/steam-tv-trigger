@@ -1,0 +1,41 @@
+#!/usr/bin/bash
+# Runs as root when an Xbox controller connects: opens Steam Big Picture for whoever owns
+# the seat, or logs in the gaming user, whose gamescope session is Big Picture on the TV.
+set -euo pipefail
+
+readonly GAMING_USER=gaming
+
+seat_user() {
+    /usr/bin/loginctl list-sessions --json=short \
+        | /usr/bin/jq -r --arg id "${1:-}" \
+            '.[] | select(.seat == "seat0" and .class == "user" and ($id == "" or .session == $id)) | "\(.session) \(.user)"' \
+        | /usr/bin/head -n1
+}
+
+active=$(/usr/bin/loginctl show-seat seat0 --property=ActiveSession --value)
+read -r session user <<< "$(seat_user "$active")" || true
+if [[ -z "${user:-}" ]]; then
+    read -r session user <<< "$(seat_user)" || true
+    if [[ -z "${user:-}" ]]; then
+        # GDM only autologins when it starts, and the runtime config resets at boot.
+        /usr/libexec/gdm-runtime-config set daemon AutomaticLoginEnable true
+        /usr/libexec/gdm-runtime-config set daemon AutomaticLogin "$GAMING_USER"
+        /usr/bin/systemctl restart gdm.service
+        for _ in {1..60}; do
+            [[ -n "$(seat_user)" ]] && break
+            sleep 1
+        done
+        /usr/libexec/gdm-runtime-config set daemon AutomaticLoginEnable false
+        exit 0
+    fi
+    /usr/bin/loginctl activate "$session"
+fi
+if /usr/bin/pgrep --uid "$user" --exact gamescope > /dev/null; then
+    exit 0
+fi
+
+for _ in {1..60}; do
+    /usr/bin/systemctl --user --machine="$user@" is-active --quiet graphical-session.target && break
+    sleep 1
+done
+exec /usr/bin/systemctl --user --machine="$user@" start steam-tv.service

@@ -140,6 +140,11 @@ installer to register the shared library for both. Quit desktop Steam before swi
 open. In the gaming session, turn on Bluetooth under Steam's settings, or Steam powers the adapter off for both users.
 Fish `u` shows new upstream session commits and installs them after you confirm.
 
+Connecting an Xbox controller opens Big Picture through a [udev trigger](scripts/fedora/steam-tv/steam-tv-trigger): in
+the session on screen if someone is logged in, otherwise by logging in `gaming` once through GDM's runtime config. A
+controller reconnecting mid-game is ignored. On the desktop, `order-monitors` makes the left BenQ primary while it is
+connected and the TV otherwise, so Big Picture and games open on the TV when the desk screens are off.
+
 For iMessage on Fedora, [BlueBubbles](https://bluebubbles.app/install/) needs its server running on an awake Mac signed
 in to Messages. Complete the server's Full Disk Access, notification, and connection setup on the Mac, then connect the
 Fedora app. GNOME starts the client at login and hides it in the top bar after the tray appears; closing its window

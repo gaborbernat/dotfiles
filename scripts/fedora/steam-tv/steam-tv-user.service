@@ -1,0 +1,7 @@
+[Unit]
+Description=Open Steam Big Picture
+After=graphical-session.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/steam-tv

@@ -60,6 +60,7 @@ install-copyous.sh
 install-jetbrains-toolbox.sh
 install-bazecor.sh
 install-gamescope-session.sh
+install-steam-tv.sh
 install-ccstatusline.sh
 install-claude-desktop.sh
 install-copilot-cli.sh

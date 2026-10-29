@@ -1,0 +1,12 @@
+#!/usr/bin/bash
+# Opens Big Picture in the desktop session, starting Steam if needed.
+set -euo pipefail
+
+# A controller waking up mid-game must not yank the player out to Big Picture
+if /usr/bin/pgrep --uid "$UID" --full 'reaper SteamLaunch' > /dev/null; then
+    exit 0
+fi
+if /usr/bin/pgrep --uid "$UID" --exact steam > /dev/null; then
+    exec /usr/bin/steam steam://open/bigpicture
+fi
+exec /usr/bin/systemd-run --user --collect --unit=steam-big-picture /usr/bin/steam steam://open/bigpicture

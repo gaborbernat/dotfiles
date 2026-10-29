@@ -1,0 +1,7 @@
+[Unit]
+Description=Open Steam Big Picture for the active seat0 user when a controller connects
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/steam-tv-trigger
+TimeoutStartSec=180
