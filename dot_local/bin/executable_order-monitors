@@ -1,8 +1,8 @@
 #!/usr/bin/python3
-"""Keep connected GNOME displays in the configured left-to-right order."""
+"""Keep connected GNOME displays in the configured left-to-right order, with the right one primary."""
 
 import logging
-from typing import Final
+from typing import Any, Final
 
 import gi
 
@@ -11,6 +11,9 @@ from gi.repository import Gio, GLib  # ruff: ignore[module-import-not-at-top-of-
 
 _MUTTER: Final = ("org.gnome.Mutter.DisplayConfig", "/org/gnome/Mutter/DisplayConfig", "org.gnome.Mutter.DisplayConfig")
 _SERIAL_ORDER: Final = {"34R01091019": 1, "C6P06071019": 2}
+_TV_RANK: Final = 3
+# Steam and games open on the primary display: desk work keeps the left BenQ, otherwise the TV takes over
+_PRIMARY_RANKS: Final = (1, _TV_RANK)
 _LOG: Final = logging.getLogger("order-monitors")
 
 
@@ -18,7 +21,12 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     bus = Gio.bus_get_sync(Gio.BusType.SESSION)
     bus.signal_subscribe(
-        _MUTTER[0], _MUTTER[2], "MonitorsChanged", _MUTTER[1], None, Gio.DBusSignalFlags.NONE,
+        _MUTTER[0],
+        _MUTTER[2],
+        "MonitorsChanged",
+        _MUTTER[1],
+        None,
+        Gio.DBusSignalFlags.NONE,
         lambda *_: GLib.timeout_add(500, arrange, bus),
     )
     arrange(bus)
@@ -28,51 +36,81 @@ def main() -> None:
 def arrange(bus: Gio.DBusConnection) -> bool:
     try:
         state = bus.call_sync(*_MUTTER, "GetCurrentState", None, None, Gio.DBusCallFlags.NONE, -1, None).unpack()
-        serial, monitors, logical_monitors, properties = state
-        if len(logical_monitors) < 2 or any(len(logical[5]) != 1 for logical in logical_monitors):
-            return GLib.SOURCE_REMOVE
-
-        modes = {}
-        for spec, available_modes, monitor_properties in monitors:
-            current = next((mode for mode in available_modes if "is-current" in mode[6]), None)
-            if current:
-                modes[spec[0]] = (current, monitor_properties)
-
-        ordered = []
-        for logical in logical_monitors:
-            connector, vendor, product, monitor_serial = logical[5][0]
-            rank = 0 if vendor == "FUE" else _SERIAL_ORDER.get(monitor_serial, 3 if product == "LG TV SSCR2" else -1)
-            if rank < 0 or connector not in modes:
-                return GLib.SOURCE_REMOVE
-            ordered.append((rank, connector, logical))
-
-        if [connector for _, connector, _ in sorted(ordered, key=lambda item: item[2][0])] == [
-            connector for _, connector, _ in sorted(ordered)
-        ]:
-            return GLib.SOURCE_REMOVE
-
-        position = 0
-        layout = []
-        for _, connector, logical in sorted(ordered):
-            mode, monitor_properties = modes[connector]
-            options = {key: monitor_properties[key] for key in ("color-mode", "rgb-range") if key in monitor_properties}
-            layout.append((position, logical[1], logical[2], logical[3], logical[4], [(connector, mode[0], options)]))
-            width, height = mode[1:3]
-            position += round((height if logical[3] in (1, 3, 5, 7) else width) / logical[2])
-
-        config_properties = {
-            key: properties[key] for key in ("layout-mode", "monitors-for-lease") if key in properties
-        }
+    except GLib.Error:
+        _LOG.exception("could not read displays")
+        return GLib.SOURCE_REMOVE
+    serial, monitors, logical_monitors, properties = state
+    if (layout := desired_layout(monitors, logical_monitors)) is None:
+        return GLib.SOURCE_REMOVE
+    config_properties = {key: properties[key] for key in ("layout-mode", "monitors-for-lease") if key in properties}
+    try:
         for method in (0, 2):
             bus.call_sync(
-                *_MUTTER, "ApplyMonitorsConfig",
+                *_MUTTER,
+                "ApplyMonitorsConfig",
                 GLib.Variant("(uua(iiduba(ssa{sv}))a{sv})", (serial, method, layout, config_properties)),
-                None, Gio.DBusCallFlags.NONE, -1, None,
+                None,
+                Gio.DBusCallFlags.NONE,
+                -1,
+                None,
             )
-        _LOG.info("ordered displays: %s", " → ".join(connector for _, connector, _ in sorted(ordered)))
     except GLib.Error:
         _LOG.exception("could not order displays")
+        return GLib.SOURCE_REMOVE
+    _LOG.info(
+        "ordered displays: %s (primary %s)",
+        " → ".join(logical[5][0][0] for logical in layout),
+        next(logical[5][0][0] for logical in layout if logical[4]),
+    )
     return GLib.SOURCE_REMOVE
+
+
+def desired_layout(monitors: list[Any], logical_monitors: list[Any]) -> list[tuple[Any, ...]] | None:
+    if len(logical_monitors) < 2 or any(len(logical[5]) != 1 for logical in logical_monitors):
+        return None
+
+    modes = {}
+    for spec, available_modes, monitor_properties in monitors:
+        current = next((mode for mode in available_modes if "is-current" in mode[6]), None)
+        if current:
+            modes[spec[0]] = (current, monitor_properties)
+
+    ordered = []
+    for logical in logical_monitors:
+        connector, vendor, product, monitor_serial = logical[5][0]
+        rank = 0 if vendor == "FUE" else _SERIAL_ORDER.get(monitor_serial, _TV_RANK if product == "LG TV SSCR2" else -1)
+        if rank < 0 or connector not in modes:
+            return None
+        ordered.append((rank, connector, logical))
+
+    primary = next((connector for rank in _PRIMARY_RANKS for r, connector, _ in ordered if r == rank), None)
+    primaries = {connector: connector == primary if primary else logical[4] for _, connector, logical in ordered}
+    if [connector for _, connector, _ in sorted(ordered, key=lambda item: item[2][0])] == [
+        connector for _, connector, _ in sorted(ordered)
+    ] and all(logical[4] == primaries[connector] for _, connector, logical in ordered):
+        return None
+
+    position = 0
+    layout = []
+    for _, connector, logical in sorted(ordered):
+        mode, monitor_properties = modes[connector]
+        layout.append((
+            position,
+            logical[1],
+            logical[2],
+            logical[3],
+            primaries[connector],
+            [
+                (
+                    connector,
+                    mode[0],
+                    {key: monitor_properties[key] for key in ("color-mode", "rgb-range") if key in monitor_properties},
+                )
+            ],
+        ))
+        width, height = mode[1:3]
+        position += round((height if logical[3] in {1, 3, 5, 7} else width) / logical[2])
+    return layout
 
 
 if __name__ == "__main__":
