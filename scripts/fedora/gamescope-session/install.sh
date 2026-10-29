@@ -202,6 +202,15 @@ for user in "$main_user" "$GAMING_USER"; do
     fi
 done
 
+# Steam cannot drop its built-in library, so make it unwritable: an install aimed there
+# fails with a disk write error instead of landing where the other user cannot see it.
+for user in "$main_user" "$GAMING_USER"; do
+    steamapps="$(getent passwd "$user" | cut -d: -f6)/.local/share/Steam/steamapps"
+    for dir in "$steamapps/common" "$steamapps/downloading"; do
+        [[ ! -d "$dir" ]] || chmod a-w "$dir"
+    done
+done
+
 shader_config="$gaming_home/.local/share/Steam/config/config.vdf"
 if [[ -f "$shader_config" ]] && ! grep -Fq '"EnableShaderBackgroundProcessing"' "$shader_config"; then
     if pgrep --uid "$GAMING_USER" --exact steam >/dev/null; then

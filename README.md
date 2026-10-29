@@ -136,9 +136,10 @@ To play on the LG TV, switch to the `gaming` user: its SteamOS-style
 drives the TV directly while your desktop session keeps running (Ctrl+Alt+F2 returns to it). The first apply creates the
 user, the shared `/home/games/steam` library, and the login-screen avatars and monitor layout; set its password with
 `sudo passwd gaming`. Steam keeps a library list per account, so start and quit Steam once as each user, then rerun the
-installer to register the shared library for both. Quit desktop Steam before switching, since it keeps the controller
-open. In the gaming session, turn on Bluetooth under Steam's settings, or Steam powers the adapter off for both users.
-Fish `u` shows new upstream session commits and installs them after you confirm.
+installer to register the shared library for both. It also makes each user's built-in Steam library read-only, so an
+install aimed there fails with a disk write error; pick `/home/games/steam` instead. Quit desktop Steam before
+switching, since it keeps the controller open. In the gaming session, turn on Bluetooth under Steam's settings, or Steam
+powers the adapter off for both users. Fish `u` shows new upstream session commits and installs them after you confirm.
 
 Connecting an Xbox controller opens Big Picture through a [udev trigger](scripts/fedora/steam-tv/steam-tv-trigger): in
 the session on screen if someone is logged in, otherwise by logging in `gaming` once through GDM's runtime config. A
