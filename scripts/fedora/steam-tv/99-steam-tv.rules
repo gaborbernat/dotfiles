@@ -1,2 +1,3 @@
-# Any Xbox controller (Microsoft vendor id) appearing as a joystick opens Steam Big Picture on the TV
-ACTION=="add", SUBSYSTEM=="input", KERNEL=="event*", ENV{ID_INPUT_JOYSTICK}=="1", ATTRS{id/vendor}=="045e", TAG+="systemd", ENV{SYSTEMD_WANTS}+="steam-tv.service"
+# Any Xbox controller (Microsoft vendor id) opens Steam Big Picture on the TV. Match the joystick
+# node: over Bluetooth the controller advertises enough keys that udev tags it a keyboard, not a joystick.
+ACTION=="add", SUBSYSTEM=="input", KERNEL=="js*", ATTRS{id/vendor}=="045e", TAG+="systemd", ENV{SYSTEMD_WANTS}+="steam-tv.service"
