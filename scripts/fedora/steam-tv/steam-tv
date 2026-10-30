@@ -5,6 +5,12 @@ set -euo pipefail
 # GNOME ignores gamepad input as activity, so blanked screens stay dark when the controller connects
 /usr/bin/gdbus call --session --dest org.gnome.ScreenSaver --object-path /org/gnome/ScreenSaver \
     --method org.gnome.ScreenSaver.SetActive false > /dev/null
+# and blanks them mid-menu; hold an idle inhibitor until no Xbox controller is left connected.
+if ! /usr/bin/systemctl --user is-active --quiet steam-tv-awake.service; then
+    /usr/bin/systemd-run --user --collect --quiet --unit=steam-tv-awake \
+        /usr/bin/gnome-session-inhibit --inhibit=idle --app-id=steam --reason='Xbox controller connected' \
+        /usr/bin/bash -c 'while grep -qx 045e /sys/class/input/js*/device/id/vendor 2> /dev/null; do sleep 10; done'
+fi
 
 # A controller waking up mid-game must not yank the player out to Big Picture
 if /usr/bin/pgrep --uid "$UID" --full 'reaper SteamLaunch' > /dev/null; then
