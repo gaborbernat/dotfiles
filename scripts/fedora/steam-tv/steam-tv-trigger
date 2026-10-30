@@ -23,7 +23,7 @@ if [[ -z "${user:-}" ]]; then
         # The gaming user's Gamescope session is Big Picture on the TV. GDM only autologins when it starts, and the
         # runtime config resets at boot.
         /usr/libexec/gdm-runtime-config set daemon AutomaticLoginEnable true
-        /usr/libexec/gdm-runtime-config set daemon AutomaticLogin gaming
+        /usr/libexec/gdm-runtime-config set daemon AutomaticLogin @GAMING_USER@
         /usr/bin/systemctl restart gdm.service
         for _ in {1..60}; do
             seat=$(seat_user)
@@ -37,6 +37,11 @@ if [[ -z "${user:-}" ]]; then
 fi
 if /usr/bin/pgrep --uid "${user}" --exact gamescope >/dev/null; then
     exit 0
+fi
+# Big Picture needs no keyboard this way, at the cost that any paired controller unlocks the desktop.
+locked=$(/usr/bin/loginctl show-session "${session}" --property=LockedHint --value)
+if [[ "${locked}" == yes ]]; then
+    /usr/bin/loginctl unlock-session "${session}"
 fi
 
 for _ in {1..60}; do

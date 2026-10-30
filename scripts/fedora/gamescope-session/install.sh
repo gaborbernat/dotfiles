@@ -75,22 +75,17 @@ for repo in "${!commits[@]}"; do
     tar xzf "${archive}" -C "${workdir}" --strip-components=1
 done
 
-# The upstream scripts hardcode /usr paths, so the files go there and the manifest records them for removal. The list
-# leaves out distro-specific extras (polkit policy, http loader, the duplicate session entry).
-readonly FILES=(
-    usr/bin/export-gpu
-    usr/bin/gamescope-session-plus
-    usr/lib/systemd/user/gamescope-session-plus@.service
-    usr/share/gamescope-session-plus/device-quirks
-    usr/share/gamescope-session-plus/gamescope-session-plus
-    usr/share/gamescope/scripts/50-custom/50-disable-explicit-sync.lua
-    usr/bin/steamos-session-select
-    usr/bin/steamos-update
-    usr/bin/steamos-select-branch
-    usr/bin/jupiter-biosupdate
-    usr/share/gamescope-session-plus/sessions.d/steam
-    usr/share/wayland-sessions/gamescope-session-steam.desktop
-)
+# The upstream scripts hardcode /usr paths, so the files go there and the manifest records them for removal.
+FILES=() HELPER_TOOLS=() STUB_TOOLS=()
+while read -r kind name; do
+    case "${kind}" in
+        file) FILES+=("${name}") ;;
+        helper) HELPER_TOOLS+=("${name}") ;;
+        stub) STUB_TOOLS+=("${name}") ;;
+        *) ;;
+    esac
+done <"$(dirname "$0")/session-files"
+readonly FILES HELPER_TOOLS STUB_TOOLS
 new_manifest="${workdir}/new-manifest"
 for file in "${FILES[@]}"; do
     [[ -f "${workdir}/${file}" ]] || {
@@ -100,8 +95,7 @@ for file in "${FILES[@]}"; do
     printf '/%s\n' "${file}" >>"${new_manifest}"
 done
 readonly HELPERS=/usr/bin/steamos-polkit-helpers
-readonly HELPER_TOOLS=(steamos-update jupiter-biosupdate steamos-select-branch)
-for tool in "${HELPER_TOOLS[@]}" jupiter-dock-updater; do
+for tool in "${HELPER_TOOLS[@]}" "${STUB_TOOLS[@]}"; do
     printf '%s/%s\n' "${HELPERS}" "${tool}" >>"${new_manifest}"
 done
 
@@ -131,7 +125,9 @@ for tool in "${HELPER_TOOLS[@]}"; do
     install --mode=0755 "${workdir}/helper" "${HELPERS}/${tool}"
 done
 printf '#!/usr/bin/bash\nexit 0\n' >"${workdir}/helper"
-install --mode=0755 "${workdir}/helper" "${HELPERS}/jupiter-dock-updater"
+for tool in "${STUB_TOOLS[@]}"; do
+    install --mode=0755 "${workdir}/helper" "${HELPERS}/${tool}"
+done
 if [[ -f "${MANIFEST}" ]]; then
     while IFS= read -r path; do
         grep -Fxq "${path}" "${new_manifest}" || rm -f "${path}"
@@ -148,7 +144,8 @@ mv -f "${STATE}/.installed-files.new" "${MANIFEST}"
 mv -f "${STATE}/.versions.new" "${VERSIONS}"
 
 # A separate user lets the TV session run while the desktop stays logged in.
-readonly GAMING_USER=gaming
+GAMING_USER=$(awk -F= '$1 == "GAMING_USER" {print $2}' "$(dirname "$0")/../steam-tv/ids.conf")
+readonly GAMING_USER
 if ! id "${GAMING_USER}" &>/dev/null; then
     useradd --create-home --comment 'Steam TV' --groups games "${GAMING_USER}"
     echo "Created user '${GAMING_USER}'. Set its password with: sudo passwd ${GAMING_USER}"

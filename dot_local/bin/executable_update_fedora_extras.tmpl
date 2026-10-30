@@ -175,9 +175,10 @@ update_rustdesk() {
 }
 
 update_gamescope_session() {
-    local versions repo installed latest compare answer
+    local versions session_files repo installed latest compare answer
     local -a updates=()
     versions=/usr/local/share/gamescope-session-local/versions
+    session_files={{ joinPath .chezmoi.sourceDir "scripts/fedora/gamescope-session/session-files" | quote }}
     if [[ ! -f "${versions}" ]]; then
         echo 'Steam Big Picture session is not installed'
         return
@@ -191,7 +192,17 @@ update_gamescope_session() {
         compare=$(curl -fsSL "https://api.github.com/repos/ChimeraOS/${repo}/compare/${installed}...${latest}")
         printf '\n%s %s -> %s\n' "${repo}" "${installed:0:7}" "${latest:0:7}"
         jq -r '.commits[] | "  \(.sha[0:7]) \(.commit.message | split("\n")[0])"' <<<"${compare}"
-        jq -r '.files[] | "    \(.status) \(.filename)"' <<<"${compare}"
+        # Mark the changes that reach this machine and new upstream helpers the installer would skip.
+        jq -r --rawfile session_files "${session_files}" '
+            [$session_files | split("\n")[] | select(test("^[a-z]")) | split(" ")] as $entries
+            | [$entries[] | select(.[0] == "file") | .[1]] as $copied
+            | [$entries[] | select(.[0] != "file") | "usr/bin/steamos-polkit-helpers/\(.[1])"] as $helpers
+            | .files[]
+            | "    \(.status) \(.filename)" + (
+                if IN(.filename; $copied[]) then " (installed)"
+                elif (.filename | startswith("usr/bin/steamos-polkit-helpers/")) and (IN(.filename; $helpers[]) | not)
+                then " (not in session-files)"
+                else "" end)' <<<"${compare}"
         updates+=("${repo}=${latest}")
     done <"${versions}"
     if ((${#updates[@]} == 0)); then

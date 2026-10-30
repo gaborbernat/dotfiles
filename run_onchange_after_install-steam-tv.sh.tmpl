@@ -6,6 +6,7 @@
 # rule hash: {{ include "scripts/fedora/steam-tv/99-steam-tv.rules" | sha256sum }}
 # system unit hash: {{ include "scripts/fedora/steam-tv/steam-tv.service" | sha256sum }}
 # user unit hash: {{ include "scripts/fedora/steam-tv/steam-tv-user.service" | sha256sum }}
+# ids hash: {{ include "scripts/fedora/steam-tv/ids.conf" | sha256sum }}
 set -euo pipefail
 
 sudo bash {{ joinPath .chezmoi.sourceDir "scripts/fedora/steam-tv/install.sh" | quote }}

@@ -1,0 +1,20 @@
+# What the installer takes from the ChimeraOS repos, read by it and by update_fedora_extras. "file" paths install from
+# the archives to the same place under /; distro extras (polkit policy, http loader, the duplicate session entry) stay
+# out. "helper" and "stub" name the Steam client's tools in /usr/bin/steamos-polkit-helpers: a helper runs the
+# /usr/bin tool of that name, a stub does nothing.
+file usr/bin/export-gpu
+file usr/bin/gamescope-session-plus
+file usr/lib/systemd/user/gamescope-session-plus@.service
+file usr/share/gamescope-session-plus/device-quirks
+file usr/share/gamescope-session-plus/gamescope-session-plus
+file usr/share/gamescope/scripts/50-custom/50-disable-explicit-sync.lua
+file usr/bin/steamos-session-select
+file usr/bin/steamos-update
+file usr/bin/steamos-select-branch
+file usr/bin/jupiter-biosupdate
+file usr/share/gamescope-session-plus/sessions.d/steam
+file usr/share/wayland-sessions/gamescope-session-steam.desktop
+helper steamos-update
+helper jupiter-biosupdate
+helper steamos-select-branch
+stub jupiter-dock-updater

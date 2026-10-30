@@ -5,15 +5,8 @@ if ! grep -qx 'ID=fedora' /etc/os-release; then
     echo "This installer targets Fedora" >&2
     exit 1
 fi
-display_found=0
-for usb_device in /sys/bus/usb/devices/*; do
-    if [[ -f "${usb_device}/idVendor" && -f "${usb_device}/idProduct" ]] &&
-        [[ $(<"${usb_device}/idVendor") == 2022 && $(<"${usb_device}/idProduct") == 0522 ]]; then
-        display_found=1
-        break
-    fi
-done
-if [[ ${display_found} -ne 1 ]]; then
+installer="$(dirname "${BASH_SOURCE[0]}")/install-system.sh"
+if ! bash "${installer}" --detect; then
     echo "No Antec Flux Pro display detected on USB" >&2
     exit 1
 fi
@@ -28,5 +21,5 @@ if [[ ${revision} != 3dce4aecae9b4df967e6594fab556cb1ddd1b274 ]]; then
     exit 1
 fi
 cargo build --release --locked --manifest-path "${build_dir}/source/Cargo.toml"
-sudo bash "$(dirname "${BASH_SOURCE[0]}")/install-system.sh" "${build_dir}/source/target/release/antec-flux-pro-display"
+sudo bash "${installer}" "${build_dir}/source/target/release/antec-flux-pro-display"
 systemctl --no-pager --full status antec-flux-pro-display.service

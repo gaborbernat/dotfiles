@@ -9,7 +9,7 @@ set -euo pipefail
 if ! /usr/bin/systemctl --user is-active --quiet steam-tv-awake.service; then
     /usr/bin/systemd-run --user --collect --quiet --unit=steam-tv-awake \
         /usr/bin/gnome-session-inhibit --inhibit=idle --app-id=steam --reason='Xbox controller connected' \
-        /usr/bin/bash -c 'while grep -qx 045e /sys/class/input/js*/device/id/vendor 2> /dev/null; do sleep 10; done'
+        /usr/bin/bash -c 'while grep -sqx @XBOX_VENDOR@ /sys/class/input/js*/device/id/vendor; do sleep 10; done'
 fi
 
 # A controller waking up mid-game must not yank the player out to Big Picture

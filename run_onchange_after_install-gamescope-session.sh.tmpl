@@ -2,6 +2,8 @@
 #!/bin/bash
 # installer hash: {{ include "scripts/fedora/gamescope-session/install.sh" | sha256sum }}
 # greeter hash: {{ include "scripts/fedora/gamescope-session/greeter-monitors.xml" | sha256sum }}
+# session files hash: {{ include "scripts/fedora/gamescope-session/session-files" | sha256sum }}
+# steam-tv ids hash: {{ include "scripts/fedora/steam-tv/ids.conf" | sha256sum }}
 set -euo pipefail
 
 sudo bash {{ joinPath .chezmoi.sourceDir "scripts/fedora/gamescope-session/install.sh" | quote }}

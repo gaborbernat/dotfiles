@@ -8,8 +8,15 @@ set -euo pipefail
 }
 cd "$(dirname "$0")"
 
-install --mode=0755 steam-tv-trigger steam-tv lgtv-hdmi /usr/local/bin/
-install --mode=0644 99-steam-tv.rules /etc/udev/rules.d/
+workdir=$(mktemp -d)
+trap 'rm -rf "${workdir}"' EXIT
+sed -n 's/^\([A-Z_]*\)=\(.*\)$/s|@\1@|\2|g/p' ids.conf >"${workdir}/ids.sed"
+for file in steam-tv-trigger steam-tv 99-steam-tv.rules; do
+    sed --file="${workdir}/ids.sed" "${file}" >"${workdir}/${file}"
+done
+
+install --mode=0755 "${workdir}/steam-tv-trigger" "${workdir}/steam-tv" lgtv-hdmi /usr/local/bin/
+install --mode=0644 "${workdir}/99-steam-tv.rules" /etc/udev/rules.d/
 install --mode=0644 steam-tv.service /etc/systemd/system/
 install --mode=0644 steam-tv-user.service /etc/systemd/user/steam-tv.service
 restorecon /usr/local/bin/steam-tv-trigger /usr/local/bin/steam-tv /usr/local/bin/lgtv-hdmi \

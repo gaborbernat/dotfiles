@@ -1,4 +1,4 @@
-# 045e is Microsoft, so any Xbox controller matches. Match the js node because over Bluetooth the
+# @XBOX_VENDOR@ is Microsoft, so any Xbox controller matches. Match the js node because over Bluetooth the
 # controller advertises enough keys that udev tags it a keyboard, not a joystick.
-ACTION=="add", SUBSYSTEM=="input", KERNEL=="js*", ATTRS{id/vendor}=="045e", \
+ACTION=="add", SUBSYSTEM=="input", KERNEL=="js*", ATTRS{id/vendor}=="@XBOX_VENDOR@", \
     TAG+="systemd", ENV{SYSTEMD_WANTS}+="steam-tv.service"
