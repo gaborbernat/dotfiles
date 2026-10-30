@@ -1,1 +1,0 @@
-SUBSYSTEM=="usb", ATTR{idVendor}=="2022", ATTR{idProduct}=="0522", GROUP="antec-flux", MODE="0660"

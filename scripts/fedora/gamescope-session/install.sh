@@ -6,8 +6,8 @@ readonly STATE=/usr/local/share/gamescope-session-local
 readonly MANIFEST="${STATE}/installed-files"
 readonly VERSIONS="${STATE}/versions"
 declare -A PINNED=(
-    [gamescope - session]=73d2da84ace7f41006a0f85bd2fdb19ef593a464
-    [gamescope - session - steam]=1a3fdb7fa15a4bba7204bef69702b7a10a297828
+    ["gamescope-session"]=73d2da84ace7f41006a0f85bd2fdb19ef593a464
+    ["gamescope-session-steam"]=1a3fdb7fa15a4bba7204bef69702b7a10a297828
 )
 
 ((EUID == 0)) || {
@@ -63,8 +63,8 @@ trap cleanup EXIT
 
 # Checksums only cover the pinned commits; update_fedora_extras shows the diff of newer ones before installing them.
 declare -A PINNED_SHA256=(
-    [gamescope - session]=aa6d86c082db00ae2501c5198be3c5d38b06d9252ad4fb04cb287ab31e1ec320
-    [gamescope - session - steam]=1729029426c3de44f83fa674dce6bda8bd9a2b292df10d67b7acf74f1b0f8d62
+    ["gamescope-session"]=aa6d86c082db00ae2501c5198be3c5d38b06d9252ad4fb04cb287ab31e1ec320
+    ["gamescope-session-steam"]=1729029426c3de44f83fa674dce6bda8bd9a2b292df10d67b7acf74f1b0f8d62
 )
 for repo in "${!commits[@]}"; do
     archive="${workdir}/${repo}.tar.gz"
