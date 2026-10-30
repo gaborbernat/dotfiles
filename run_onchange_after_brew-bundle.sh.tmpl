@@ -1,5 +1,5 @@
 #!/bin/bash
-# Brewfile hash: {{ include "dot_Brewfile.tmpl" | sha256sum }}
+# Brewfile hash: {{ include "dot_Brewfile" | sha256sum }}
 {{- $add := joinPath .chezmoi.homeDir ".local/share/chezmoi-private/Brewfile" }}
 {{- $skip := joinPath .chezmoi.homeDir ".local/share/chezmoi-private/Brewfile.skip" }}
 # Private add hash:  {{ if stat $add }}{{ output "cat" $add | sha256sum }}{{ else }}none{{ end }}
@@ -11,9 +11,6 @@ if ! command -v brew >/dev/null 2>&1; then
     exit 1
 fi
 
-# Effective Brewfile = public ~/.Brewfile, plus a private overlay if the private
-# chezmoi source is applied. The overlay both ADDS (its own Brewfile) and
-# SUPPRESSES (Brewfile.skip lists public entries to drop on this machine).
 private_dir="$HOME/.local/share/chezmoi-private"
 combined="$(mktemp)"
 trap 'rm -f "$combined" "$combined.tmp"' EXIT
@@ -31,12 +28,9 @@ if [[ -f "$private_dir/Brewfile.skip" ]]; then
         entry="$(echo "$entry" | xargs)"
         [[ -z "$entry" ]] && continue
         escaped_entry=$(printf '%s' "$entry" | sed 's/[][\\.^$*+?(){}|]/\\&/g')
-        if grep -vE "^(brew|cask|mas) \"${escaped_entry}\"" "$combined" >"$combined.tmp"; then
-            mv "$combined.tmp" "$combined"
-        else
-            status=$?
-            [[ $status -eq 1 ]] && mv "$combined.tmp" "$combined" || exit "$status"
-        fi
+        # grep -v exits 1 when it filters out every line; an empty Brewfile is still valid.
+        grep -vE "^(brew|cask|mas) \"${escaped_entry}\"" "$combined" >"$combined.tmp" || (($? == 1))
+        mv "$combined.tmp" "$combined"
     done <"$private_dir/Brewfile.skip"
 fi
 

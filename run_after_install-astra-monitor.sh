@@ -15,12 +15,12 @@ if [[ "${XDG_CURRENT_DESKTOP:-}" != *GNOME* ]] ||
     exit 0
 fi
 
-extension_dir="$HOME/.local/share/gnome-shell/extensions/monitor@astraext.github.io"
-if [[ ! -d "$extension_dir" ]]; then
+uuid=monitor@astraext.github.io
+if [[ ! -d "$HOME/.local/share/gnome-shell/extensions/$uuid" ]]; then
     zip=$(mktemp --suffix=.zip)
     trap 'rm -f "$zip"' EXIT
-    curl -fL -sS -o "$zip" 'https://extensions.gnome.org/download-extension/monitor@astraext.github.io.shell-extension.zip?version_tag=73927'
-    printf '%s  %s\n' '673cb04e38dc73f71d1e5c8f9c892a9cbf1fe41ddfc2166d6845f52a0839aa98' "$zip" | sha256sum -c -
+    curl -fL -sS -o "$zip" "https://extensions.gnome.org/download-extension/$uuid.shell-extension.zip?version_tag=73927"
+    printf '%s  %s\n' 673cb04e38dc73f71d1e5c8f9c892a9cbf1fe41ddfc2166d6845f52a0839aa98 "$zip" | sha256sum -c -
     gnome-extensions install --force "$zip"
 fi
 
@@ -30,10 +30,10 @@ import ast
 import sys
 
 options = ast.literal_eval(sys.argv[1].removeprefix("@as "))
-if "monitor@astraext.github.io" not in options:
-    options.append("monitor@astraext.github.io")
+if sys.argv[2] not in options:
+    options.append(sys.argv[2])
 print(repr(options))
-' "$current")
+' "$current" "$uuid")
 if [[ "$updated" != "$current" ]]; then
     gsettings set org.gnome.shell enabled-extensions "$updated"
 fi

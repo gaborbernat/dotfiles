@@ -13,7 +13,6 @@ cmake-build-debug
 .hatch
 *.iws
 *.ipr
-*.iml
 logs
 jfrog-licenses-latest.json.gz
 .claude

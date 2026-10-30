@@ -21,7 +21,9 @@ repos:
     hooks:
       - id: check-no-hardcoded-home
         name: Check for hardcoded home paths
-        entry: bash -c 'if grep -lF "$HOME" "$@" 2>/dev/null; then echo "Found hardcoded home paths - use \$HOME variable instead"; exit 1; fi' --
+        entry: >-
+          bash -c 'if grep -lF "$HOME" "$@" 2>/dev/null; then
+          echo "Found hardcoded home paths - use \$HOME variable instead"; exit 1; fi' --
         language: system
         types: [text]
         exclude: ^(\.pre-commit-config\.yaml|CLAUDE\.md)$

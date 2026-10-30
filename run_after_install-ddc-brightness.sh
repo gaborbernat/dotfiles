@@ -15,12 +15,11 @@ if ! command -v ddcutil >/dev/null 2>&1; then
     exit 0
 fi
 uuid=display-brightness-ddcutil@themightydeity.github.com
-extension_dir="$HOME/.local/share/gnome-shell/extensions/$uuid"
-if [[ ! -d "$extension_dir" ]]; then
+if [[ ! -d "$HOME/.local/share/gnome-shell/extensions/$uuid" ]]; then
     zip=$(mktemp --suffix=.zip)
     trap 'rm -f "$zip"' EXIT
-    curl -fL -sS -o "$zip" 'https://extensions.gnome.org/download-extension/display-brightness-ddcutil@themightydeity.github.com.shell-extension.zip?version_tag=69941'
-    printf '%s  %s\n' 'be457ab7b623d51716618c250fef5c8d99417e9861518f362f3303ae1c75c9ce' "$zip" | sha256sum -c -
+    curl -fL -sS -o "$zip" "https://extensions.gnome.org/download-extension/$uuid.shell-extension.zip?version_tag=69941"
+    printf '%s  %s\n' be457ab7b623d51716618c250fef5c8d99417e9861518f362f3303ae1c75c9ce "$zip" | sha256sum -c -
     gnome-extensions install --force "$zip"
 fi
 

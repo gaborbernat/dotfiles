@@ -1,10 +1,12 @@
 #!/bin/bash
-# Private scripts hash: {{ glob (joinPath .chezmoi.homeDir ".local/share/chezmoi-private/scripts/src/*.py") | join "\n" | sha256sum }}
+{{- $privateScripts := glob (joinPath .chezmoi.homeDir ".local/share/chezmoi-private/scripts/src/*.py") }}
+# Private scripts hash: {{ $privateScripts | join "\n" | sha256sum }}
 set -euo pipefail
 
-if [[ -d "$HOME/.local/share/chezmoi-private/scripts/src" ]]; then
+src="$HOME/.local/share/chezmoi-private/scripts/src"
+if [[ -d "$src" ]]; then
     echo "📦 Generating wrapper scripts for private Python scripts..."
-    for script in "$HOME/.local/share/chezmoi-private/scripts/src"/*.py; do
+    for script in "$src"/*.py; do
         if [[ -f "$script" ]]; then
             name=$(basename "$script" .py)
             wrapper="$HOME/.local/bin/$name"
@@ -20,7 +22,7 @@ EOF
     for wrapper in "$HOME/.local/bin"/*; do
         if [[ -f "$wrapper" ]] && grep -qF 'chezmoi-private/scripts/src/' "$wrapper"; then
             name=$(basename "$wrapper")
-            [[ -f "$HOME/.local/share/chezmoi-private/scripts/src/$name.py" ]] || rm "$wrapper"
+            [[ -f "$src/$name.py" ]] || rm "$wrapper"
         fi
     done
     echo "✅ Private script wrappers generated"

@@ -3,7 +3,7 @@
 
 {{- $gpgOutput := output (joinPath .chezmoi.sourceDir ".setup-gpg-key.sh") -}}
 {{- if not $gpgOutput -}}
-{{-   fail "Failed to setup GPG key" -}}
+{{-   fail "Failed to set up GPG key" -}}
 {{- end -}}
 
 {{- $keys := list -}}

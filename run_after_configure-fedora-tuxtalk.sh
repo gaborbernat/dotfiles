@@ -10,16 +10,21 @@ schema=org.gnome.settings-daemon.plugins.media-keys
 bindings=$(gsettings get "$schema" custom-keybindings)
 tuxtalk_path=
 while IFS= read -r path; do
-    binding="$schema.custom-keybinding:$path"
-    case $(gsettings get "$binding" name) in
+    case $(gsettings get "$schema.custom-keybinding:$path" name) in
         "'TuxTalk Dictation'") tuxtalk_path=$path ;;
     esac
 done < <(grep -oE '/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/[^/]+/' <<< "$bindings")
 
 if [[ -z "$tuxtalk_path" ]]; then
     tuxtalk_path=/org/gnome/settings-daemon/plugins/media-keys/custom-keybindings/tuxtalk/
-    updated=$(python3 -c 'import ast, sys; paths = ast.literal_eval(sys.argv[1].removeprefix("@as ")); paths.append(sys.argv[2]); print(repr(paths))' \
-        "$bindings" "$tuxtalk_path")
+    updated=$(python3 -c '
+import ast
+import sys
+
+paths = ast.literal_eval(sys.argv[1].removeprefix("@as "))
+paths.append(sys.argv[2])
+print(repr(paths))
+' "$bindings" "$tuxtalk_path")
     gsettings set "$schema" custom-keybindings "$updated"
 fi
 

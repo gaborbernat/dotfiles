@@ -152,7 +152,8 @@
         set -e; \
         git fetch upstream; \
         b=$(git branch --show-current); \
-        upstream_branch=$(git symbolic-ref --quiet --short refs/remotes/upstream/HEAD 2>/dev/null | sed 's|^upstream/||'); \
+        upstream_branch=$(git symbolic-ref --quiet --short refs/remotes/upstream/HEAD 2>/dev/null | \
+            sed 's|^upstream/||'); \
         [ -n \"$upstream_branch\" ] || upstream_branch=main; \
         git rebase \"upstream/$upstream_branch\"; \
         git push -u origin \"$b\"; \

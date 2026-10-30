@@ -1,6 +1,7 @@
 {{- $jobs := output (joinPath .chezmoi.sourceDir ".cargo-build-jobs.sh") | trim -}}
 {{- /* Skip mise shims: a shim outlives its tool, and an orphaned one fails every rustc call. */ -}}
-{{- $sccache := output "sh" "-c" `PATH=$(printf %s "$PATH" | tr : "\n" | grep -v /mise/shims | paste -sd : -) command -v sccache || true` | trim -}}
+{{- $sccache := output "sh" "-c"
+    `PATH=$(printf %s "$PATH" | tr : "\n" | grep -v /mise/shims | paste -sd : -) command -v sccache || true` | trim -}}
 {{- $lld := lookPath "ld64.lld" -}}
 [build]
 {{ if stat "/Volumes/OWC" -}}
@@ -11,10 +12,10 @@ target-dir = "/Volumes/OWC/cargo-target"
 
 {{ end -}}
 {{ if $sccache -}}
-# target-dir above is only a default: an explicit --target-dir or CARGO_TARGET_DIR
-# overrides it, and a task that does so pays a full cold dependency build. sccache
-# keys on the compilation itself rather than the directory, so those builds hit the
-# cache regardless of where they write.
+# A configured target-dir is only a default: an explicit --target-dir or
+# CARGO_TARGET_DIR overrides it, and a task that does so pays a full cold dependency
+# build. sccache keys on the compilation itself rather than the directory, so those
+# builds hit the cache wherever they write.
 rustc-wrapper = {{ $sccache | quote }}
 
 # sccache cannot cache incremental compilation units, and cargo defaults incremental

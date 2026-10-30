@@ -11,8 +11,7 @@ if [[ "${XDG_CURRENT_DESKTOP:-}" != *GNOME* ]] ||
 fi
 
 uuid=copyous@boerdereinar.dev
-extension_dir="$HOME/.local/share/gnome-shell/extensions/$uuid"
-if [[ ! -d "$extension_dir" ]]; then
+if [[ ! -d "$HOME/.local/share/gnome-shell/extensions/$uuid" ]]; then
     shell_version=$(gnome-shell --version | awk '{split($3, version, "."); print version[1]}')
     extension_info=$(curl -fsS --get \
         --data-urlencode "uuid=$uuid" \

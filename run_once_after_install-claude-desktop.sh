@@ -32,8 +32,9 @@ if ! distrobox enter claude-desktop -- dpkg-query -W claude-desktop >/dev/null 2
         echo 'Claude apt signing key has an unexpected fingerprint' >&2
         exit 1
     fi
-    printf '%s\n' \
-        'deb [signed-by=/usr/share/keyrings/claude-desktop-archive-keyring.asc] https://downloads.claude.ai/claude-desktop/apt/stable stable main' |
+    printf '%s %s\n' \
+        'deb [signed-by=/usr/share/keyrings/claude-desktop-archive-keyring.asc]' \
+        'https://downloads.claude.ai/claude-desktop/apt/stable stable main' |
         distrobox enter claude-desktop -- sudo tee /etc/apt/sources.list.d/claude-desktop.list >/dev/null
     distrobox enter claude-desktop -- sudo apt-get update
     distrobox enter claude-desktop -- sudo env DEBIAN_FRONTEND=noninteractive apt-get install -y claude-desktop

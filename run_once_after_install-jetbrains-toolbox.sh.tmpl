@@ -18,7 +18,8 @@ checksum=$(mktemp)
 staging=$(mktemp -d)
 trap 'rm -f "$metadata" "$archive" "$checksum"; rm -rf "$staging"' EXIT
 
-curl -fLsS --retry 3 -o "$metadata" 'https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release'
+curl -fLsS --retry 3 -o "$metadata" \
+    'https://data.services.jetbrains.com/products/releases?code=TBA&latest=true&type=release'
 curl -fLsS --retry 3 -o "$archive" \
     "$(jq -er --arg platform "$platform" '.TBA[0].downloads[$platform].link' "$metadata")"
 curl -fLsS --retry 3 -o "$checksum" \

@@ -1,7 +1,4 @@
-# File associations managed by duti
-# Format: app_bundle_id  UTI_or_extension  role
-
-# Text files → VS Code
+# duti file associations: app_bundle_id  UTI_or_extension  role
 com.microsoft.VSCode  public.plain-text  editor
 com.microsoft.VSCode  public.json  editor
 com.microsoft.VSCode  net.daringfireball.markdown  editor
@@ -25,11 +22,9 @@ com.microsoft.VSCode  cfg  editor
 com.microsoft.VSCode  ini  editor
 com.microsoft.VSCode  log  editor
 
-# Python → PyCharm
 com.jetbrains.pycharm  public.python-script  editor
 com.jetbrains.pycharm  py  editor
 
-# Video → IINA
 com.colliderli.iina  public.movie  viewer
 com.colliderli.iina  public.mpeg-4  viewer
 com.colliderli.iina  public.avi  viewer

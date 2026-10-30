@@ -1,12 +1,11 @@
 # Fedora Workstation RPM baseline.
-# Code comes from Microsoft's RPM repository.
 
-# Shell, Git, and everyday CLI tools
 acl
 aerc
 atuin
 bat
 chezmoi
+# From Microsoft's RPM repository.
 code
 ctags
 curl
@@ -41,8 +40,6 @@ w3m
 wget2-wget
 yq
 zoxide
-
-# Languages and build tools
 cmake
 gcc
 gawk
@@ -63,8 +60,6 @@ openssl-devel
 pkgconf-pkg-config
 rustup
 sccache
-
-# Development and document utilities
 aria2
 celluloid
 chatgpt
@@ -107,22 +102,18 @@ xdg-utils
 yamllint
 zbar
 zip
-
-# Docker CLI/Compose parity, using Fedora's Moby packages
+# Fedora's Moby packages provide the Docker CLI and Compose.
 docker-cli
 docker-compose
 moby-engine
 skopeo
-
-# Selected peripherals and external monitor control
 ddcutil
 i2c-tools
 openrgb
 solaar
 solaar-udev
 xremap-socket
-
-# Steam from Fedora Workstation's RPM Fusion Steam repository; gaming tools from Fedora
+# From Fedora Workstation's RPM Fusion Steam repository.
 steam
 gamemode.x86_64
 gamemode.i686

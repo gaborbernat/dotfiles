@@ -1,14 +1,8 @@
-# Public Brewfile — the baseline installed on every machine this source applies to.
-# A downstream private chezmoi source (chezmoi apply --source ~/.local/share/chezmoi-private)
-# may overlay it: ~/.local/share/chezmoi-private/Brewfile adds private-only entries, and
-# Brewfile.skip lists public entries to drop on that machine (e.g. legcord, opencode on work).
-# The brew-bundle runner merges the two and applies the skip-list. Only direct (leaf) packages
-# belong here — transitive dependencies are pulled in automatically.
+# Homebrew baseline for every macOS machine. List leaf packages only; brew installs their dependencies.
+# A private chezmoi source adds entries in ~/.local/share/chezmoi-private/Brewfile and drops public ones listed in
+# Brewfile.skip (legcord and opencode on the work machine); the brew-bundle script merges them.
 
-# Taps
 tap "anomalyco/tap"
-
-# Core tools
 brew "atuin"            # shell history search
 brew "bat"              # cat with syntax highlighting
 brew "chezmoi"          # dotfiles manager
@@ -42,28 +36,22 @@ brew "watch"            # run command repeatedly
 brew "wget"             # download tool
 brew "yq"               # YAML processor
 brew "zoxide"           # smarter cd
-
-# Languages & runtimes
 brew "bun"              # JavaScript runtime/bundler
-brew "go"               # Go toolchain
+brew "go"
 brew "node"             # JavaScript runtime
 brew "nushell"          # structured-data shell
 brew "openjdk"          # Java (latest)
 brew "openjdk@21"       # Java LTS
-brew "powershell"       # PowerShell
+brew "powershell"
 brew "rustup"           # Rust toolchain manager
-
-# GNU tools
 brew "coreutils"        # GNU core utilities
 brew "findutils"        # GNU find/xargs
-brew "gawk"             # GNU awk
+brew "gawk"
 brew "gcc"              # GNU compiler collection
-brew "gnu-indent"       # GNU indent
-brew "gnu-sed"          # GNU sed
+brew "gnu-indent"
+brew "gnu-sed"
 brew "make"             # GNU make
 brew "zip"              # compression
-
-# Build & document tools
 brew "aria2"            # download accelerator
 brew "cmake"            # build system
 brew "graphviz"         # graph visualization
@@ -89,12 +77,8 @@ brew "tokei"            # code statistics
 brew "yamlfmt"          # YAML formatter
 brew "yamllint"         # YAML linter
 brew "zbar"             # barcode/QR reader
-
-# CLI services
 brew "googleworkspace-cli"     # Google Workspace CLI
 brew "anomalyco/tap/opencode"  # AI coding agent (private may skip)
-
-# Applications
 cask "bettercmdtab"              # Cmd+Tab app switcher
 cask "betterdisplay"             # display management
 cask "claude"                    # Anthropic desktop app
@@ -119,11 +103,7 @@ cask "path-finder"               # file manager
 cask "rode-central"              # RODE audio device control
 cask "simple-comic"              # comic viewer/reader
 cask "visual-studio-code"        # code editor
-
-# Fonts
-cask "font-jetbrains-mono"            # JetBrains Mono
+cask "font-jetbrains-mono"
 cask "font-jetbrains-mono-nerd-font"  # JetBrains Mono with icons
-
-# Mac App Store
 mas "Keystroke Pro", id: 1572206224  # keystroke visualizer
 mas "Magnet", id: 441258766          # window manager

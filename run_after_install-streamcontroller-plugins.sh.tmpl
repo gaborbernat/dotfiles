@@ -7,7 +7,8 @@ fi
 
 plugins_dir="$HOME/.var/app/com.core447.StreamController/data/plugins"
 settings="$HOME/.var/app/com.core447.StreamController/data/settings/settings.json"
-for id in com_core447_OSPlugin com_core447_MediaPlugin com_core447_DeckPlugin com_larkum_WorldClocks com_jul_AMDGPUTop; do
+for id in com_core447_OSPlugin com_core447_MediaPlugin com_core447_DeckPlugin com_larkum_WorldClocks \
+    com_jul_AMDGPUTop; do
     if [[ ! -f "$plugins_dir/$id/manifest.json" ]]; then
         "$HOME/.local/bin/update_fedora_extras" streamdeck
         break

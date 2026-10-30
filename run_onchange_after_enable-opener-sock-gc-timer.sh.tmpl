@@ -4,7 +4,7 @@
 set -euo pipefail
 
 # Without linger the user manager, and with it the timer, stops once the last session ends,
-# which is exactly when a dropped tunnel leaves the socket behind.
+# which is when a dropped tunnel leaves the socket behind.
 loginctl enable-linger "$USER"
 systemctl --user daemon-reload
 systemctl --user enable --now opener-sock-gc.timer

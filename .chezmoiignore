@@ -12,7 +12,6 @@ scripts/
 # Binary plists - apps rewrite these constantly
 Library/Preferences/*.plist
 {{ if ne .chezmoi.os "darwin" }}
-# macOS-only configs and tooling
 setup-ghostty-symlink.sh
 set-file-associations.sh
 brew-bundle.sh

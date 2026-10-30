@@ -1,7 +1,7 @@
 # Dotfiles
 
 Personal dotfiles for macOS and Fedora Workstation, managed with [chezmoi](https://www.chezmoi.io/). Other Linux systems
-get a smaller apt-based CLI setup.
+get a smaller [apt](https://wiki.debian.org/Apt)-based CLI setup.
 
 ## Install
 
@@ -31,145 +31,15 @@ chezmoi source-path
 chezmoi apply
 ```
 
-Replace the example path if needed. Init records its absolute path as `sourceDir` in `~/.config/chezmoi/chezmoi.toml`;
-the config template retains it when you run `chezmoi update --init`. Keep the checkout on the branch you want to pull.
-Chezmoi otherwise uses `~/.local/share/chezmoi`, regardless of the shell's directory.
-
-## Platform setup
-
-| Area     | macOS                  | Fedora Workstation         | Other apt-based Linux |
-| -------- | ---------------------- | -------------------------- | --------------------- |
-| Packages | Homebrew and App Store | DNF, Flatpak, vendor tools | apt CLI tools         |
-| Desktop  | duti and LaunchAgent   | GNOME and keyboard setup   | Shared shell config   |
-| Hardware | Stream Deck profiles   | Peripheral tools           | None                  |
-
-Shared configuration includes Fish, Ghostty, Git, Atuin, mise, uv tools, Cargo tools, and the `~/.agents/skills` store
-linked into Codex and Claude Code. The Fish `u` command updates the installed toolchains and package managers; the
-stages depend on the host OS.
-
-### Fedora
-
-Chezmoi enables the configured Ghostty, xremap, and mise COPRs; the VS Code and Insync RPM repositories; and Fedora
-Workstation's Steam repository before installing the [RPM manifest](dot_dnf_packages.txt). Fedora's Moby packages
-provide Docker, and Distrobox uses that daemon. Membership in the `docker` group grants
-[root-level access](https://docs.docker.com/engine/install/linux-postinstall/).
-
-The [ChatGPT desktop app](https://learn.chatgpt.com/docs/linux/linux-app) includes Codex. Its official Fedora RPM adds
-OpenAI's signed DNF repository, so Fish `u` updates it with the other RPMs.
-[Claude Desktop](https://support.claude.com/en/articles/10065433-install-claude-desktop) runs in a Debian Distrobox
-because Anthropic publishes an apt package but no Fedora RPM. The app appears in GNOME; Fish `u` updates its apt package
-through `distrobox-upgrade`. [GitHub Copilot CLI](https://docs.github.com/en/copilot/get-started/cli-quickstart)
-installs through npm and updates with the npm stage.
-
-Kooha, LocalSend, Gradia, ProtonPlus, and BlueBubbles install as system Flatpaks. StreamController comes from Flathub
-and uses its OS, media, clock, and AMD GPU plugins for the Stream Deck. Copyous comes from the GNOME Extensions release
-compatible with the running Shell. Bazecor uses a pinned upstream AppImage and checksum; JetBrains Toolbox verifies the
-vendor's checksum for the current release. uv uses its
-[standalone installer](https://docs.astral.sh/uv/getting-started/installation/) so `uv self update` works.
-
-The Fedora Stream Deck keeps the macOS emoji keys and adds live clocks, CPU, RAM, and GPU tiles. Main links directly to
-the Fedora, System, Media, and Emoji pages. These pages provide app launchers, hardware details, playback, and volume
-controls; page links and launchers use installed icon assets. Chezmoi creates missing pages and leaves later edits made
-in StreamController intact. The [Unicode input patch](scripts/fedora/streamcontroller-unicode.diff) completes the key
-sequence used by OSPlugin's text action for emoji and kaomoji.
-
-On Fedora, Fish `u` also updates [LVFS firmware](https://fwupd.org/), the installed Astra Monitor, Copyous, and DDC
-brightness extensions, the latest stable Bazecor AppImage, StreamController plugins, global mise tools, and existing
-Distrobox containers. It also builds Ghostty from the latest upstream `main` source with the closed-tab restore patch
-from [PR #14653](https://github.com/ghostty-org/ghostty/pull/14653). When that PR merges, the update uses upstream
-without the patch. Project mise files are outside that upgrade. Dash to Panel stays pinned to the patched chezmoi
-install. StreamController's store auto-update is disabled because it replaces the patched OSPlugin; `u` stages plugin
-updates, reapplies the patch, and keeps the installed version if the patch fails. Avoid the app's manual **Update All**
-action, which bypasses this check. This setting also pauses store icon and wallpaper updates. Docker image updates keep
-local images, stopped containers, and volumes intact.
-
-GNOME uses Dash to Panel for a top taskbar on each monitor. Until Fedora's RPM supports indicator mirroring, chezmoi
-installs [the upstream change](https://github.com/home-sweet-gnome/dash-to-panel/pull/2570) as a user extension. Astra
-Monitor, Copyous, and DDC brightness then appear on both panels. The patched build also adds "Move to" entries to a
-taskbar app's right-click menu, naming each monitor by model and the BenQ pair by position; switching back to the RPM
-drops them. AppIndicator also runs as a patched user copy of the RPM build: v66 breaks tray registration for the rest of
-the session when vicinae publishes its icon before its bus name
-([#675](https://github.com/ubuntu/gnome-shell-extension-appindicator/issues/675)), and the copy retires itself once the
-patch stops applying. xremap handles selected Super-key application shortcuts. The focused-monitor extension opens new
-windows on the focused screen and moves the MX Master pointer to the LG TV once when that mouse becomes active. Ghostty
-handles its own Super-key shortcuts. The `agent-awake` user service inhibits suspend while a Codex, Claude, or ChatGPT
-client is open; it leaves display blanking available. The `rustdesk-pin-primary` user service keeps RustDesk's Wayland
-screen share on the HDMI dummy plug, or the primary monitor without it, so a connection while the displays are off or
-unplugged no longer brings back the screen picker. GNOME refuses screen sharing while the session is locked. Chezmoi
-installs the [TuxTalk](https://github.com/ronb1964/TuxTalk) release RPM once, after checking its SHA-256 digest, and
-binds Super+D to toggle dictation; TuxTalk's own updater installs later releases. The first apply also sets Fish as the
-login shell, enables SSH, Mosh, and Eternal Terminal, and adds the account to the `docker` and `gamemode` groups. Log
-out and back in for the group, shell, and newly installed GNOME extension changes.
-
-The Antec Flux Pro display needs a [separate community driver](scripts/fedora/flux-pro/setup.sh). Review its
-[sensor configuration](scripts/fedora/flux-pro/config.conf) for this machine, then install it with:
-
-```bash
-bash "$(chezmoi source-path)/scripts/fedora/flux-pro/setup.sh"
-```
-
-A Windows 11 VM for testing Python projects runs in Docker through [dockur/windows](https://github.com/dockur/windows).
-The first start downloads Windows and installs it unattended. The
-[first-logon script](dot_config/windows-vm/oem/setup.ps1) enables long paths and OpenSSH with your
-`~/.ssh/id_ed25519.pub`, and installs uv, Python 3.11 to 3.15, tox with tox-uv, and Git. It stays off until something
-starts it:
-
-```bash
-docker compose -f ~/.config/windows-vm/compose.yml up -d    # first install; watch at http://localhost:8006
-winvm ssh                                                   # PowerShell over SSH as $USER
-```
-
-[`winvm`](dot_local/bin/executable_winvm) lets several agents share the VM: each `winvm up` holds a shared `flock` for
-as long as the calling process lives, and `winvm down` stops the VM only when no other lease remains. A stop in progress
-holds the lock exclusively, so a concurrent `up` waits for it and then boots the VM again.
-
-Ports listen on localhost only. The Windows password defaults to `admin`; set `WINDOWS_VM_PASSWORD` before the first
-start to change it. The script only runs on that first install, so changes to it need
-`docker compose -f ~/.config/windows-vm/compose.yml down -v` to reinstall.
-
-Sign in to Insync and select the Google Drive folders to sync. Sign in to Steam and enable Steam Play in its
-Compatibility settings for Windows games. GameMode, MangoHud, and Gamescope are installed; add their launch options per
-game.
-
-To play on the LG TV, switch to the `gaming` user: its SteamOS-style
-[session](scripts/fedora/gamescope-session/install.sh) from [ChimeraOS](https://github.com/ChimeraOS/gamescope-session)
-drives the TV directly while your desktop session keeps running (Ctrl+Alt+F2 returns to it). The first apply creates the
-user, the shared `/home/games/steam` library, and the login-screen avatars and monitor layout; set its password with
-`sudo passwd gaming`. Steam keeps a library list per account, so start and quit Steam once as each user, then rerun the
-installer to register the shared library for both. It also makes each user's built-in Steam library read-only, so an
-install aimed there fails with a disk write error; pick `/home/games/steam` instead. Quit desktop Steam before
-switching, since it keeps the controller open. In the gaming session, turn on Bluetooth under Steam's settings, or Steam
-powers the adapter off for both users. Fish `u` shows new upstream session commits and installs them after you confirm.
-
-Connecting an Xbox controller opens Big Picture through a [udev trigger](scripts/fedora/steam-tv/steam-tv-trigger): in
-the session on screen if someone is logged in, otherwise by logging in `gaming` once through GDM's runtime config. A
-controller reconnecting mid-game is ignored. On the desktop, `order-monitors` makes the left BenQ primary while it is
-connected and the TV otherwise, so Big Picture and games open on the TV when the desk screens are off. An unknown
-display keeps its place, but the primary rule still applies. The trigger first wakes the TV over Wake-on-LAN and
-switches it to HDMI 1 through webOS; enable Turn on via Wi-Fi on the TV, and accept the pairing prompt it shows on the
-first connect. GNOME ignores gamepad input, so the desktop wakes the screens and holds off blanking until the last Xbox
-controller disconnects.
-
-For iMessage on Fedora, [BlueBubbles](https://bluebubbles.app/install/) needs its server running on an awake Mac signed
-in to Messages. Complete the server's Full Disk Access, notification, and connection setup on the Mac, then connect the
-Fedora app. GNOME starts the client at login and hides it in the top bar after the tray appears; closing its window
-keeps it running. Leave BlueBubbles' own startup option off to avoid a second instance. The optional Private API
-requires a separate macOS setup.
-
-For graphical access to the Mac mini on the local network, enable macOS
-[Screen Sharing](https://support.apple.com/guide/mac-help/mh11848/mac) and open `vnc://Bernats-Mac-mini.local:5900` in
-[GNOME Connections](https://apps.gnome.org/Connections/). Sign in with the Mac account. GNOME Connections is installed
-from Fedora's RPM repository.
-
-### macOS
-
-The [Brewfile](dot_Brewfile.tmpl) installs CLI tools, apps, fonts, and Mac App Store entries. Chezmoi also applies duti
-file associations and Stream Deck profiles; it configures the opener socket LaunchAgent where needed. Docker Desktop is
-installed separately because its cask asks for sudo on updates.
+Replace the example path if needed. `chezmoi init` records the checkout's absolute path as `sourceDir` in
+`~/.config/chezmoi/chezmoi.toml`, and the config template retains it when you run `chezmoi update --init`. Keep the
+checkout on the branch you want to pull. Without `--source`, chezmoi uses `~/.local/share/chezmoi`, whatever the shell's
+working directory.
 
 ## Software
 
-The manifests above are the install sources. These links cover the desktop apps and frequently used CLI tools.
+The [Brewfile](dot_Brewfile), [RPM manifest](dot_dnf_packages.txt), and [apt manifest](dot_apt_packages.txt) are the
+install sources. These links cover the desktop apps and frequently used CLI tools.
 
 ### Desktop apps
 
@@ -232,7 +102,7 @@ Fedora adds [Astra Monitor](https://github.com/AstraExt/astra-monitor),
 [ruff](https://docs.astral.sh/ruff/) · [ty](https://github.com/astral-sh/ty) · [tox](https://tox.wiki/) ·
 [prek](https://github.com/j178/prek)
 
-**Packages** — [Homebrew](https://brew.sh/) · [DNF](https://dnf5.readthedocs.io/) · [Flatpak](https://flatpak.org/) ·
+**Packages** — `Homebrew` · [DNF](https://dnf5.readthedocs.io/) · [Flatpak](https://flatpak.org/) ·
 [Cargo](https://doc.rust-lang.org/cargo/)
 
 **Editors and multiplexers** — [Neovim](https://neovim.io/) · [tmux](https://github.com/tmux/tmux/wiki) ·
@@ -255,11 +125,185 @@ Fedora adds [Astra Monitor](https://github.com/AstraExt/astra-monitor),
 
 Forks made for this setup:
 
-- [gaborbernat/ghostty](https://github.com/gaborbernat/ghostty): the `feat/gtk-undo-upstream` branch is the source of PR
-  #14653 and of `scripts/fedora/ghostty-undo.diff`.
+- [gaborbernat/ghostty](https://github.com/gaborbernat/ghostty): the `feat/gtk-undo-upstream` branch is the source of
+  [PR #14653](https://github.com/ghostty-org/ghostty/pull/14653) and of `scripts/fedora/ghostty-undo.diff`.
 - [gaborbernat/TuxTalk](https://github.com/gaborbernat/TuxTalk): its GNOME Shell extension draws the recording indicator
   at the monitor's own scale, next to the focused window. It runs from a local checkout; the dotfiles still install the
   upstream RPM.
+
+## Platforms
+
+| Area     | macOS                    | Fedora Workstation             | Other apt-based Linux |
+| -------- | ------------------------ | ------------------------------ | --------------------- |
+| Packages | `Homebrew` and App Store | `DNF`, `Flatpak`, vendor tools | `apt` CLI tools       |
+| Desktop  | `duti` and LaunchAgent   | GNOME and keyboard setup       | Shared shell config   |
+| Hardware | Stream Deck profiles     | Peripheral tools               | None                  |
+
+Shared configuration includes `Fish`, `Ghostty`, `Git`, `Atuin`, `mise`, `uv` tools, `Cargo` tools, and the
+`~/.agents/skills` store linked into `Codex` and `Claude Code`. The `u` Fish function updates the installed toolchains
+and package managers; its stages depend on the host OS.
+
+## Fedora
+
+### Packages and repositories
+
+`chezmoi` enables the `xremap` and `mise` [COPRs](https://copr.fedorainfracloud.org/), the `VS Code` and `Insync` RPM
+repositories, and Fedora Workstation's `Steam` repository before installing the [RPM manifest](dot_dnf_packages.txt).
+Fedora's `Moby` packages provide `Docker`, and `Distrobox` uses that daemon. Membership in the `docker` group grants
+[root-level access](https://docs.docker.com/engine/install/linux-postinstall/).
+
+[ChatGPT's Linux app](https://learn.chatgpt.com/docs/linux/linux-app) includes `Codex`. Its official Fedora RPM adds
+OpenAI's signed DNF repository, so `u` updates it with the other RPMs.
+[Claude Desktop](https://support.claude.com/en/articles/10065433-install-claude-desktop) runs in a Debian `Distrobox`
+because Anthropic publishes an apt package but no Fedora RPM. The app appears in GNOME; `u` updates its apt package
+through `distrobox-upgrade`. `Copilot CLI` installs through [npm](https://www.npmjs.com/) and updates with the `npm`
+stage.
+
+`Kooha`, `LocalSend`, `Gradia`, `ProtonPlus`, and `BlueBubbles` install as system Flatpaks. `StreamController` comes
+from [Flathub](https://flathub.org/) and uses its OS, media, clock, and AMD GPU plugins for the Stream Deck. `Copyous`
+comes from the GNOME Extensions release compatible with the running Shell. `Bazecor` uses a pinned upstream
+[AppImage](https://appimage.org/) and checksum; `JetBrains Toolbox` verifies the vendor's checksum for the current
+release. `uv` uses its [standalone installer](https://docs.astral.sh/uv/getting-started/installation/) so
+`uv self update` works.
+
+### Updates
+
+On Fedora, `u` also updates [LVFS firmware](https://fwupd.org/), the installed `Astra Monitor`, `Copyous`, and
+[DDC brightness](https://github.com/daitj/gnome-display-brightness-ddcutil) extensions, the latest stable `Bazecor`
+`AppImage`, `StreamController` plugins, global `mise` tools, and existing `Distrobox` containers. Project `mise` files
+are outside that upgrade. `Docker` image updates keep local images, stopped containers, and volumes intact.
+
+`u` builds `Ghostty` from the latest upstream `main` source with the closed-tab restore patch from
+[PR #14653](https://github.com/ghostty-org/ghostty/pull/14653). When that PR merges, the update uses upstream without
+the patch. `Dash to Panel` stays pinned to the patched `chezmoi` install.
+
+### GNOME desktop
+
+GNOME uses `Dash to Panel` for a top taskbar on each monitor. Until Fedora's RPM supports indicator mirroring, `chezmoi`
+installs [the upstream change](https://github.com/home-sweet-gnome/dash-to-panel/pull/2570) as a user extension.
+`Astra Monitor`, `Copyous`, and `DDC brightness` then appear on both panels. The patched build also adds "Move to"
+entries to a taskbar app's right-click menu, naming each monitor by model and the BenQ pair by position; switching back
+to the RPM drops them.
+
+[AppIndicator](https://github.com/ubuntu/gnome-shell-extension-appindicator) also runs as a patched user copy of the RPM
+build. Its v66 breaks tray registration for the rest of the session when [vicinae](https://github.com/vicinaehq/vicinae)
+publishes its icon before its bus name
+([#675](https://github.com/ubuntu/gnome-shell-extension-appindicator/issues/675)), and the copy retires itself once the
+patch stops applying.
+
+`xremap` handles selected Super-key application shortcuts; `Ghostty` handles its own. The focused-monitor extension
+opens new windows on the focused screen and moves the MX Master pointer to the LG TV once when that mouse becomes
+active.
+
+### Stream Deck
+
+The Fedora Stream Deck keeps the macOS emoji keys and adds live clocks, CPU, RAM, and GPU tiles. The Main page links
+directly to the Fedora, System, Media, and Emoji pages, which hold app launchers, hardware details, playback, and volume
+controls; page links and launchers use installed icon assets. `chezmoi` creates missing pages and leaves later edits
+made in `StreamController` intact. The [Unicode input patch](scripts/fedora/streamcontroller-unicode.diff) completes the
+key sequence used by OSPlugin's text action for emoji and kaomoji.
+
+`chezmoi` turns off `StreamController`'s store auto-update because it replaces the patched OSPlugin; `u` stages plugin
+updates, reapplies the patch, and keeps the installed version if the patch fails. Avoid the app's manual **Update All**
+action, which bypasses this check. With auto-update off, the store also stops updating icons and wallpapers.
+
+### Desktop services
+
+The `agent-awake` user service inhibits suspend while a `Codex`, `Claude`, or `ChatGPT` client is open; it leaves
+display blanking available.
+
+The `rustdesk-pin-primary` user service keeps [RustDesk](https://rustdesk.com/)'s
+[Wayland](https://wayland.freedesktop.org/) screen share on the HDMI dummy plug, or the primary monitor without it, so a
+connection while the displays are off or unplugged no longer brings back the screen picker. GNOME refuses screen sharing
+while the session is locked.
+
+`chezmoi` installs the [TuxTalk](https://github.com/ronb1964/TuxTalk) release RPM once, after checking its SHA-256
+digest, and binds Super+D to toggle dictation; `TuxTalk`'s own updater installs later releases.
+
+### After the first apply
+
+The first apply also sets `Fish` as the login shell, enables SSH, `Mosh`, and `Eternal Terminal`, and adds the account
+to the `docker` and `gamemode` groups. Log out and back in for the group, shell, and newly installed GNOME extension
+changes. Then sign in to `Insync` and select the Google Drive folders to sync.
+
+### Antec Flux Pro display
+
+The Antec Flux Pro display needs a [separate community driver](scripts/fedora/flux-pro/setup.sh). Review its
+[sensor configuration](scripts/fedora/flux-pro/config.conf) for this machine, then install it with:
+
+```bash
+bash "$(chezmoi source-path)/scripts/fedora/flux-pro/setup.sh"
+```
+
+### Windows VM
+
+A Windows 11 VM for testing Python projects runs in `Docker` through
+[dockur/windows](https://github.com/dockur/windows). The first start downloads Windows and installs it unattended. The
+[first-logon script](dot_config/windows-vm/oem/setup.ps1) enables long paths and `OpenSSH` with your
+`~/.ssh/id_ed25519.pub`, and installs `uv`, Python 3.11 to 3.15, `tox` with [tox-uv](https://github.com/tox-dev/tox-uv),
+and `Git`. The VM stays off until something starts it:
+
+```bash
+docker compose -f ~/.config/windows-vm/compose.yml up -d    # first install; watch at http://localhost:8006
+winvm ssh                                                   # PowerShell over SSH as $USER
+```
+
+[`winvm`](dot_local/bin/executable_winvm) lets several agents share the VM: each `winvm up` holds a shared `flock` for
+as long as the calling process lives, and `winvm down` stops the VM only when no other lease remains. A stop in progress
+holds the lock exclusively, so a concurrent `up` waits for it and then boots the VM again.
+
+Ports listen on localhost only. The Windows password defaults to `admin`; set `WINDOWS_VM_PASSWORD` before the first
+start to change it. The first-logon script runs only on that first install, so changes to it need
+`docker compose -f ~/.config/windows-vm/compose.yml down -v` to reinstall.
+
+### Gaming
+
+Sign in to `Steam` and enable Steam Play in its Compatibility settings for Windows games. `chezmoi` installs `GameMode`,
+`MangoHud`, and `Gamescope`; add their launch options per game.
+
+To play on the LG TV, switch to the `gaming` user: its SteamOS-style
+[session](scripts/fedora/gamescope-session/install.sh) from [ChimeraOS](https://github.com/ChimeraOS/gamescope-session)
+drives the TV directly while your desktop session keeps running (Ctrl+Alt+F2 returns to it). The first apply creates the
+user, the shared `/home/games/steam` library, and the login-screen avatars and monitor layout; set its password with
+`sudo passwd gaming`.
+
+`Steam` keeps a library list per account, so start and quit it once as each user, then rerun the installer to register
+the shared library for both. The installer also makes each user's built-in Steam library read-only, so an install aimed
+there fails with a disk write error; pick `/home/games/steam` instead.
+
+Quit desktop `Steam` before switching, since it keeps the controller open. In the gaming session, turn on Bluetooth
+under Steam's settings, or `Steam` powers the adapter off for both users. `u` shows new upstream session commits and
+installs them after you confirm.
+
+Connecting an Xbox controller runs a [udev trigger](scripts/fedora/steam-tv/steam-tv-trigger) that wakes the TV over
+Wake-on-LAN, switches it to HDMI 1 through webOS, and opens Big Picture: in the session on screen if someone is logged
+in, otherwise by logging in `gaming` once through GDM's runtime config. The trigger ignores a controller reconnecting
+mid-game. Enable Turn on via Wi-Fi on the TV, and accept the pairing prompt it shows on the first connect.
+
+On the desktop, `order-monitors` makes the left BenQ primary while it is connected and the TV otherwise, so Big Picture
+and games open on the TV when the desk screens are off. An unknown display keeps its place, but the primary rule still
+applies. GNOME ignores gamepad input, so the desktop wakes the screens and holds off blanking until the last Xbox
+controller disconnects.
+
+### iMessage
+
+For iMessage on Fedora, `BlueBubbles` needs its [server](https://bluebubbles.app/install/) running on an awake Mac
+signed in to Messages. Complete the server's Full Disk Access, notification, and connection setup on the Mac, then
+connect the Fedora app. GNOME starts the client at login and hides it in the top bar after the tray appears; closing its
+window keeps it running. Leave the app's own startup option off to avoid a second instance. The optional Private API
+requires a separate macOS setup.
+
+### Mac mini screen sharing
+
+For graphical access to the Mac mini on the local network, enable macOS
+[Screen Sharing](https://support.apple.com/guide/mac-help/mh11848/mac) and open `vnc://Bernats-Mac-mini.local:5900` in
+`GNOME Connections`, which comes from Fedora's RPM repository. Sign in with the Mac account.
+
+## macOS
+
+The [Brewfile](dot_Brewfile) installs CLI tools, apps, fonts, and Mac App Store entries. `chezmoi` also applies `duti`
+file associations and Stream Deck profiles, and on the Mac mini it loads the opener socket LaunchAgent. Install
+`Docker Desktop` from its DMG instead, because its cask asks for sudo on updates.
 
 ## Updating
 
@@ -270,29 +314,29 @@ chezmoi update
 
 `chezmoi update` pulls the configured source checkout and applies it. A separate `chezmoi apply` is only needed after
 local edits or a partial apply. `--init` reloads the chezmoi config template; it does not create a missing source
-checkout. Run Fish `u` for package and tool updates.
+checkout. Run `u` for package and tool updates.
 
 ## Local configuration
 
-Run `gh auth login` for GitHub operations. Fish reads `~/.secrets` when it exists; that file is never committed.
-`maintainer` needs `GITHUB_TOKEN`, while `git-tidy` skips PR checks without it.
+Run `gh auth login` for GitHub operations. `Fish` reads `~/.secrets` when it exists; chezmoi creates that file once and
+keeps its contents out of the repo. `maintainer` needs `GITHUB_TOKEN`, while `git-tidy` skips PR checks without it.
 
 Optional machine-local files live in `~/.local/share/chezmoi-private`. Public scripts read them directly:
 
-| File                           | Use                                         |
-| ------------------------------ | ------------------------------------------- |
-| `Brewfile` and `Brewfile.skip` | Add or omit Homebrew entries on one machine |
-| `fish_work.fish`               | Work-specific Fish settings                 |
-| `gitconfig_work`               | Work Git identity and settings              |
-| `uv_tools_work.txt`            | Private uv tools                            |
-| `codex_work.toml`              | Private Codex config                        |
-| `ai_instructions_work.md`      | Private agent instructions                  |
+| File                           | Use                                           |
+| ------------------------------ | --------------------------------------------- |
+| `Brewfile` and `Brewfile.skip` | Add or omit `Homebrew` entries on one machine |
+| `fish_work.fish`               | Work-specific `Fish` settings                 |
+| `gitconfig_work`               | Work `Git` identity and settings              |
+| `uv_tools_work.txt`            | Private `uv` tools                            |
+| `codex_work.toml`              | Private `Codex` config                        |
+| `ai_instructions_work.md`      | Private agent instructions                    |
 
 ## Source layout
 
 | Path                                               | Use                                |
 | -------------------------------------------------- | ---------------------------------- |
-| `dot_Brewfile.tmpl`                                | macOS packages                     |
+| `dot_Brewfile`                                     | macOS packages                     |
 | `dot_dnf_packages.txt`                             | Fedora RPMs                        |
 | `dot_apt_packages.txt`                             | apt CLI tools                      |
 | `dot_config/`                                      | Shell, terminal, and user services |
