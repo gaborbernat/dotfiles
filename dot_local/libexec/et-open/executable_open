@@ -1,9 +1,8 @@
 #!/bin/bash
 set -euo pipefail
 
-# In an et session, send web links to the laptop's opener daemon through the
-# socket its opener tunnel keeps here. While the tunnel is down, print the link
-# for a terminal click instead. Everyone else gets the platform opener.
+# In an et session, send web links to the laptop's opener daemon through the socket its opener tunnel keeps here.
+# While the tunnel is down, print the link for a terminal click instead.
 if [[ -n "${ET_VERSION:-}" && $# -eq 1 && "$1" =~ ^https?:// ]]; then
   if [[ -S "$HOME/.opener.sock" ]] && printf '%s\n' "$1" | nc -U -w 2 "$HOME/.opener.sock" 2>/dev/null; then
     exit 0

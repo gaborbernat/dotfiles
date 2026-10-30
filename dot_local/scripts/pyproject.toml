@@ -1,4 +1,8 @@
 [dependency-groups]
+test = [
+  "pytest>=9.2",
+  "pytest-mock>=3.17",
+]
 typing = [
   "packaging>=26.3",
   "pygithub>=2.10.0",
@@ -25,8 +29,6 @@ lint.ignore = [
 ]
 lint.isort = { known-first-party = [
   "tests",
-], required-imports = [
-  "from __future__ import annotations",
 ] }
 
 [tool.ty.environment]

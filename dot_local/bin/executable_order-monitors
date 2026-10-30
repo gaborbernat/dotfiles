@@ -10,16 +10,12 @@ gi.require_version("Gio", "2.0")
 from gi.repository import Gio, GLib  # ruff: ignore[module-import-not-at-top-of-file] # ty: ignore[unresolved-import] # require_version must run first
 
 _MUTTER: Final = ("org.gnome.Mutter.DisplayConfig", "/org/gnome/Mutter/DisplayConfig", "org.gnome.Mutter.DisplayConfig")
-_SERIAL_ORDER: Final = {"34R01091019": 1, "C6P06071019": 2}
 _TV_RANK: Final = 3
-# Steam and games open on the primary display: desk work keeps the left BenQ, otherwise the TV takes over
-_PRIMARY_RANKS: Final = (1, _TV_RANK)
-_LOG: Final = logging.getLogger("order-monitors")
 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
-    bus = Gio.bus_get_sync(Gio.BusType.SESSION)
+    bus: Final = Gio.bus_get_sync(Gio.BusType.SESSION)
     bus.signal_subscribe(
         _MUTTER[0],
         _MUTTER[2],
@@ -34,15 +30,18 @@ def main() -> None:
 
 
 def arrange(bus: Gio.DBusConnection) -> bool:
+    log: Final = logging.getLogger("order-monitors")
     try:
-        state = bus.call_sync(*_MUTTER, "GetCurrentState", None, None, Gio.DBusCallFlags.NONE, -1, None).unpack()
+        state: Final = bus.call_sync(*_MUTTER, "GetCurrentState", None, None, Gio.DBusCallFlags.NONE, -1, None).unpack()
     except GLib.Error:
-        _LOG.exception("could not read displays")
+        log.exception("could not read displays")
         return GLib.SOURCE_REMOVE
     serial, monitors, logical_monitors, properties = state
     if (layout := desired_layout(monitors, logical_monitors)) is None:
         return GLib.SOURCE_REMOVE
-    config_properties = {key: properties[key] for key in ("layout-mode", "monitors-for-lease") if key in properties}
+    config_properties: Final = {
+        key: properties[key] for key in ("layout-mode", "monitors-for-lease") if key in properties
+    }
     try:
         for method in (0, 2):
             bus.call_sync(
@@ -55,9 +54,9 @@ def arrange(bus: Gio.DBusConnection) -> bool:
                 None,
             )
     except GLib.Error:
-        _LOG.exception("could not order displays")
+        log.exception("could not order displays")
         return GLib.SOURCE_REMOVE
-    _LOG.info(
+    log.info(
         "ordered displays: %s (primary %s)",
         " → ".join(logical[5][0][0] for logical in layout),
         next(logical[5][0][0] for logical in layout if logical[4]),
@@ -69,27 +68,28 @@ def desired_layout(monitors: list[Any], logical_monitors: list[Any]) -> list[tup
     if len(logical_monitors) < 2 or any(len(logical[5]) != 1 for logical in logical_monitors):
         return None
 
-    modes = {}
-    for spec, available_modes, monitor_properties in monitors:
-        current = next((mode for mode in available_modes if "is-current" in mode[6]), None)
-        if current:
-            modes[spec[0]] = (current, monitor_properties)
+    modes: Final = {
+        spec[0]: (current_mode, monitor_properties)
+        for spec, available_modes, monitor_properties in monitors
+        if (current_mode := next((mode for mode in available_modes if "is-current" in mode[6]), None))
+    }
 
-    ranked = [(rank(logical[5][0]), logical[5][0][0], logical) for logical in logical_monitors]
+    ranked: Final = [(rank(logical[5][0]), logical[5][0][0], logical) for logical in logical_monitors]
     if any(connector not in modes for _, connector, _ in ranked):
         return None
 
-    primary = next((connector for wanted in _PRIMARY_RANKS for r, connector, _ in ranked if r == wanted), None)
-    primaries = {connector: connector == primary if primary else logical[4] for _, connector, logical in ranked}
-    current = sorted(ranked, key=lambda item: item[2][0])
+    # Steam and games open on the primary display: desk work keeps the left BenQ, otherwise the TV takes over
+    primary: Final = next((connector for wanted in (1, _TV_RANK) for r, connector, _ in ranked if r == wanted), None)
+    primaries: Final = {connector: connector == primary if primary else logical[4] for _, connector, logical in ranked}
+    current: Final = sorted(ranked, key=lambda item: item[2][0])
     # An unrecognized display has no slot in the order, so keep everyone in place and only fix the primary
-    reorder = all(r >= 0 for r, _, _ in ranked)
-    target = sorted(ranked) if reorder else current
+    reorder: Final = all(r >= 0 for r, _, _ in ranked)
+    target: Final = sorted(ranked) if reorder else current
     if target == current and all(logical[4] == primaries[connector] for _, connector, logical in ranked):
         return None
 
     position = 0
-    layout = []
+    layout: Final[list[tuple[Any, ...]]] = []
     for _, connector, logical in target:
         mode, monitor_properties = modes[connector]
         layout.append((
@@ -115,7 +115,7 @@ def rank(spec: tuple[str, str, str, str]) -> int:
     _, vendor, product, monitor_serial = spec
     if vendor == "FUE":
         return 0
-    return _SERIAL_ORDER.get(monitor_serial, _TV_RANK if product == "LG TV SSCR2" else -1)
+    return {"34R01091019": 1, "C6P06071019": 2}.get(monitor_serial, _TV_RANK if product == "LG TV SSCR2" else -1)
 
 
 if __name__ == "__main__":

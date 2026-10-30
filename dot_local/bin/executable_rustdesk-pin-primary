@@ -1,11 +1,5 @@
 #!/usr/bin/python3
-"""Keep RustDesk's Wayland screencast restore token pointed at the HDMI dummy plug, or the primary monitor without it.
-
-xdg-desktop-portal deletes a restore token from the permission store as soon as it is used, and GNOME rejects it if
-any monitor it names is missing. One connection while a monitor is unplugged therefore loses the selection for good.
-Rewriting the entry on every monitor change and every store change keeps the token valid and bound to a monitor that
-is present.
-"""
+"""Keep RustDesk's Wayland screencast restore token on the HDMI dummy plug, or the primary monitor without it."""
 
 import logging
 import time
@@ -26,18 +20,18 @@ _STORE: Final = (
     "org.freedesktop.impl.portal.PermissionStore",
 )
 _PREFERRED: Final = "FUE:0x2160:0x6f35b130"
-_HOST_APP_ID: Final = ""
-_SOURCE_TYPE_MONITOR: Final = 1
 _LOG: Final = logging.getLogger("rustdesk-pin-primary")
 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
-    bus = Gio.bus_get_sync(Gio.BusType.SESSION)
+    bus: Final = Gio.bus_get_sync(Gio.BusType.SESSION)
+    # xdg-desktop-portal deletes a restore token from the permission store once it is used, and GNOME rejects one that
+    # names a missing monitor, so a single connection with a monitor unplugged would lose the selection for good
     bus.signal_subscribe(
         _MUTTER[0], _MUTTER[2], "MonitorsChanged", _MUTTER[1], None, Gio.DBusSignalFlags.NONE, lambda *_: pin(bus)
     )
-    # The portal deletes the entry on use and writes back the session's original selection when the session ends
+    # When a session ends the portal writes the session's original selection back to the store
     bus.signal_subscribe(
         _STORE[0], _STORE[2], "Changed", _STORE[1], "screencast", Gio.DBusSignalFlags.NONE, lambda *_: pin(bus)
     )
@@ -54,10 +48,12 @@ def pin(bus: Gio.DBusConnection) -> None:
         return
     if stored_match_strings(bus, token) == [match]:
         return
-    now = time.time_ns() // 1000
-    streams = [(0, _SOURCE_TYPE_MONITOR, GLib.Variant("s", match))]
-    data = GLib.Variant("(suv)", ("GNOME", 1, GLib.Variant("(xxa(uuv))", (now, now, streams))))
-    args = GLib.Variant("(sbsa{sas}v)", ("screencast", True, token, {_HOST_APP_ID: ["yes"]}, data))
+    now: Final = time.time_ns() // 1000
+    # Source type 1 is a monitor
+    streams: Final = [(0, 1, GLib.Variant("s", match))]
+    data: Final = GLib.Variant("(suv)", ("GNOME", 1, GLib.Variant("(xxa(uuv))", (now, now, streams))))
+    # The empty app ID grants the permission to host (non-sandboxed) apps
+    args: Final = GLib.Variant("(sbsa{sas}v)", ("screencast", True, token, {"": ["yes"]}, data))
     call(bus, _STORE, "Set", args)
     _LOG.info("pinned restore token to %s", match)
 
@@ -72,10 +68,14 @@ def restore_token() -> str:
 
 def target_match_string(bus: Gio.DBusConnection) -> str | None:
     _, _, logical_monitors, _ = call(bus, _MUTTER, "GetCurrentState", None).unpack()
-    matches = {match_string(*monitors[0]): primary for _, _, _, _, primary, monitors, _ in logical_monitors}
+    matches: Final = {match_string(*monitors[0]): primary for _, _, _, _, primary, monitors, _ in logical_monitors}
     if _PREFERRED in matches:
         return _PREFERRED
     return next((match for match, primary in matches.items() if primary), None)
+
+
+def call(bus: Gio.DBusConnection, target: tuple[str, str, str], method: str, args: GLib.Variant | None) -> GLib.Variant:
+    return bus.call_sync(target[0], target[1], target[2], method, args, None, Gio.DBusCallFlags.NONE, -1, None)
 
 
 def match_string(connector: str, vendor: str, product: str, serial: str) -> str:
@@ -92,10 +92,6 @@ def stored_match_strings(bus: Gio.DBusConnection, token: str) -> list[str] | Non
         return None
     _, _, (_, _, streams) = data
     return [stream_data for _, _, stream_data in streams]
-
-
-def call(bus: Gio.DBusConnection, target: tuple[str, str, str], method: str, args: GLib.Variant | None) -> GLib.Variant:
-    return bus.call_sync(target[0], target[1], target[2], method, args, None, Gio.DBusCallFlags.NONE, -1, None)
 
 
 if __name__ == "__main__":

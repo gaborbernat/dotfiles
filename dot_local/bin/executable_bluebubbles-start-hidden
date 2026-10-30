@@ -1,26 +1,18 @@
 #!/usr/bin/python3
-from __future__ import annotations
-
 import json
 import subprocess
 import sys
 import time
+from contextlib import suppress
 from pathlib import Path
 from typing import Any, Final
 
 from gi.repository import Gio, GLib
 
-__all__ = ["main"]
-
-_APP_ID: Final = "app.bluebubbles.BlueBubbles"
-_WATCHER: Final = "org.kde.StatusNotifierWatcher"
-_GET_PROPERTY: Final = ("org.freedesktop.DBus.Properties", "Get")
-_GET_LAYOUT: Final = ("com.canonical.dbusmenu", "GetLayout")
-_MENU_EVENT: Final = ("com.canonical.dbusmenu", "Event")
-
 
 def main() -> None:
-    preferences: Final = Path.home() / f".var/app/{_APP_ID}/data/bluebubbles/shared_preferences.json"
+    app_id: Final = "app.bluebubbles.BlueBubbles"
+    preferences: Final = Path.home() / f".var/app/{app_id}/data/bluebubbles/shared_preferences.json"
     try:
         configured = json.loads(preferences.read_text()).get("finishedSetup", False)
     except FileNotFoundError, json.JSONDecodeError:
@@ -28,7 +20,7 @@ def main() -> None:
 
     # Flutter aborts when the window is hidden before its first frame on Wayland.
     client: Final = subprocess.Popen(
-        ["flatpak", "run", _APP_ID],
+        ["flatpak", "run", app_id],
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
@@ -40,24 +32,23 @@ def main() -> None:
     bus: Final = Gio.bus_get_sync(Gio.BusType.SESSION)
     deadline: Final = time.monotonic() + 60
     while time.monotonic() < deadline and client.poll() is None:
-        try:
-            hidden = hide(bus)
-        except GLib.Error:
-            hidden = False
-        if hidden:
-            return
+        with suppress(GLib.Error):
+            if hide(bus):
+                return
         time.sleep(0.5)
     sys.stderr.write("BlueBubbles tray did not appear\n")
     raise SystemExit(1)
 
 
 def hide(bus: Gio.DBusConnection) -> bool:
-    items = call(
+    watcher: Final = "org.kde.StatusNotifierWatcher"
+    get_property: Final = ("org.freedesktop.DBus.Properties", "Get")
+    items: Final = call(
         bus,
-        _WATCHER,
+        watcher,
         "/StatusNotifierWatcher",
-        _GET_PROPERTY,
-        GLib.Variant("(ss)", (_WATCHER, "RegisteredStatusNotifierItems")),
+        get_property,
+        GLib.Variant("(ss)", (watcher, "RegisteredStatusNotifierItems")),
     )[0]
     for item in items:
         if "@" not in item:
@@ -67,7 +58,7 @@ def hide(bus: Gio.DBusConnection) -> bool:
             bus,
             service,
             path,
-            _GET_PROPERTY,
+            get_property,
             GLib.Variant("(ss)", ("org.kde.StatusNotifierItem", "Title")),
         )[0]
         if title.casefold() != "bluebubbles":
@@ -76,14 +67,14 @@ def hide(bus: Gio.DBusConnection) -> bool:
             bus,
             service,
             path,
-            _GET_PROPERTY,
+            get_property,
             GLib.Variant("(ss)", ("org.kde.StatusNotifierItem", "Menu")),
         )[0]
         children = call(
             bus,
             service,
             menu,
-            _GET_LAYOUT,
+            ("com.canonical.dbusmenu", "GetLayout"),
             GLib.Variant("(iias)", (0, -1, ["label"])),
         )[1][2]
         for item_id, properties, _ in children:
@@ -94,7 +85,7 @@ def hide(bus: Gio.DBusConnection) -> bool:
                     bus,
                     service,
                     menu,
-                    _MENU_EVENT,
+                    ("com.canonical.dbusmenu", "Event"),
                     GLib.Variant("(isvu)", (item_id, "clicked", GLib.Variant("s", ""), 0)),
                 )
                 return True
@@ -108,7 +99,7 @@ def call(
     method: tuple[str, str],
     parameters: GLib.Variant,
 ) -> tuple[Any, ...]:
-    response = bus.call_sync(service, path, *method, parameters, None, Gio.DBusCallFlags.NONE, 1000, None)
+    response: Final = bus.call_sync(service, path, *method, parameters, None, Gio.DBusCallFlags.NONE, 1000, None)
     if response is None:
         sys.stderr.write(f"{service}.{method[1]} returned no response\n")
         raise SystemExit(1)

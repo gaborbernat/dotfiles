@@ -5,50 +5,48 @@
 #     "packaging>=26.3",
 # ]
 # ///
-from __future__ import annotations
-
 import argparse
 import json
 import subprocess
-from typing import Any, Final, Literal
+from typing import Final, Literal, TypedDict
 
 from packaging.version import Version
 from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 
-VERSIONS: Final[list[str]] = [v for i in range(15, 7, -1) for v in ([f"3.{i}", f"3.{i}t"] if i >= 14 else [f"3.{i}"])]
-TOOL_VERSION: Final[str] = "3.14"
-CONSOLE: Final[Console] = Console()
+type Variant = Literal["default", "freethreaded"]
+
+_CONSOLE: Final = Console()
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser()
+    parser: Final = argparse.ArgumentParser()
     parser.add_argument("--dry-run", action="store_true", help="Print commands instead of executing them")
-    args = parser.parse_args()
-    dry_run = args.dry_run
+    opts: Final = parser.parse_args(namespace=Options())
 
-    CONSOLE.print("[bold cyan]🔁 Checking and updating Python versions using uv...[/]")
-    available = parse_available_versions()
-    currently_installed = installed_version()
-    results: list[tuple[str, str, str, str]] = []
-    obsolete: set[str] = set()
+    _CONSOLE.print("[bold cyan]🔁 Checking and updating Python versions using uv...[/]")
+    available: Final = parse_available_versions()
+    currently_installed: Final = installed_versions()
+    results: Final[list[tuple[str, str, str, str]]] = []
+    obsolete: Final[set[str]] = set()
     failed = False
+    versions: Final = [v for i in range(15, 7, -1) for v in ([f"3.{i}", f"3.{i}t"] if i >= 14 else [f"3.{i}"])]
 
     with Progress(
         SpinnerColumn(),
         TextColumn("[progress.description]{task.description}"),
         BarColumn(),
         transient=True,
-        console=CONSOLE,
+        console=_CONSOLE,
     ) as progress:
-        task = progress.add_task("Checking Python versions...", total=len(VERSIONS))
-        for version in VERSIONS:
+        task = progress.add_task("Checking Python versions...", total=len(versions))
+        for version in versions:
             progress.update(task, description=f"🔍 Finding latest patch version for Python {version}...")
-            variant: Literal["freethreaded", "default"] = "freethreaded" if version.endswith("t") else "default"
+            variant: Variant = "freethreaded" if version.endswith("t") else "default"
             base_version = Version(version.removesuffix("t"))
-            latest = find_latest_version(available, base_version, variant=variant)
-            installed_for_minor = find_installed_for_minor(currently_installed, base_version, variant=variant)
+            latest = find_latest_version(available, base_version, variant)
+            installed_for_minor = find_installed_for_minor(currently_installed, base_version, variant)
 
             if not latest:
                 results.append((version, "-", "[red]Not found[/]", installed_for_minor))
@@ -57,12 +55,12 @@ def main() -> None:
             if already_installed := latest in currently_installed:
                 installed_ok = True
                 status = "[green]Already installed[/]"
-            elif dry_run:
-                installed_ok = install_python(latest, dry_run=dry_run)
+            elif opts.dry_run:
+                installed_ok = install_python(latest, dry_run=True)
                 status = "[green](Dry run) Would install[/]"
             else:
-                with CONSOLE.status(f"[bold blue]⬇️  Installing Python variant: {latest}..."):
-                    installed_ok = install_python(latest)
+                with _CONSOLE.status(f"[bold blue]⬇️  Installing Python variant: {latest}..."):
+                    installed_ok = install_python(latest, dry_run=False)
                 status = "[green]Installed[/]" if installed_ok else "[red]Install failed[/]"
 
             if installed_ok:
@@ -72,11 +70,12 @@ def main() -> None:
 
             results.append((version, latest, status, installed_for_minor))
 
+            # uv tools run on this minor version
             if (
-                version == TOOL_VERSION
+                version == "3.14"
                 and not already_installed
                 and installed_ok
-                and not upgrade_tools(latest, dry_run=dry_run)
+                and not upgrade_tools(latest, dry_run=opts.dry_run)
             ):
                 failed = True
             progress.advance(task)
@@ -85,37 +84,104 @@ def main() -> None:
     if failed:
         msg = "Python update failed; installed versions were kept"
         raise SystemExit(msg)
-    if not remove_obsolete_versions(obsolete, dry_run=dry_run):
+    if not remove_obsolete_versions(obsolete, dry_run=opts.dry_run):
         msg = "Python update failed while removing old versions"
         raise SystemExit(msg)
-    CONSOLE.print("[bold green]✅ All done.[/]")
+    _CONSOLE.print("[bold green]✅ All done.[/]")
 
 
-def print_results(results: list[tuple[str, str, str, str]]) -> None:
-    table = Table(title="Python Version Update Summary")
-    table.add_column("Version", style="cyan", justify="right")
-    table.add_column("Latest Patch", style="magenta")
-    table.add_column("Installed", style="dim")
-    table.add_column("Status", style="green")
-
-    for version, latest, status, installed_for_minor in results:
-        table.add_row(version, latest, installed_for_minor, status)
-    CONSOLE.print(table)
+class Options(argparse.Namespace):
+    dry_run: bool
 
 
-def remove_obsolete_versions(obsolete: set[str], *, dry_run: bool) -> bool:
-    succeeded = True
-    for extra in sorted(obsolete):
-        CONSOLE.print("Uninstall extra version:", extra)
-        if dry_run:
-            CONSOLE.print(f"[blue]DRY RUN:[/] uv python uninstall {extra}")
-        elif run_uv_command(["uv", "python", "uninstall", extra]) is None:
-            succeeded = False
-    return succeeded
+class UvPython(TypedDict):
+    implementation: str
+    variant: str
+    version: str
+    version_parts: dict[str, int]
+
+
+def parse_available_versions() -> list[UvPython]:
+    output: Final = run_uv_command(["uv", "python", "list", "--only-downloads", "--output-format", "json"])
+    if not output:
+        msg = "uv returned no Python download catalog; no versions were changed"
+        raise SystemExit(msg)
+    entries: Final[list[UvPython]] = json.loads(output)
+    if not (available := [entry for entry in entries if entry["implementation"] == "cpython"]):
+        msg = "uv returned an empty Python download catalog; no versions were changed"
+        raise SystemExit(msg)
+    return available
+
+
+def run_uv_command(cmd: list[str]) -> str | None:
+    try:
+        result: Final = subprocess.run(cmd, capture_output=True, check=True, text=True, timeout=1800)
+    except subprocess.CalledProcessError as error:
+        _CONSOLE.print(f"[red]Command failed:[/] {' '.join(cmd)}")
+        if error.stderr:
+            _CONSOLE.print(f"[red]{error.stderr.strip()}[/]")
+        return None
+    except subprocess.TimeoutExpired:
+        _CONSOLE.print(f"[red]Command timed out:[/] {' '.join(cmd)}")
+        return None
+    return result.stdout
+
+
+def installed_versions() -> set[str]:
+    output: Final = run_uv_command([
+        "uv",
+        "python",
+        "list",
+        "--only-installed",
+        "--managed-python",
+        "--output-format",
+        "json",
+    ])
+    if output is None:
+        msg = "uv could not list installed Python versions; no versions were changed"
+        raise SystemExit(msg)
+    entries: Final[list[UvPython]] = json.loads(output)
+    return {
+        f"{entry['version']}{'t' if entry['variant'] == 'freethreaded' else ''}"
+        for entry in entries
+        if entry["implementation"] == "cpython"
+    }
+
+
+def find_latest_version(available: list[UvPython], version: Version, variant: Variant) -> str | None:
+    candidates: Final = {
+        entry["version"]
+        for entry in available
+        if entry["variant"] == variant and entry["version_parts"]["minor"] == version.minor
+    }
+    if not candidates:
+        return None
+    return f"{max(candidates, key=Version)}{'t' if variant == 'freethreaded' else ''}"
+
+
+def find_installed_for_minor(installed: set[str], version: Version, variant: Variant) -> str:
+    matches: Final = sorted(
+        (
+            v
+            for v in installed
+            if v.endswith("t") == (variant == "freethreaded") and Version(v.removesuffix("t")).minor == version.minor
+        ),
+        key=lambda v: Version(v.removesuffix("t")),
+        reverse=True,
+    )
+    return ", ".join(matches) if matches else "-"
+
+
+def install_python(key: str, *, dry_run: bool) -> bool:
+    cmd: Final = ["uv", "python", "install", key]
+    if dry_run:
+        _CONSOLE.print(f"[blue]DRY RUN:[/] {' '.join(cmd)}")
+        return True
+    return run_uv_command(cmd) is not None
 
 
 def obsolete_versions(installed: set[str], latest: str) -> set[str]:
-    target = Version(latest.removesuffix("t"))
+    target: Final = Version(latest.removesuffix("t"))
     return {
         candidate
         for candidate in installed
@@ -125,90 +191,38 @@ def obsolete_versions(installed: set[str], latest: str) -> set[str]:
     }
 
 
-def parse_available_versions() -> list[dict[str, Any]]:
-    output = run_uv_command(["uv", "python", "list", "--only-downloads", "--output-format", "json"])
-    if not output:
-        msg = "uv returned no Python download catalog; no versions were changed"
-        raise SystemExit(msg)
-    available: list[dict[str, Any]] = [item for item in json.loads(output) if item["implementation"] == "cpython"]
-    if not available:
-        msg = "uv returned an empty Python download catalog; no versions were changed"
-        raise SystemExit(msg)
-    return available
-
-
-def installed_version() -> set[str]:
-    output = run_uv_command(["uv", "python", "list", "--only-installed", "--managed-python", "--output-format", "json"])
-    if output is None:
-        msg = "uv could not list installed Python versions; no versions were changed"
-        raise SystemExit(msg)
-    return {
-        f"{i['version']}{'t' if i['variant'] == 'freethreaded' else ''}"
-        for i in json.loads(output)
-        if i["implementation"] == "cpython"
-    }
-
-
-def find_latest_version(
-    available: list[dict[str, Any]], version: Version, variant: Literal["default", "freethreaded"]
-) -> str | None:
-    candidates = {
-        entry["version"]
-        for entry in available
-        if entry["variant"] == variant and entry["version_parts"]["minor"] == version.minor
-    }
-    if not candidates:
-        return None
-    latest = max(candidates, key=Version)
-    return f"{latest}{'t' if variant == 'freethreaded' else ''}"
-
-
-def find_installed_for_minor(installed: set[str], version: Version, variant: Literal["default", "freethreaded"]) -> str:
-    is_freethreaded = variant == "freethreaded"
-    matches = sorted(
-        (
-            v
-            for v in installed
-            if v.endswith("t") == is_freethreaded and Version(v.removesuffix("t")).minor == version.minor
-        ),
-        key=lambda v: Version(v.removesuffix("t")),
-        reverse=True,
-    )
-    return ", ".join(matches) if matches else "-"
-
-
-def install_python(key: str, *, dry_run: bool = False) -> bool:
-    cmd = ["uv", "python", "install", key]
+def upgrade_tools(version: str, *, dry_run: bool) -> bool:
+    cmd: Final = ["uv", "tool", "upgrade", "--all", "-p", version]
+    _CONSOLE.print(f"[cyan]♻️  Upgrading all tools for Python {version}...[/]")
     if dry_run:
-        CONSOLE.print(f"[blue]DRY RUN:[/] {' '.join(cmd)}")
-        return True
-    return run_uv_command(cmd) is not None
-
-
-def upgrade_tools(version: str, *, dry_run: bool = False) -> bool:
-    cmd = ["uv", "tool", "upgrade", "--all", "-p", version]
-    CONSOLE.print(f"[cyan]♻️  Upgrading all tools for Python {version}...[/]")
-    if dry_run:
-        CONSOLE.print(f"[blue]DRY RUN:[/] {' '.join(cmd)}")
+        _CONSOLE.print(f"[blue]DRY RUN:[/] {' '.join(cmd)}")
         return True
     if run_uv_command(cmd) is None:
         return False
-    CONSOLE.print(f"[green]🔧 Tools upgraded for Python {version}[/]")
+    _CONSOLE.print(f"[green]🔧 Tools upgraded for Python {version}[/]")
     return True
 
 
-def run_uv_command(cmd: list[str]) -> str | None:
-    try:
-        result = subprocess.run(cmd, capture_output=True, check=True, text=True, timeout=1800)
-        return result.stdout  # noqa: TRY300
-    except subprocess.CalledProcessError as e:
-        CONSOLE.print(f"[red]Command failed:[/] {' '.join(cmd)}")
-        if e.stderr:
-            CONSOLE.print(f"[red]{e.stderr.strip()}[/]")
-        return None
-    except subprocess.TimeoutExpired:
-        CONSOLE.print(f"[red]Command timed out:[/] {' '.join(cmd)}")
-        return None
+def print_results(results: list[tuple[str, str, str, str]]) -> None:
+    table: Final = Table(title="Python Version Update Summary")
+    table.add_column("Version", style="cyan", justify="right")
+    table.add_column("Latest Patch", style="magenta")
+    table.add_column("Installed", style="dim")
+    table.add_column("Status", style="green")
+    for version, latest, status, installed_for_minor in results:
+        table.add_row(version, latest, installed_for_minor, status)
+    _CONSOLE.print(table)
+
+
+def remove_obsolete_versions(obsolete: set[str], *, dry_run: bool) -> bool:
+    succeeded = True
+    for extra in sorted(obsolete):
+        _CONSOLE.print("Uninstall extra version:", extra)
+        if dry_run:
+            _CONSOLE.print(f"[blue]DRY RUN:[/] uv python uninstall {extra}")
+        elif run_uv_command(["uv", "python", "uninstall", extra]) is None:
+            succeeded = False
+    return succeeded
 
 
 if __name__ == "__main__":

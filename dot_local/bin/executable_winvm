@@ -1,7 +1,5 @@
 #!/bin/bash
-# Shares the Windows test VM between agents. `up` takes a shared flock held by a background process that lives as
-# long as the calling agent, so a crashed agent releases it on its own. `down` stops the VM only when it can take the
-# lock exclusively, and a start blocks on its shared lock while a stop is in progress.
+# Shares the Windows test VM between agents.
 set -euo pipefail
 
 state="$HOME/.local/state/windows-vm"
@@ -58,6 +56,8 @@ up() {
     if ! holder_alive "$agent"; then
         ready="$state/holders/$agent.ready"
         rm -f "$ready"
+        # The lease is a shared flock held by a process that lives as long as the agent, so a crashed agent releases it
+        # on its own; while a stop holds the lock exclusively, a start blocks here.
         # shellcheck disable=SC2016 # $1 and $2 expand in the inner sh, not here
         setsid flock -s -o "$lock" sh -c 'touch "$1"; exec tail --pid="$2" -f /dev/null' _ "$ready" "$agent" \
             </dev/null >/dev/null 2>&1 &
@@ -116,6 +116,7 @@ down() {
         kill -- "-$(cat "$state/holders/$agent")"
     fi
     rm -f "$state/holders/$agent"
+    # The exclusive lock succeeds only when no agent holds a lease
     if flock -x -n "$lock" "${compose[@]}" stop; then
         echo "VM stopped"
     else
@@ -124,12 +125,13 @@ down() {
 }
 
 status() {
-    local pid_file
+    local pid_file agent
     docker ps -a --filter name=windows-vm --format '{{.Status}}'
     for pid_file in "$state"/holders/*; do
         [ -f "$pid_file" ] || continue
-        if holder_alive "$(basename "$pid_file")"; then
-            echo "lease: $(basename "$pid_file") $(ps -o comm= -p "$(basename "$pid_file")")"
+        agent=$(basename "$pid_file")
+        if holder_alive "$agent"; then
+            echo "lease: $agent $(ps -o comm= -p "$agent")"
         else
             rm -f "$pid_file"
         fi

@@ -6,9 +6,7 @@ if [ -z "${1:-}" ]; then
   exit 1
 fi
 
-URL="$1"
-
-curl -s --trace-ascii - --trace-time -o /dev/null "$URL" | awk '
+curl -s --trace-ascii - --trace-time -o /dev/null "$1" | awk '
 /Recv data/ {
   match($0, /Recv data, ([0-9]+) bytes/, m)
   if (m[1] > 0) {

@@ -4,61 +4,53 @@
 #     "rich>=15.0.0",
 # ]
 # ///
-from __future__ import annotations
-
 import os
 import re
 import subprocess
 import tomllib
 from pathlib import Path
+from typing import Final
 
 from rich.console import Console
 
-console = Console()
-
 
 def main() -> None:
-    script_dir = Path(__file__).parents[1].resolve()
-    deps: set[str] = set()
-    for pyfile in (script_dir / "src").glob("*.py"):
-        deps.update(extract_pep723_deps(pyfile))
-    pyproject = script_dir / "pyproject.toml"
-    if pyproject.exists():
+    script_dir: Final = Path(__file__).parents[1].resolve()
+    deps: Final = {dep for pyfile in (script_dir / "src").glob("*.py") for dep in extract_pep723_deps(pyfile)}
+    if (pyproject := script_dir / "pyproject.toml").exists():
         deps.update(extract_pyproject_deps(pyproject))
+    console: Final = Console()
     if not deps:
         console.print("[yellow]No dependencies found.[/yellow]")
         return
     console.print(f"[cyan]Creating venv and installing:[/cyan] [bold]{' '.join(deps)}[/bold]")
     subprocess.run(["uv", "venv", "--clear"], check=True, cwd=script_dir)
-    venv_dir = script_dir / ".venv"
+    venv_dir: Final = script_dir / ".venv"
     console.print(f"[green]Venv location:[/green] [bold]{venv_dir}[/bold]")
-    env = os.environ.copy()
-    env["VIRTUAL_ENV"] = str(venv_dir)
+    env: Final = {**os.environ, "VIRTUAL_ENV": str(venv_dir)}
     subprocess.run(["uv", "pip", "install", *deps], check=True, cwd=script_dir, env=env)
 
 
 def extract_pep723_deps(pyfile: Path) -> list[str]:
-    # The PEP 723 block is TOML behind `# ` comment prefixes; parse it as TOML rather than by hand so
-    # extras (rich[jupyter]) and single-line arrays are handled correctly.
+    # Parse the block as TOML rather than by hand so extras (rich[jupyter]) and single-line arrays work.
     if not (match := re.search(r"(?m)^# /// script$\s(?P<body>(?:^#.*$\s)*?)^# ///$", pyfile.read_text("utf-8"))):
         return []
-    body = "\n".join(line[2:] if line.startswith("# ") else line[1:] for line in match["body"].splitlines())
+    body: Final = "\n".join(line[2:] if line.startswith("# ") else line[1:] for line in match["body"].splitlines())
     try:
-        data = tomllib.loads(body)
+        data: Final = tomllib.loads(body)
     except tomllib.TOMLDecodeError:
         return []
     return [dep for dep in data.get("dependencies", []) if isinstance(dep, str)]
 
 
 def extract_pyproject_deps(pyproject: Path) -> list[str]:
-    with pyproject.open("rb") as f:
-        data = tomllib.load(f)
-    project = data.get("project", {})
-    deps: list[str] = list(project.get("dependencies", []))
+    data: Final = tomllib.loads(pyproject.read_text("utf-8"))
+    project: Final = data.get("project", {})
+    deps: Final[list[str]] = list(project.get("dependencies", []))
     for extra in project.get("optional-dependencies", {}).values():
-        deps.extend(d for d in extra if isinstance(d, str))
+        deps.extend(dep for dep in extra if isinstance(dep, str))
     for group in data.get("dependency-groups", {}).values():
-        deps.extend(d for d in group if isinstance(d, str))
+        deps.extend(dep for dep in group if isinstance(dep, str))
     return deps
 
 

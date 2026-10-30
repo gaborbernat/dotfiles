@@ -6,8 +6,7 @@
 # ///
 """Update images pulled from a registry without removing local Docker data."""
 
-from __future__ import annotations
-
+import dataclasses
 import json
 import os
 import platform
@@ -18,36 +17,19 @@ import subprocess
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass, field
 from datetime import UTC, datetime
-from typing import Any, Final
+from typing import Final, NotRequired, TypedDict
 
 from rich import box
 from rich.console import Console
 from rich.live import Live
 from rich.table import Table
 
-_CONSOLE: Final[Console] = Console()
-_OLDEST: Final[datetime] = datetime.min.replace(tzinfo=UTC)
-_HOST_ARCH: Final[str] = {"x86_64": "amd64", "aarch64": "arm64"}.get(platform.machine(), platform.machine())
-_DOWNLOAD_RE: Final[re.Pattern[str]] = re.compile(
-    r"([0-9a-f]{6,}): Downloading\s+\[[^\]]*\]\s+[0-9.]+[A-Za-z]+/([0-9.]+[A-Za-z]+)"
-)
-_SIZE_UNITS: Final[dict[str, int]] = {"b": 1, "kb": 1000, "mb": 1000**2, "gb": 1000**3, "tb": 1000**4}
-_STATE_STYLE: Final[dict[str, str]] = {
-    "checking": "dim",
-    "pulling": "yellow",
-    "up to date": "blue",
-    "updated": "green",
-    "unreachable": "yellow",
-    "failed": "red",
-    "error": "red",
-}
+_CONSOLE: Final = Console()
 
 
 def main() -> None:
-    registry = scan_images()
-    if registry:
+    if registry := scan_images():
         update_registry_images(registry)
     else:
         _CONSOLE.print("No registry-backed images to check.")
@@ -56,7 +38,7 @@ def main() -> None:
 
 
 def scan_images() -> list[ImageStatus]:
-    listing: subprocess.CompletedProcess[str] = subprocess.run(
+    listing: Final = subprocess.run(
         [
             "docker",
             "images",
@@ -72,44 +54,47 @@ def scan_images() -> list[ImageStatus]:
     if listing.returncode:
         msg = f"docker images failed: {short_error(listing.stderr)}"
         raise RuntimeError(msg)
-    rows: list[list[str]] = [
+    rows: Final = [
         parts
         for raw_line in listing.stdout.splitlines()
         if len(parts := raw_line.split("\t")) == 4 and "<none>" not in parts[0]
     ]
-    inspected = bulk_inspect([row[1] for row in rows])
-    registry: list[ImageStatus] = []
+    inspected: Final = bulk_inspect([row[1] for row in rows])
+    registry: Final[list[ImageStatus]] = []
     for image, image_id, digest, size in rows:
         if (info := inspected.get(image_id)) is None:
             continue
-        repo_digests, created, image_platform, pulled_from, locally_built = info
         repo = image.rsplit(":", 1)[0]
         # Containerd can record Identity.Pull for images built locally, so Build takes precedence.
         if (
-            not locally_built
-            and canonical_repo(repo) in pulled_from
-            and (matched := digests_for_repo(repo, repo_digests))
+            not info.locally_built
+            and canonical_repo(repo) in info.pulled_from
+            and (matched := digests_for_repo(repo, info.repo_digests))
         ):
             registry.append(
                 ImageStatus(
                     image=image,
                     local=digest if digest.startswith("sha256:") else "",
                     size=size,
-                    created=created,
-                    platform=image_platform,
+                    created=info.created,
+                    platform=info.platform,
                     registry_digests=matched,
                 )
             )
-    registry.sort(key=lambda status: status.created or _OLDEST, reverse=True)
+    registry.sort(key=lambda status: status.created or datetime.min.replace(tzinfo=UTC), reverse=True)
     return registry
 
 
-def bulk_inspect(image_ids: list[str]) -> dict[str, tuple[set[str], datetime | None, str, set[str], bool]]:
+def short_error(text: str) -> str:
+    return next((stripped for raw in reversed(text.splitlines()) if (stripped := raw.strip())), "")[:44]
+
+
+def bulk_inspect(image_ids: list[str]) -> dict[str, InspectedImage]:
     if not image_ids:
         return {}
-    # Raw JSON rather than --format: Docker omits Identity for images it has no record for, and a
-    # template referencing a missing key aborts the whole batch.
-    result: subprocess.CompletedProcess[str] = subprocess.run(
+    # Raw JSON rather than --format: Docker omits Identity for images it has no record for, and a template
+    # referencing a missing key aborts the whole batch.
+    result: Final = subprocess.run(
         ["docker", "image", "inspect", *sorted(set(image_ids))],
         check=False,
         capture_output=True,
@@ -118,17 +103,53 @@ def bulk_inspect(image_ids: list[str]) -> dict[str, tuple[set[str], datetime | N
     if result.returncode:
         msg = f"docker image inspect failed: {short_error(result.stderr)}"
         raise RuntimeError(msg)
-    entries: list[dict[str, Any]] = json.loads(result.stdout)
+    entries: Final[list[DockerInspect]] = json.loads(result.stdout)
     return {
-        entry["Id"]: (
-            set(entry.get("RepoDigests") or []),
-            parse_created(entry.get("Created", "")),
-            f"{entry.get('Os', '')}/{entry.get('Architecture', '')}",
-            {pull["Repository"] for pull in (entry.get("Identity") or {}).get("Pull") or []},
-            bool((entry.get("Identity") or {}).get("Build")),
+        entry["Id"]: InspectedImage(
+            repo_digests=set(entry.get("RepoDigests") or []),
+            created=parse_created(entry.get("Created", "")),
+            platform=f"{entry.get('Os', '')}/{entry.get('Architecture', '')}",
+            pulled_from={pull["Repository"] for pull in (entry.get("Identity") or {}).get("Pull") or []},
+            locally_built=bool((entry.get("Identity") or {}).get("Build")),
         )
         for entry in entries
     }
+
+
+class DockerPull(TypedDict):
+    Repository: str
+
+
+class DockerIdentity(TypedDict):
+    Pull: NotRequired[list[DockerPull] | None]
+    Build: NotRequired[list[dict[str, str]] | None]
+
+
+class DockerInspect(TypedDict):
+    Id: str
+    RepoDigests: NotRequired[list[str] | None]
+    Created: NotRequired[str]
+    Os: NotRequired[str]
+    Architecture: NotRequired[str]
+    Identity: NotRequired[DockerIdentity | None]
+
+
+@dataclasses.dataclass(frozen=True, slots=True, kw_only=True)
+class InspectedImage:
+    repo_digests: set[str]
+    created: datetime | None
+    platform: str
+    pulled_from: set[str]
+    locally_built: bool
+
+
+def parse_created(value: str) -> datetime | None:
+    if not (text := value.strip()):
+        return None
+    try:
+        return datetime.fromisoformat(re.sub(r"(\.\d{6})\d+", r"\1", text.replace("Z", "+00:00")))
+    except ValueError:
+        return None
 
 
 def canonical_repo(repo: str) -> str:
@@ -143,25 +164,25 @@ def has_registry_host(repo: str) -> bool:
 
 
 def digests_for_repo(repo: str, entries: set[str]) -> set[str]:
-    matched: set[str] = set()
-    for entry in entries:
-        name, _, digest = entry.partition("@")
-        if name == repo and digest:
-            matched.add(digest)
-    return matched
+    return {digest for name, _, digest in (entry.partition("@") for entry in entries) if name == repo and digest}
 
 
-def parse_created(value: str) -> datetime | None:
-    if not (text := value.strip()):
-        return None
-    try:
-        return datetime.fromisoformat(re.sub(r"(\.\d{6})\d+", r"\1", text.replace("Z", "+00:00")))
-    except ValueError:
-        return None
+# Mutable because worker threads update the progress fields under the shared lock.
+@dataclasses.dataclass(slots=True, kw_only=True)
+class ImageStatus:
+    image: str
+    local: str
+    size: str
+    created: datetime | None
+    platform: str
+    registry_digests: set[str]
+    state: str = "checking"
+    detail: str = ""
+    duration: float | None = None
 
 
 def update_registry_images(images: list[ImageStatus]) -> None:
-    lock = threading.Lock()
+    lock: Final = threading.Lock()
     with (
         Live(render(images, lock), console=_CONSOLE, refresh_per_second=12, transient=True) as live,
         ThreadPoolExecutor() as executor,
@@ -174,15 +195,80 @@ def update_registry_images(images: list[ImageStatus]) -> None:
     for future, status in futures.items():
         try:
             future.result()
-        except Exception as exc:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001  # per-image containment boundary, the failure is shown in its row
             with lock:
                 status.state = "error"
                 status.detail = str(exc)
     _CONSOLE.print(render(images, lock))
 
 
+def render(images: list[ImageStatus], lock: threading.Lock) -> Table:
+    table: Final = Table(title="Docker Image Update Summary", box=box.SIMPLE_HEAVY)
+    table.add_column("#", justify="right")
+    table.add_column("Image", style="bold")
+    table.add_column("Platform")
+    table.add_column("Status")
+    table.add_column("Updated", justify="right")
+    table.add_column("Size", justify="right")
+    table.add_column("Time", justify="right")
+    with lock:
+        rows = [(s.image, s.platform, s.state, s.detail, s.created, s.size, s.duration) for s in images]
+    state_style: Final = {
+        "checking": "dim",
+        "pulling": "yellow",
+        "up to date": "blue",
+        "updated": "green",
+        "unreachable": "yellow",
+        "failed": "red",
+        "error": "red",
+    }
+    for index, (image, image_platform, state, detail, created, size, duration) in enumerate(rows, 1):
+        table.add_row(
+            str(index),
+            image,
+            render_platform(image_platform),
+            f"[{state_style.get(state, '')}]{state}{f' [dim]({detail})[/dim]' if detail else ''}[/]",
+            format_age(created),
+            size,
+            format_duration(duration),
+        )
+    return table
+
+
+def render_platform(image_platform: str) -> str:
+    # Flag a mismatch (e.g. an amd64 image pulled onto an arm64 host) so emulated images stand out.
+    arch: Final = image_platform.split("/")[1] if "/" in image_platform else ""
+    machine: Final = platform.machine()
+    if arch and arch != {"x86_64": "amd64", "aarch64": "arm64"}.get(machine, machine):
+        return f"[yellow]{image_platform}[/]"
+    return image_platform
+
+
+def format_age(created: datetime | None) -> str:
+    if created is None:
+        return ""
+    days: Final = (datetime.now(UTC) - created).days
+    if days < 1:
+        return "today"
+    if days < 7:
+        return f"{days}d ago"
+    if days < 30:
+        return f"{days // 7}w ago"
+    if days < 365:
+        return f"{days // 30}mo ago"
+    return f"{days // 365}y ago"
+
+
+def format_duration(duration: float | None) -> str:
+    if duration is None:
+        return ""
+    if duration < 60:
+        return f"{duration:.1f}s"
+    return f"{int(duration // 60)}m{int(duration % 60)}s"
+
+
 def process_image(status: ImageStatus, lock: threading.Lock) -> None:
-    started: float = time.monotonic()
+    started: Final = time.monotonic()
     remote, reason = registry_digest(status.image)
     if remote is None:
         finish(status, lock, "unreachable", started, reason)
@@ -208,12 +294,7 @@ def registry_digest(image: str) -> tuple[str | None, str]:
         command = ["skopeo", "inspect", "--format", "{{.Digest}}", f"docker://{image}"]
     else:
         return None, "crane or skopeo not installed"
-    result: subprocess.CompletedProcess[str] = subprocess.run(
-        command,
-        check=False,
-        capture_output=True,
-        text=True,
-    )
+    result: Final = subprocess.run(command, check=False, capture_output=True, text=True)
     if result.returncode == 0 and (digest := result.stdout.strip()):
         return digest, ""
     if any(token in result.stderr.lower() for token in ("unauthorized", "401", "denied", "403", "forbidden")):
@@ -221,15 +302,19 @@ def registry_digest(image: str) -> tuple[str | None, str]:
     return None, short_error(result.stderr)
 
 
-def short_error(text: str, limit: int = 44) -> str:
-    return next((stripped for raw in reversed(text.splitlines()) if (stripped := raw.strip())), "")[:limit]
+def finish(status: ImageStatus, lock: threading.Lock, state: str, started: float, detail: str = "") -> None:
+    with lock:
+        status.state = state
+        status.detail = detail
+        status.duration = time.monotonic() - started
 
 
 def docker_pull(image: str) -> tuple[bool, str, int]:
-    # A pty makes docker emit per-layer progress ("Downloading [..] done/total"); summing each
-    # layer's total yields the bytes actually fetched, which the non-tty capture_output never prints.
-    layer_totals: dict[str, int] = {}
-    output: list[str] = []
+    # A pty makes docker emit per-layer progress ("Downloading [..] done/total"); summing each layer's total yields
+    # the downloaded bytes, which the non-tty capture_output never prints.
+    download: Final = re.compile(r"([0-9a-f]{6,}): Downloading\s+\[[^\]]*\]\s+[0-9.]+[A-Za-z]+/([0-9.]+[A-Za-z]+)")
+    layer_totals: Final[dict[str, int]] = {}
+    output: Final[list[str]] = []
     pid, fd = pty.fork()
     if pid == 0:
         try:
@@ -246,7 +331,7 @@ def docker_pull(image: str) -> tuple[bool, str, int]:
                 break
             text = data.decode("utf-8", "replace")
             output.append(text)
-            for layer, total in _DOWNLOAD_RE.findall(text):
+            for layer, total in download.findall(text):
                 layer_totals[layer] = parse_size(total)
     finally:
         os.close(fd)
@@ -257,12 +342,13 @@ def docker_pull(image: str) -> tuple[bool, str, int]:
 
 def parse_size(text: str) -> int:
     if match := re.match(r"\s*([0-9.]+)\s*([A-Za-z]+)", text):
-        return int(float(match.group(1)) * _SIZE_UNITS.get(match.group(2).lower(), 1))
+        units: Final = {"b": 1, "kb": 1000, "mb": 1000**2, "gb": 1000**3, "tb": 1000**4}
+        return int(float(match.group(1)) * units.get(match.group(2).lower(), 1))
     return 0
 
 
 def update_detail(old: str, new: str, downloaded: int, duration: float) -> str:
-    move: str = f"{short_digest(old)} → {short_digest(new)}"
+    move: Final = f"{short_digest(old)} → {short_digest(new)}"
     if downloaded and duration:
         return f"{move} · {format_bytes(downloaded)} @ {format_bytes(downloaded / duration)}/s"
     return move
@@ -278,82 +364,6 @@ def format_bytes(num: float) -> str:
             return f"{num:.0f}{unit}" if unit == "B" else f"{num:.1f}{unit}"
         num /= 1000
     return f"{num:.1f}TB"
-
-
-def finish(status: ImageStatus, lock: threading.Lock, state: str, started: float, detail: str = "") -> None:
-    with lock:
-        status.state = state
-        status.detail = detail
-        status.duration = time.monotonic() - started
-
-
-def render(images: list[ImageStatus], lock: threading.Lock) -> Table:
-    table: Table = Table(title="Docker Image Update Summary", box=box.SIMPLE_HEAVY)
-    table.add_column("#", justify="right")
-    table.add_column("Image", style="bold")
-    table.add_column("Platform")
-    table.add_column("Status")
-    table.add_column("Updated", justify="right")
-    table.add_column("Size", justify="right")
-    table.add_column("Time", justify="right")
-    with lock:
-        rows = [(s.image, s.platform, s.state, s.detail, s.created, s.size, s.duration) for s in images]
-    for index, (image, image_platform, state, detail, created, size, duration) in enumerate(rows, 1):
-        styled: str = f"[{_STATE_STYLE.get(state, '')}]{state}{f' [dim]({detail})[/dim]' if detail else ''}[/]"
-        table.add_row(
-            str(index),
-            image,
-            render_platform(image_platform),
-            styled,
-            format_age(created),
-            size,
-            format_duration(duration),
-        )
-    return table
-
-
-def render_platform(image_platform: str) -> str:
-    # Flag a mismatch (e.g. an amd64 image pulled onto an arm64 host) so emulated images stand out.
-    arch: str = image_platform.split("/")[1] if "/" in image_platform else ""
-    if arch and arch != _HOST_ARCH:
-        return f"[yellow]{image_platform}[/]"
-    return image_platform
-
-
-def format_age(created: datetime | None) -> str:
-    if created is None:
-        return ""
-    days: int = (datetime.now(UTC) - created).days
-    if days < 1:
-        return "today"
-    if days < 7:
-        return f"{days}d ago"
-    if days < 30:
-        return f"{days // 7}w ago"
-    if days < 365:
-        return f"{days // 30}mo ago"
-    return f"{days // 365}y ago"
-
-
-def format_duration(duration: float | None) -> str:
-    if duration is None:
-        return ""
-    if duration < 60:
-        return f"{duration:.1f}s"
-    return f"{int(duration // 60)}m{int(duration % 60)}s"
-
-
-@dataclass
-class ImageStatus:
-    image: str
-    local: str
-    size: str
-    created: datetime | None
-    platform: str = ""
-    registry_digests: set[str] = field(default_factory=set)
-    state: str = "checking"
-    detail: str = ""
-    duration: float | None = None
 
 
 if __name__ == "__main__":

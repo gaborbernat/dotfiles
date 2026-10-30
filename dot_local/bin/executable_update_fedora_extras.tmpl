@@ -12,7 +12,7 @@ update_firmware() {
 }
 
 update_ghostty() {
-    local release commit main_commit digest archive patch patch_id build_id work source zig_version merge_status
+    local release commit main_commit digest archive patch patch_id build_id source version zig_version merge_status
     patch={{ joinPath .chezmoi.sourceDir "scripts/fedora/ghostty-undo.diff" | quote }}
     release=$(curl -fsSL https://api.github.com/repos/ghostty-org/ghostty/releases/tags/tip)
     commit=$(jq -er '.target_commitish | select(test("^[0-9a-f]{40}$"))' <<<"$release")
@@ -37,15 +37,15 @@ update_ghostty() {
 
     GHOSTTY_BUILD_DIR=$(mktemp -d)
     trap 'rm -rf "$GHOSTTY_BUILD_DIR"' EXIT
-    work=$GHOSTTY_BUILD_DIR
-    archive="$work/ghostty-source.tar.gz"
-    source="$work/source"
+    archive="$GHOSTTY_BUILD_DIR/ghostty-source.tar.gz"
+    source="$GHOSTTY_BUILD_DIR/source"
     curl -fsSL --retry 3 -o "$archive" \
         https://github.com/ghostty-org/ghostty/releases/download/tip/ghostty-source.tar.gz
     printf '%s  %s\n' "$digest" "$archive" | sha256sum -c -
     mkdir "$source"
     tar -xzf "$archive" -C "$source" --strip-components=1
-    if [[ $(<"$source/VERSION") != *"+${commit:0:7}" ]]; then
+    version=$(<"$source/VERSION")
+    if [[ "$version" != *"+${commit:0:7}" ]]; then
         echo 'Ghostty source does not match main' >&2
         return 1
     fi
@@ -59,8 +59,6 @@ update_ghostty() {
         return 1
     fi
     mise install "zig@$zig_version"
-    local version
-    version=$(<"$source/VERSION")
     (cd "$source" && mise exec "zig@$zig_version" -- zig build -p "$HOME/.local" -Doptimize=ReleaseFast "-Dversion-string=$version" \
         "-Dinstalled-exe-path=$HOME/.local/bin/ghostty")
     "$HOME/.local/bin/ghostty" --version | head -1
@@ -297,9 +295,7 @@ update_streamdeck() {
         printf '%s\n' "$commit" >"$candidate/VERSION"
         updates+=("$id")
     done
-    if [[ -f "$settings" ]] && jq -e '.store["auto-update"] == false' "$settings" >/dev/null; then
-        :
-    else
+    if ! { [[ -f "$settings" ]] && jq -e '.store["auto-update"] == false' "$settings" >/dev/null; }; then
         settings_changed=true
     fi
     if (( ${#updates[@]} == 0 )) && [[ "$settings_changed" == false ]]; then

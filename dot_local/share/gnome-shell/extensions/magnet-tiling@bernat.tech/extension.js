@@ -10,15 +10,30 @@ const BINDINGS = {
     'maximize': window => window.maximize(),
     'unmaximize': window => restore(window),
 };
-// Terminals resize in cell steps, so a tiled window rarely matches the half-screen rectangle exactly.
-const SLACK = 64;
 
 const states = new WeakMap();
 
+export default class MagnetTilingExtension extends Extension {
+    enable() {
+        for (const [name, action] of Object.entries(BINDINGS)) {
+            Main.wm.setCustomKeybindingHandler(name, Shell.ActionMode.NORMAL, (_display, window) => {
+                const target = window ?? global.display.focus_window;
+                if (target?.get_window_type() === Meta.WindowType.NORMAL &&
+                    (target.is_fullscreen() || target.allows_resize()))
+                    action(target);
+            });
+        }
+    }
+
+    disable() {
+        for (const name of Object.keys(BINDINGS))
+            Meta.keybindings_set_custom_handler(name, null);
+    }
+}
+
 function tileToward(window, direction) {
     const monitor = window.get_monitor();
-    const state = states.get(window);
-    if (state?.direction === direction && fills(window, monitor, direction)) {
+    if (states.get(window)?.direction === direction && fills(window, monitor, direction)) {
         const neighbor = global.display.get_monitor_neighbor_index(monitor, direction);
         if (neighbor >= 0) {
             window.move_to_monitor(neighbor);
@@ -29,6 +44,23 @@ function tileToward(window, direction) {
         return;
     }
     tile(window, monitor, direction);
+}
+
+function fills(window, monitor, side) {
+    // Terminals resize in cell steps, so a tiled window rarely matches the half-screen rectangle exactly.
+    const slack = 64;
+    const frame = window.get_frame_rect();
+    const half = halfOf(window, monitor, side);
+    return Math.abs(frame.x - half.x) <= slack && Math.abs(frame.y - half.y) <= slack &&
+        Math.abs(frame.width - half.width) <= slack && Math.abs(frame.height - half.height) <= slack;
+}
+
+function halfOf(window, monitor, side) {
+    const area = window.get_work_area_for_monitor(monitor);
+    const left = Math.floor(area.width / 2);
+    return side === Meta.DisplayDirection.LEFT
+        ? {x: area.x, y: area.y, width: left, height: area.height}
+        : {x: area.x + left, y: area.y, width: area.width - left, height: area.height};
 }
 
 function tile(window, monitor, side) {
@@ -66,37 +98,4 @@ function restore(window) {
     states.delete(window);
     const {x, y, width, height} = state.restore;
     window.move_resize_frame(true, x, y, width, height);
-}
-
-function halfOf(window, monitor, side) {
-    const area = window.get_work_area_for_monitor(monitor);
-    const left = Math.floor(area.width / 2);
-    return side === Meta.DisplayDirection.LEFT
-        ? {x: area.x, y: area.y, width: left, height: area.height}
-        : {x: area.x + left, y: area.y, width: area.width - left, height: area.height};
-}
-
-function fills(window, monitor, side) {
-    const frame = window.get_frame_rect();
-    const half = halfOf(window, monitor, side);
-    return Math.abs(frame.x - half.x) <= SLACK && Math.abs(frame.y - half.y) <= SLACK &&
-        Math.abs(frame.width - half.width) <= SLACK && Math.abs(frame.height - half.height) <= SLACK;
-}
-
-export default class MagnetTilingExtension extends Extension {
-    enable() {
-        for (const [name, action] of Object.entries(BINDINGS)) {
-            Main.wm.setCustomKeybindingHandler(name, Shell.ActionMode.NORMAL, (_display, window) => {
-                const target = window ?? global.display.focus_window;
-                if (target?.get_window_type() === Meta.WindowType.NORMAL &&
-                    (target.is_fullscreen() || target.allows_resize()))
-                    action(target);
-            });
-        }
-    }
-
-    disable() {
-        for (const name of Object.keys(BINDINGS))
-            Meta.keybindings_set_custom_handler(name, null);
-    }
 }

@@ -1,6 +1,4 @@
 #!/usr/bin/python3
-from __future__ import annotations
-
 import os
 import subprocess
 import sys
@@ -13,7 +11,8 @@ def main() -> None:
     if sys.argv[1:] in (["hook", "codex"], ["hook", "claude"]):
         return
     if len(sys.argv) != 1:
-        raise SystemExit("usage: agent-awake")
+        msg = "usage: agent-awake"
+        raise SystemExit(msg)
     inhibitor: subprocess.Popen[bytes] | None = None
     try:
         while True:
@@ -53,13 +52,9 @@ def client_open() -> bool:
         if not arguments[0]:
             continue
         command = arguments[0].rsplit(b"/", 1)[-1]
-        if name not in {b"codex", b"claude", b"chatgpt"} and command not in {
-            b"codex",
-            b"claude",
-            b"chatgpt",
-        }:
+        if not {name, command} & {b"codex", b"claude", b"chatgpt"}:
             continue
-        if (name == b"codex" or command == b"codex") and arguments[1:2] == [b"app-server"]:
+        if b"codex" in {name, command} and arguments[1:2] == [b"app-server"]:
             continue
         return True
     return False
