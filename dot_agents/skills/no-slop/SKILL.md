@@ -3,6 +3,8 @@ name: no-slop
 description: Edit formulaic prose in PRs, commits, comments, docs, and other writing. Use to cut stock phrasing and empty claims while preserving facts, intent, and the author's voice.
 ---
 
+# no-slop
+
 Edit the draft, then check what the edit changed. The goal is useful prose in the author's voice.
 
 Use [references/phrases.md](references/phrases.md), [references/lexicon.md](references/lexicon.md), and
@@ -12,13 +14,13 @@ deliberate style.
 
 1. Check the task, audience, and any length or format constraint. Lead PRs and short replies with the answer or concrete
    change; a longer explanation can open with the technical question it will answer.
-1. Cut throat-clearing, repeated framing, empty emphasis, and claims that lack a specific fact or source. Keep necessary
+2. Cut throat-clearing, repeated framing, empty emphasis, and claims that lack a specific fact or source. Keep necessary
    qualifications and comparisons.
-1. Check the argument: each claim should follow from the evidence available in the source material. Do not invent a
+3. Check the argument: each claim should follow from the evidence available in the source material. Do not invent a
    number, citation, causal link, or stronger conclusion to make a sentence sound precise.
-1. Check the result for repeated openers, parallel sentence templates, and monotonous rhythm. Preserve useful structure,
+4. Check the result for repeated openers, parallel sentence templates, and monotonous rhythm. Preserve useful structure,
    including lists and headings that help readers scan.
-1. Compare the revision with the draft. Restore any lost fact, qualification, author preference, or distinctive turn of
+5. Compare the revision with the draft. Restore any lost fact, qualification, author preference, or distinctive turn of
    phrase. For this author's register, consult [references/voice.md](references/voice.md).
 
 Surface patterns do not establish AI authorship or writing quality. The linter cannot judge relevance, factual accuracy,

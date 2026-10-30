@@ -24,7 +24,7 @@ base=$(git rev-parse --abbrev-ref "$remote/HEAD")
 
 Follow Commitizen conventions with 1-2 relevant emoji:
 
-```
+```text
 <emoji> <type>(<scope>): <short summary>
 ```
 
@@ -42,7 +42,7 @@ Keep titles under 72 characters. The emoji goes at the start; pick one that matc
 
 Prefer paragraphs. When the content is a set of parallel items (rollout steps, open questions, options), distill it into
 a short bullet list instead. Use rich formatting where it makes a paragraph easier to read: **bold** for the one term a
-reader must not miss, *italics* for a defined term, `>` quotes for upstream text you rely on, and indentation for nested
+reader must not miss, _italics_ for a defined term, `>` quotes for upstream text you rely on, and indentation for nested
 detail.
 
 Do not start with a header. A long description separates its main topics (for example impact, architecture, rollout)
@@ -55,11 +55,11 @@ that where it is installed; otherwise work through the **Avoid** list below by h
 1. **Opening paragraph**: State the motivation and the impact, from the product owner's point of view. What problem did
    users, operators or dependent teams have, and what can they do, or stop worrying about, once this merges?
 
-1. **Architecture paragraph**: Describe the design at the level of components and responsibilities: what owns what, how
+2. **Architecture paragraph**: Describe the design at the level of components and responsibilities: what owns what, how
    the parts talk to each other, and the trade-off behind that shape. No file names, function names, or step-by-step
    mechanics.
 
-1. **Impact paragraph** (if applicable): Note behavior changes someone outside the code would notice, and rollout or
+3. **Impact paragraph** (if applicable): Note behavior changes someone outside the code would notice, and rollout or
    migration steps.
 
 **Formatting**:
@@ -94,10 +94,14 @@ that where it is installed; otherwise work through the **Avoid** list below by h
 
 **Good example**:
 
-```
-Users signing in with Google accounts were redirected to an error page because the session token expired before the OAuth callback completed. 🔐 This became more frequent as our user base grew internationally, where network latency is higher.
+```markdown
+Google sign-ins landed on an error page: the session token expired before the OAuth callback completed. 🔐
 
-The fix extends the token validity window during the OAuth flow and adds a retry mechanism for the callback handler. ✨ This approach preserves our security model while accommodating real-world network conditions.
+It got worse as more users signed in from far away, where network latency is higher.
+
+The fix extends token validity during the OAuth flow and retries the callback handler. ✨
+
+This keeps the security model while tolerating real-world network latency.
 
 Existing sessions remain unaffected. The retry logic uses exponential backoff to avoid hammering the auth provider.
 ```
@@ -140,12 +144,12 @@ Pick applicable labels from `enhancement`, `bug`, `documentation` based on the c
 ### Creating a new PR
 
 1. Run `git diff "$base"...HEAD` to see all changes
-1. Run `git log "$base"..HEAD --oneline` to see commit history
-1. Identify the primary purpose (what user/developer problem this solves)
-1. Draft title following Commitizen format with emoji
-1. Write description paragraphs: the impact and why, then the architecture
-1. Determine labels from the change type
-1. Create with:
+2. Run `git log "$base"..HEAD --oneline` to see commit history
+3. Identify the primary purpose (what user/developer problem this solves)
+4. Draft title following Commitizen format with emoji
+5. Write description paragraphs: the impact and why, then the architecture
+6. Determine labels from the change type
+7. Create with:
 
 ```bash
 gh pr create --title "..." --body-file <file> --label "<labels>"
@@ -154,9 +158,9 @@ gh pr create --title "..." --body-file <file> --label "<labels>"
 ### Updating an existing PR
 
 1. Run `git diff "$base"...HEAD` to see all changes
-1. Run `git log "$base"..HEAD --oneline` to see commit history
-1. Identify the primary purpose (what user/developer problem this solves)
-1. Draft title following Commitizen format with emoji
-1. Write description paragraphs: the impact and why, then the architecture
-1. Determine labels from the change type
-1. Update with `gh pr edit <number> --title "..." --body-file <file>` and add missing labels
+2. Run `git log "$base"..HEAD --oneline` to see commit history
+3. Identify the primary purpose (what user/developer problem this solves)
+4. Draft title following Commitizen format with emoji
+5. Write description paragraphs: the impact and why, then the architecture
+6. Determine labels from the change type
+7. Update with `gh pr edit <number> --title "..." --body-file <file>` and add missing labels

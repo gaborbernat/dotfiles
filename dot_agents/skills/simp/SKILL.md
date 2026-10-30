@@ -51,13 +51,13 @@ idioms, mapping the Python specifics yourself (its formatter for `ruff`, its tes
     code does. Keep only those giving rationale the code can't show, and keep them as short as possible; code should be
     self-documenting.
 
-    Where the *why* is non-obvious (a workaround, a subtle constraint, a non-local decision), a short comment is
+    Where the _why_ is non-obvious (a workaround, a subtle constraint, a non-local decision), a short comment is
     encouraged rather than omitted: it captures rationale the code cannot, and doubles as durable context a coding agent
     will reliably read. Put that comment at the line that makes the choice.
 
     Keep every paragraph of a comment, docstring or document under 100 words; split a longer one at a change of topic.
     In documents (README, design notes), prefer paragraphs, distill parallel items into a short list, and use **bold**,
-    *italics*, `>` quotes and indentation where they make the text easier to read; give a long document headings for its
+    _italics_, `>` quotes and indentation where they make the text easier to read; give a long document headings for its
     main topics.
 
     A README describes the product from its user's side. A contributing guide introduces the domain concepts and how
@@ -112,14 +112,14 @@ idioms, mapping the Python specifics yourself (its formatter for `ruff`, its tes
     for what it holds. One name per concept, one concept per name: two concepts never share a name (two modules called
     `queue`, "sealed" meaning both encrypted and inventory-complete), and one concept is never called two things.
 
-07. **Define after use (reads like a book).** Order every module so each function, method, and class is defined *below*
+07. **Define after use (reads like a book).** Order every module so each function, method, and class is defined _below_
     the code that uses it: the entry point sits near the top and the helpers it calls follow in first-call order, so the
     file reads top-to-bottom like prose.
 
     The order is depth-first: a callee sits directly after the caller that first references it, before that caller's
     next sibling, whether it is public or private (never group private helpers at the bottom). A private module-level
     helper used by one class becomes a method of it (static when it needs no state) so it can sit after its caller. The
-    only exceptions are genuine runtime ordering requirements: a name that must already exist when a line *executes* (a
+    only exceptions are genuine runtime ordering requirements: a name that must already exist when a line _executes_ (a
     module-scope value, a decorator, a default argument, a base class).
 
 08. **Functions separate tasks or share code.** A function exists to name a distinct task or to reuse code, not to cut a
@@ -224,16 +224,16 @@ idioms, mapping the Python specifics yourself (its formatter for `ruff`, its tes
    fail; reaching a line or branch is not the same as testing it, and a test that passes regardless is as empty as no
    test at all. Two ways tests fall short:
 
-   - *Tautological assertions*: `assert True`, asserting a literal that was just passed in, or asserting only that a
+   - _Tautological assertions_: `assert True`, asserting a literal that was just passed in, or asserting only that a
      mock was called without checking the resulting value or state. If the test would still pass with the function body
      replaced by `pass`/`raise`, it tests nothing.
-   - *Coverage without discrimination*: executing a branch only to satisfy the coverage gate while asserting something
+   - _Coverage without discrimination_: executing a branch only to satisfy the coverage gate while asserting something
      that holds whether or not that branch fired: an idempotence or round-trip check that still passes on a no-op, a
-     "does not raise" / truthy assertion, or a differential that passes regardless. Pin the observable difference *that*
+     "does not raise" / truthy assertion, or a differential that passes regardless. Pin the observable difference _that_
      branch produces: the exact output, the specific value, the state change.
 
    When a path has no observable effect to assert (a defensive guard, an unreachable-without-a-bug invariant), do not
-   manufacture a hollow test; delete it or exclude it per *No defensive code for impossible states*.
+   manufacture a hollow test; delete it or exclude it per _No defensive code for impossible states_.
 
 ## Python
 

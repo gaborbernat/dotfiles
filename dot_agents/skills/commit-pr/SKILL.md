@@ -3,6 +3,8 @@ name: commit-pr
 description: Creates a git commit and then opens a pull request. Use when asked to commit and create a PR in one step.
 ---
 
+# commit-pr
+
 Complete the following steps in order:
 
 1. First, invoke the `/commit` skill to create a commit

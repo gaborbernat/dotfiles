@@ -3,6 +3,8 @@ name: sec
 description: Triage a security report the user provides, validate each finding, open a private GitHub security advisory for every confirmed vulnerability and a public issue for every confirmed bug, then fix each through a PR driven to green after an adversarial review. Use when handed a scanner or researcher report to act on.
 ---
 
+# sec
+
 Work in the repository the report concerns, or the current repository when none is named. The user provides the report
 (a file, a pasted text, a URL, or an advisory); never go looking for reports on your own.
 
@@ -10,15 +12,15 @@ Work in the repository the report concerns, or the current repository when none 
 
 1. Split the report into findings. Keep the reporter's identifier for each (for example `ANT-2026-UK90QC27`) and the
    version or commit it was tested against.
-1. Before validating, search the repository's existing advisories (`gh api repos/{owner}/{repo}/security-advisories`),
+2. Before validating, search the repository's existing advisories (`gh api repos/{owner}/{repo}/security-advisories`),
    open and closed issues, and open PRs for each finding. Report a finding already tracked to the user with its link,
    and do not open it again.
-1. Validate each finding against the code, never against the report's own narrative. Read the code path at the reported
+3. Validate each finding against the code, never against the report's own narrative. Read the code path at the reported
    commit and at the default branch head, then reproduce the behavior in an isolated worktree: run the reporter's
    reproducer when one exists, otherwise write the smallest one that shows the claimed effect. Use a disposable
    container for reproducers that change user IDs, write outside the worktree, or need root. Use `winvm` for anything
    that only happens on Windows. Record the commands and their output; they become the evidence below.
-1. Classify each finding:
+4. Classify each finding:
    - **Invalid**: the reproducer does not show the claimed effect, the code path is unreachable, or the behavior is
      documented and intended. Report it to the user with the evidence and stop there.
    - **Bug**: the behavior is wrong, but an attacker gains nothing they did not already have, for example the
@@ -26,15 +28,15 @@ Work in the repository the report concerns, or the current repository when none 
    - **Security**: the behavior lets someone cross a trust boundary: read, write, execute or deny something they could
      not before. Name the attacker, what they must already control, and what they gain. A finding whose precondition
      already implies the gain is a bug, not a vulnerability.
-1. Rate each valid finding on two axes, and give the reason for each rating:
-   - **Reproducibility**: *easy* (default options, one command, any platform), *moderate* (a specific configuration,
-     platform or version), or *hard* (a race, a narrow timing window, or a setup that took several tries).
-   - **Real-world exposure**: *common* (users hit this in ordinary workflows, or an attacker can set up the precondition
-     without help), *niche* (an unusual but plausible setup, such as a shared machine or a reused directory), or
-     *unlikely* (needs a precondition few users have, or one that already grants most of what the attacker gains).
+5. Rate each valid finding on two axes, and give the reason for each rating:
+   - **Reproducibility**: _easy_ (default options, one command, any platform), _moderate_ (a specific configuration,
+     platform or version), or _hard_ (a race, a narrow timing window, or a setup that took several tries).
+   - **Real-world exposure**: _common_ (users hit this in ordinary workflows, or an attacker can set up the precondition
+     without help), _niche_ (an unusual but plausible setup, such as a shared machine or a reused directory), or
+     _unlikely_ (needs a precondition few users have, or one that already grants most of what the attacker gains).
      Ground the rating in how the project is used: its documentation, issue history, and the defaults a typical user
      runs with.
-1. Present the classification to the user, one line per finding with its verdict, both ratings, and the deciding
+6. Present the classification to the user, one line per finding with its verdict, both ratings, and the deciding
    evidence, before opening anything. Proceed without waiting unless the user asks to stop; a later disagreement
    reclassifies the finding.
 
@@ -66,23 +68,23 @@ Structure the description after
 [GHSA-cw65-gx24-rc82](https://github.com/pypa/virtualenv/security/advisories/GHSA-cw65-gx24-rc82), with these `##`
 sections in this order:
 
-1. **Summary**: the flaw and its effect in two or three sentences, then who reported it, the report identifier, and the
-   date it was received.
-1. **Affected area**: the feature or phase of operation, in one line.
-1. **Attacker-controlled input**: what the attacker must already control, and what they do not need.
-1. **Affected code**: permalinks pinned to the affected release's commit.
-1. **Mechanism**: how the input reaches the effect, step by step, with links to the dependency source, documentation or
-   man pages each step relies on. Name the narrow cases that stay out of scope.
-1. **Reproduction and evidence**: what you ran, against which commit, and what it printed.
-1. **Attack sequence**: a sequence diagram (see **Diagrams**).
-1. **Reproducer files**: each file in full, in a fenced block under its bolded path, and how to run it.
-1. **Impact**: what the attacker gains, what is not established, and how likely real users are to meet the precondition
-   (the exposure rating), then `Severity:` with the CVSS score and vector.
-1. **Versions tested**: the releases confirmed affected, without extrapolating to untested ones, and the fix in one
-   paragraph with the PR link.
-1. **Known mitigation**: what users can do before upgrading.
-1. **Affected release**: a checked box per release that reproduces.
-1. **Credits**: the reporter and identifier.
+01. **Summary**: the flaw and its effect in two or three sentences, then who reported it, the report identifier, and the
+    date it was received.
+02. **Affected area**: the feature or phase of operation, in one line.
+03. **Attacker-controlled input**: what the attacker must already control, and what they do not need.
+04. **Affected code**: permalinks pinned to the affected release's commit.
+05. **Mechanism**: how the input reaches the effect, step by step, with links to the dependency source, documentation or
+    man pages each step relies on. Name the narrow cases that stay out of scope.
+06. **Reproduction and evidence**: what you ran, against which commit, and what it printed.
+07. **Attack sequence**: a sequence diagram (see **Diagrams**).
+08. **Reproducer files**: each file in full, in a fenced block under its bolded path, and how to run it.
+09. **Impact**: what the attacker gains, what is not established, and how likely real users are to meet the precondition
+    (the exposure rating), then `Severity:` with the CVSS score and vector.
+10. **Versions tested**: the releases confirmed affected, without extrapolating to untested ones, and the fix in one
+    paragraph with the PR link.
+11. **Known mitigation**: what users can do before upgrading.
+12. **Affected release**: a checked box per release that reproduces.
+13. **Credits**: the reporter and identifier.
 
 ## Issue
 
@@ -91,11 +93,11 @@ behavior in plain words, without a Commitizen prefix. The body opens with the be
 sentences, then uses these `###` sections:
 
 1. **Affected code**: permalinks pinned to the commit you reproduced on.
-1. **Mechanism**: how the input reaches the wrong behavior, with links to the dependency source, documentation or man
+2. **Mechanism**: how the input reaches the wrong behavior, with links to the dependency source, documentation or man
    pages each step relies on, and a diagram where it helps (see **Diagrams**).
-1. **Reproduction**: the reproducer in full, the command, the commit, and the output, followed by the expected behavior.
-1. **Impact**: who hits it, under which setup, and both ratings with their reasons.
-1. **Credits**: the reporter and identifier.
+3. **Reproduction**: the reproducer in full, the command, the commit, and the output, followed by the expected behavior.
+4. **Impact**: who hits it, under which setup, and both ratings with their reasons.
+5. **Credits**: the reporter and identifier.
 
 ## PR
 
@@ -112,13 +114,13 @@ rather than `/pr`'s product-owner paragraphs, and it names the functions and lin
    and to whom, and what happens after the PR. A vulnerability ends the paragraph with
    `This addresses [draft advisory <report id>](<advisory URL>).` A link to a draft advisory only works for people who
    can see it; that is intended. A bug ends it with `Fixes #<issue>.` so the merge closes the issue.
-1. **`###` sections on the mechanism**: one per cause or per platform, each titled with its finding (for example
+2. **`###` sections on the mechanism**: one per cause or per platform, each titled with its finding (for example
    `### The retry changed the mode of the link's target`). Explain the old behavior with links to the dependency docs,
    man pages or source that prove each step, then the new behavior with permalinks to the PR head. Permalinks to new
    lines need the pushed head SHA: push first, then write the body, and refresh the SHAs whenever the head moves.
-1. **`### Behavior changes`**: what users, callers and each platform observe now, including new errors and the cases the
+3. **`### Behavior changes`**: what users, callers and each platform observe now, including new errors and the cases the
    fix does not cover.
-1. **Closing line**: `Reported by <reporter>: <report id>.`
+4. **Closing line**: `Reported by <reporter>: <report id>.`
 
 Keep exploit material out of the public PR: the reproducer files and step-by-step attack recipe stay in the private
 advisory. The PR explains the flaw well enough to review the fix.
@@ -190,11 +192,11 @@ Write concise, factual text in a neutral register:
 
 1. Review each PR adversarially with `/rev`, by number. It puts its fixes in one commit on top of the head, runs
    `/style` over the final diff, and updates the PR metadata; re-check that the body still follows **PR** afterwards.
-1. Drive each PR to green: watch its checks with `gh pr checks <n> --watch`, read the logs of every failure
+2. Drive each PR to green: watch its checks with `gh pr checks <n> --watch`, read the logs of every failure
    (`gh run view <id> --log-failed`), reproduce it locally or on `winvm`, fix the cause in a new commit, and push. Do
    not skip, disable or mark a check optional to make it pass. Retry a job only when its log shows an infrastructure
    failure, and say so. Stop and report when a failure is outside the PR's control.
-1. Never post PR comments, review comments or reviews; findings become commits.
+3. Never post PR comments, review comments or reviews; findings become commits.
 
 ## Report
 

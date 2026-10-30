@@ -12,7 +12,7 @@ communicate the intent and reasoning behind the changes, not describe what the c
 
 Follow Commitizen conventions with a relevant emoji:
 
-```
+```text
 <emoji> <type>(<scope>): <subject>
 
 <body>
@@ -62,7 +62,7 @@ unexplained, written in paragraphs wrapped at 80 characters. Focus on:
 
 **Good example**:
 
-```
+```text
 🐛 fix(auth): keep sessions alive during OAuth
 
 Users with high-latency connections were getting logged out mid-authentication

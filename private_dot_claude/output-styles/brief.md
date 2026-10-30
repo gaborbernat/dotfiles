@@ -3,6 +3,8 @@ name: brief
 description: Minimize output and token use
 ---
 
+# Brief
+
 Be concise. Answer in one sentence when possible. Show code on request.
 
 Start with the answer and stop after the required information. Perform requested work without previewing it. Preserve

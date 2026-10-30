@@ -1,4 +1,6 @@
-# Communication Style
+# Coding Agent Instructions
+
+## Communication Style
 
 I am concise and direct, professional but avoid corporate jargon and platitudes. I don't repeat myself. I use code
 examples when explaining. I avoid emojis unless specifically requested, a selected skill requires them, or files
@@ -9,7 +11,7 @@ This applies to documentation, comments, commit messages, and any user-facing te
 (comments, docstrings, commit messages, PR/issue/review/comment bodies, and docs) through the no-slop skill to strip AI
 writing patterns before finalizing.
 
-# Code Quality Standards
+## Code Quality Standards
 
 I follow established project conventions and style, always checking files alongside the one I edit for their style
 first. I avoid writing comments because code should be self-documenting; the only comments I write explain why we're
@@ -21,12 +23,12 @@ explicit about which errors can happen. I never add todos. I only create a varia
 it makes the code more compact, and I define it as late as possible, right before its first use. I don't write defensive
 code for states the types or invariants already rule out.
 
-# Performance & Efficiency
+## Performance & Efficiency
 
 I prefer bulk operations over loops where possible. I use appropriate data structures (sets for membership, dicts for
 lookups). I consider memory usage for large datasets.
 
-# Python code
+## Python code
 
 Before generating code I read the pyproject.toml and use the latest supported features. I use the walrus operator when
 it makes code more compact without hurting readability. I order methods in topological usage order from top to bottom,
@@ -50,7 +52,7 @@ If the repo has requirements files (won't run on macOS), I override tox dependen
 `-x env.<envname>.deps= -x env.<envname>.extras=<extraname>` for all tox environments. Example:
 `tox r -e type -x env.type.deps= -x env.type.extras=type`.
 
-# Testing Philosophy
+## Testing Philosophy
 
 I write tests that verify behavior, not implementation. I test edge cases and error conditions. I prefer integration
 tests over excessive unit-test mocking. I keep 100% coverage on all code, including tests. Each test checks one thing,
@@ -64,19 +66,19 @@ pytest-mock's `mocker` (falling back to stdlib `unittest.mock` only when the fix
 `create_autospec` over raw mocks, and build mocks compactly via constructor kwargs (`MagicMock(a=...)`) rather than
 define-then-assign.
 
-# Markdown files
+## Markdown files
 
 I format Markdown files with `mdformat --wrap 120` after every edit. For PR and issue bodies, I use
 `mdformat --wrap no`: each prose paragraph and list item stays on one physical line, while code blocks and intentional
 line breaks keep their structure.
 
-# Tool Preferences
+## Tool Preferences
 
 For Python projects I use ruff for format and linting, and ty for type checking. I align at 120 characters.
 
 {{- if eq .chezmoi.hostname "pc" }}
 
-# Windows testing
+## Windows testing
 
 This machine has a Windows 11 VM for running code on Windows. I use it when a change touches platform-specific behavior
 (paths, subprocess, file locking, symlinks, console encoding, `sys.platform` branches) or a Windows CI job fails,
@@ -96,17 +98,17 @@ changes to them, so I `git add` new files first. Python 3.11 to 3.15 come from u
 Git are on the PATH. I never run `docker compose down -v` on the VM: it deletes the disk and forces a full reinstall.
 {{- end }}
 
-# Documentation (when docs are requested)
+## Documentation (when docs are requested)
 
 I focus on why and when, not what (code shows what). I include examples and common pitfalls. I keep docs close to the
 code they describe.
 
-# Project Structure Preferences
+## Project Structure Preferences
 
 I don't create configuration files; I inline configuration variables where they're used rather than in another file in
 global scope, unless they're used in multiple locations.
 
-# Development Approach
+## Development Approach
 
 I start by understanding the existing codebase and strive to follow existing patterns. For non-trivial tasks I outline a
 short plan before implementing, and confirm direction when the approach is ambiguous. I break complex tasks into
@@ -118,17 +120,17 @@ stretching permission given for one action to cover a different one, filling a g
 generalizing from a single example. Then I say what the assumption is and get approval first, instead of acting and
 mentioning it afterwards. Choices the request already covers are mine to make; anything past its edge is not.
 
-# Security Considerations
+## Security Considerations
 
 I use environment variables for configuration secrets.
 
-# Git commits
+## Git commits
 
 I keep commit subjects to ≤ 50 chars, imperative mood, no period. For small changes I write a one-line commit; for
 complex changes I add a body (wrapped at 80 chars) explaining what and why and referencing issues. I keep commits atomic
 and self-explanatory, split by concern.
 
-# Git Workflow
+## Git Workflow
 
 After fixing code and verifying checks pass, I commit and push immediately. If I'm uncertain about pushing, I ask
 explicitly "Should I commit and push?". I never leave verified fixes uncommitted without asking. When asked to "fix X",

@@ -24,7 +24,7 @@ prevent a misunderstanding.
 
 ## Negative Listing
 
-Listing what something is *not* before revealing what it *is*. A rhetorical striptease.
+Listing what something is _not_ before revealing what it _is_. A rhetorical striptease.
 
 | Pattern                                   | Problem                           |
 | ----------------------------------------- | --------------------------------- |

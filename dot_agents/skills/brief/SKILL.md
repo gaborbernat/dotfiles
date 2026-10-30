@@ -3,6 +3,8 @@ name: brief
 description: Use a concise output style that minimizes narration and token use during quick iteration.
 ---
 
+# brief
+
 Be concise. Use one sentence when possible. Show code only when asked.
 
 Do the requested work without a preamble or recap. Report changed items, failures that affect the next action, and
