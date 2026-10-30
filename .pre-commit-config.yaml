@@ -1,3 +1,6 @@
+---
+# Patches apply against upstream sources byte for byte, so no hook may rewrite them.
+exclude: \.diff$
 default_language_version:
   python: python3.15
 repos:
@@ -7,21 +10,109 @@ repos:
         priority: 1
       - id: end-of-file-fixer
         priority: 1
+      - id: mixed-line-ending
+        args: [--fix=lf]
+        priority: 1
       - id: check-executables-have-shebangs
+        priority: 2
+      - id: check-json
+        exclude: ^dot_config/vicinae/settings\.json$
         priority: 2
       - id: check-toml
         priority: 2
       - id: detect-private-key
         priority: 2
-      - id: mixed-line-ending
-        args: [--fix=lf]
-        priority: 1
+
+  - repo: https://github.com/scop/pre-commit-shfmt
+    rev: v3.14.1-1
+    hooks:
+      # Templates are not shell until rendered; check-templates lints their output instead.
+      - id: shfmt
+        args: [-w, -i, "4", -ci]
+        exclude: \.tmpl$
+        priority: 3
+
+  - repo: https://github.com/shellcheck-py/shellcheck-py
+    rev: v0.11.0.1
+    hooks:
+      - id: shellcheck
+        args: [--enable=all]
+        exclude: \.tmpl$
+        priority: 4
+
+  - repo: https://github.com/google/yamlfmt
+    rev: v0.21.0
+    hooks:
+      - id: yamlfmt
+        args: [-formatter, "include_document_start=true,retain_line_breaks_single=true"]
+        priority: 3
+
+  - repo: https://github.com/adrienverge/yamllint
+    rev: v1.38.0
+    hooks:
+      - id: yamllint
+        args: [--strict, -d, "{extends: default, rules: {line-length: {max: 120}}}"]
+        priority: 4
+
+  - repo: https://github.com/ComPWA/taplo-pre-commit
+    rev: v0.9.3
+    hooks:
+      - id: taplo-format
+        args: [--option, column_width=120]
+        priority: 3
+      - id: taplo-lint
+        args: [--no-schema]
+        priority: 4
+
+  - repo: https://github.com/biomejs/pre-commit
+    rev: v2.6.4
+    hooks:
+      # vicinae and Stream Deck rewrite their own JSON, so formatting it only churns the diff
+      - id: biome-check
+        args:
+          - --indent-style=space
+          - --indent-width=4
+          - --line-width=120
+          - --javascript-formatter-quote-style=single
+          - --json-parse-allow-comments=true
+        files: \.(json|jsonc|js|css)$
+        exclude: |
+          (?x)^(
+            dot_config/vicinae/settings\.json|
+            private_Library/.*StreamDeck/.*|
+            dot_config/private_gtk-[34]\.0/gtk\.css
+          )$
+        priority: 3
+      # GTK CSS names widgets (headerbar, window) that a web CSS linter rejects as unknown elements
+      - id: biome-format
+        args: [--indent-style=space, --indent-width=4, --line-width=120]
+        files: ^dot_config/private_gtk-[34]\.0/gtk\.css$
+        priority: 3
+      - id: biome-lint
+        args: [--json-parse-allow-comments=true]
+        files: ^dot_config/vicinae/settings\.json$
+        priority: 4
+
+  - repo: https://github.com/hukkin/mdformat
+    rev: 1.0.0
+    hooks:
+      - id: mdformat
+        args: [--wrap, "120", --number]
+        additional_dependencies: [mdformat-gfm==1.0.0, mdformat-front-matters==2.0.0]
+        priority: 3
+
+  - repo: https://github.com/rvben/rumdl-pre-commit
+    rev: v0.3.2
+    hooks:
+      - id: rumdl
+        args: [--config, "line-length = 120"]
+        priority: 4
 
   - repo: local
     hooks:
       - id: check-no-hardcoded-home
         name: Check for hardcoded home paths
-        entry: >-
+        entry: |-
           bash -c 'if grep -lF "$HOME" "$@" 2>/dev/null; then
           echo "Found hardcoded home paths - use \$HOME variable instead"; exit 1; fi' --
         language: system
@@ -39,4 +130,88 @@ repos:
         entry: ruff check --fix --unsafe-fixes
         language: system
         types: [python]
+        priority: 4
+      # The scripts project resolves its tests' imports from src/; the standalone scripts share its typing venv.
+      - id: ty-scripts
+        name: ty check (scripts project)
+        entry: uv run --quiet --project dot_local/scripts --all-groups ty check --project dot_local/scripts
+        language: system
+        types: [python]
+        files: ^dot_local/scripts/
+        pass_filenames: false
+        priority: 5
+      - id: ty
+        name: ty check
+        entry: >-
+          uv run --quiet --project dot_local/scripts --all-groups ty check --python dot_local/scripts/.venv
+        language: system
+        types: [python]
+        exclude: ^dot_local/scripts/
+        priority: 5
+      - id: fish-indent
+        name: fish_indent
+        entry: fish_indent --write
+        language: system
+        files: \.fish$
         priority: 3
+      - id: fish-syntax
+        name: fish syntax
+        entry: fish --no-execute
+        language: system
+        files: \.fish$
+        priority: 4
+      - id: psscriptanalyzer
+        name: PSScriptAnalyzer
+        entry: pwsh -NoProfile -File scripts/lint/check-powershell.ps1
+        language: system
+        files: \.ps1$
+        priority: 4
+      - id: check-templates
+        name: lint rendered chezmoi templates
+        entry: scripts/lint/check-templates
+        language: system
+        files: \.tmpl$
+        # its prompt functions only exist during chezmoi init
+        exclude: ^\.chezmoi\.toml\.tmpl$
+        priority: 5
+      - id: check-line-length
+        name: lines within 120 columns
+        entry: scripts/lint/check-line-length
+        language: system
+        files: \.(fish|bat|service|timer|rules|conf|desktop)$
+        # aerc.conf holds aerc's own one-line templates, and its INI format has no line continuation
+        exclude: ^dot_config/aerc/aerc\.conf$
+        priority: 5
+      - id: check-line-length-shell
+        name: shell lines within 120 columns
+        entry: scripts/lint/check-line-length
+        language: system
+        types: [shell]
+        exclude: \.tmpl$
+        priority: 5
+      # These validators ship with systemd and libxml2 on Linux only; macOS checkouts skip them.
+      - id: xmllint
+        name: xmllint
+        entry: bash -c 'command -v xmllint > /dev/null || exit 0; xmllint --noout "$@"' --
+        language: system
+        files: \.xml$
+        priority: 4
+      - id: desktop-file-validate
+        name: desktop-file-validate
+        entry: bash -c 'command -v desktop-file-validate > /dev/null || exit 0; desktop-file-validate "$@"' --
+        language: system
+        files: \.desktop$
+        priority: 4
+      - id: udevadm-verify
+        name: udevadm verify
+        entry: bash -c 'command -v udevadm > /dev/null || exit 0; udevadm verify --no-summary "$@"' --
+        language: system
+        files: \.rules$
+        exclude: ^dot_codex/
+        priority: 4
+      - id: systemd-analyze-verify
+        name: systemd-analyze verify
+        entry: bash -c 'command -v systemd-analyze > /dev/null || exit 0; systemd-analyze verify --man=no "$@"' --
+        language: system
+        files: \.(service|timer)$
+        priority: 4

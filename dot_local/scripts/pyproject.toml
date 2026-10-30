@@ -1,15 +1,14 @@
 [dependency-groups]
-test = [
-  "pytest>=9.2",
-  "pytest-mock>=3.17",
-]
+test = ["pytest>=9.2", "pytest-mock>=3.17"]
 typing = [
   "packaging>=26.3",
+  "pygobject-stubs>=2.13",
   "pygithub>=2.10.0",
   "rich>=15.0.0",
   "rich-argparse>=1.8.0",
   "truststore>=0.10.4",
   "ty>=0.0.86",
+  "websockets>=15",
 ]
 
 [tool.ruff]
@@ -18,18 +17,19 @@ line-length = 120
 format.preview = true
 format.docstring-code-line-length = 120
 format.docstring-code-format = true
-lint.select = [ "ALL" ]
+lint.select = ["ALL"]
 lint.ignore = [
-  "COM812", # conflicts with formatter
-  "CPY",    # No copyright
-  "D",      # no docs
-  "ISC001", # conflicts with formatter
-  "S", # we trust ourselves
+  "COM812",  # conflicts with formatter
+  "CPY",     # No copyright
+  "D",       # no docs
+  "ISC001",  # conflicts with formatter
+  "S",       # we trust ourselves
   "PLR2004", # magic numbers are fine
 ]
-lint.isort = { known-first-party = [
-  "tests",
-] }
+lint.isort = { known-first-party = ["tests"] }
 
 [tool.ty.environment]
 python-version = "3.14"
+
+[tool.pytest]
+pythonpath = ["src"]

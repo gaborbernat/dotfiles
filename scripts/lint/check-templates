@@ -1,0 +1,63 @@
+#!/usr/bin/env python3
+"""Lint chezmoi templates by rendering them and checking the output as the file type they become."""
+
+import json
+import subprocess
+import sys
+import tomllib
+from pathlib import Path
+from typing import Final
+
+_SHELL_SHEBANGS: Final = ("#!/bin/bash", "#!/usr/bin/bash", "#!/usr/bin/env bash", "#!/bin/sh", "#!/usr/bin/env sh")
+
+
+def main() -> None:
+    failed = False
+    for template in map(Path, sys.argv[1:]):
+        render = subprocess.run(
+            ["chezmoi", "execute-template", "--source", str(Path.cwd())],
+            input=template.read_text(encoding="utf-8"),
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        if render.returncode:
+            sys.stdout.write(f"{template}: does not render\n{render.stderr}")
+            failed = True
+        elif render.stdout.strip() and (problems := lint(template, render.stdout)):
+            sys.stdout.write(f"{template}: rendered output fails\n{problems}")
+            failed = True
+    sys.exit(failed)
+
+
+def lint(template: Path, rendered: str) -> str:
+    target = template.name.removesuffix(".tmpl")
+    if target.endswith(".sh") or rendered.startswith(_SHELL_SHEBANGS):
+        return run(["shellcheck", "--enable=all", "-"], rendered) + run(
+            ["shfmt", "-i", "4", "-ci", "-d", "--filename", target], rendered
+        )
+    if target.endswith(".fish"):
+        return run(["fish", "--no-execute"], rendered) + run(["fish_indent", "--check"], rendered)
+    if target.endswith((".yaml", ".yml")):
+        yamllint_config = "{extends: default, rules: {line-length: {max: 120}}}"
+        return run(["yamllint", "--strict", "-d", yamllint_config, "-"], rendered)
+    if target.endswith(".toml"):
+        try:
+            tomllib.loads(rendered)
+        except tomllib.TOMLDecodeError as error:
+            return f"{error}\n"
+    if target.endswith(".json"):
+        try:
+            json.loads(rendered)
+        except json.JSONDecodeError as error:
+            return f"{error}\n"
+    return ""
+
+
+def run(command: list[str], rendered: str) -> str:
+    result = subprocess.run(command, input=rendered, capture_output=True, text=True, check=False)
+    return result.stdout + result.stderr if result.returncode else ""
+
+
+if __name__ == "__main__":
+    main()
