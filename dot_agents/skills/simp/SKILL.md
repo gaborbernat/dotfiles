@@ -1,6 +1,6 @@
 ---
 name: simp
-description: Simplify and tighten code and tests to a strict house style — concise why-not-what comments, parameterized tests, explicit exports, late/compact definitions, idiomatic typing. Common rules apply to every language; the Python section adds Python-only mechanics. Use when asked to simplify, tidy, or refactor for style — not to find bugs.
+description: Simplify and tighten code and tests to a strict house style (concise why-not-what comments, parameterized tests, explicit exports, late/compact definitions, idiomatic typing). Common rules apply to every language; the Python section adds Python-only mechanics. Use when asked to simplify, tidy, or refactor for style, not to find bugs.
 ---
 
 # Simp
@@ -9,12 +9,12 @@ Apply the rules below to the files in scope (the current diff, a named file, or 
 quality pass: simplify and restyle without changing what the code computes. A few rules change behavior at the edges:
 dropping an unused default changes a signature, narrowing an `except` lets an unlisted error propagate, and removing a
 dependency fallback turns a degraded mode into a load-time failure. Name each such change in the report. It does not
-hunt for bugs — use `/code-review` for that.
+hunt for bugs; use `/code-review` for that.
 
 Read each target file and its siblings first to match existing conventions, then apply every rule that fits. Report what
 changed and why. Run the project's tests if test files were touched.
 
-Apply the rules as written. A rule's exception holds only when a concrete, unavoidable necessity forces it — a line that
+Apply the rules as written. A rule's exception holds only when a concrete, unavoidable necessity forces it: a line that
 cannot otherwise fit the width limit, a value the language requires to exist before use, an upstream bug with no other
 fix. "It reads nicer", "it documents intent", "it keeps things symmetric", "it is more consistent", and anything phrased
 as "could" or "I think" are not exceptions; when that is the only justification, the rule wins. Do not invent a reason
@@ -47,13 +47,13 @@ idioms, mapping the Python specifics yourself (its formatter for `ruff`, its tes
 
 ### Code rules
 
-01. **Comments and docstrings explain why, not what — concisely.** Delete any comment or docstring that restates what
-    the code does. Keep only those giving rationale the code can't show, and keep them as short as possible — code
-    should be self-documenting.
+01. **Comments and docstrings explain why, not what, concisely.** Delete any comment or docstring that restates what the
+    code does. Keep only those giving rationale the code can't show, and keep them as short as possible; code should be
+    self-documenting.
 
-    Where the *why* is genuinely non-obvious (a workaround, a subtle constraint, a non-local decision), a short comment
-    is encouraged rather than omitted: it captures rationale the code cannot, and doubles as durable context a coding
-    agent will reliably read. Put that comment at the line that makes the choice.
+    Where the *why* is non-obvious (a workaround, a subtle constraint, a non-local decision), a short comment is
+    encouraged rather than omitted: it captures rationale the code cannot, and doubles as durable context a coding agent
+    will reliably read. Put that comment at the line that makes the choice.
 
     Keep every paragraph of a comment, docstring or document under 100 words; split a longer one at a change of topic.
     In documents (README, design notes), prefer paragraphs, distill parallel items into a short list, and use **bold**,
@@ -82,17 +82,17 @@ idioms, mapping the Python specifics yourself (its formatter for `ruff`, its tes
     and rots as code moves. If a block feels like it needs a label, that is a signal to extract a function or class with
     a descriptive name instead.
 
-03. **Wrap to the configured line length.** Use the project's configured width — in Python, ruff's `line-length`
+03. **Wrap to the configured line length.** Use the project's configured width: in Python, ruff's `line-length`
     (`pyproject.toml`/`ruff.toml`; 120 if unset). The formatter wraps code; manually reflow comments, docstrings and
     documentation to the same width, since formatters do not touch prose. No line should exceed the limit.
 
-04. **Compact, late variables.** Define each variable as late as possible, immediately before its first use — not at the
+04. **Compact, late variables.** Define each variable as late as possible, immediately before its first use, not at the
     top of a block. Inline single-use local values at their point of use. A local earns a name when its value is used in
-    two or more places, or when naming it makes the code more compact — most often because inlining would wrap the
+    two or more places, or when naming it makes the code more compact, most often because inlining would wrap the
     statement across several lines (a long log or exception message, a nested call argument), or because the identical
     subexpression repeats within one statement. Prefer the named two-line form over the inlined multi-line explosion.
 
-    Readability, documenting intent, visual symmetry, and giving a comment a home are not exceptions — inline the value
+    Readability, documenting intent, visual symmetry, and giving a comment a home are not exceptions: inline the value
     and put any comment at the use site. A genuine module-scope configuration or taxonomy constant stays named (and
     typed `Final` in Python); lifting a one-off local to module scope only to name or comment it does not make it one.
     The same holds for fields: keep the object that owns a value and read through it (`self._engine.capabilities`),
@@ -100,10 +100,11 @@ idioms, mapping the Python specifics yourself (its formatter for `ruff`, its tes
 
 05. **Module scope only for shared values.** A module-level constant or variable belongs at module scope only when two
     or more functions or methods use it, or another module imports it (check every consumer, including sibling repos in
-    scope). A value used by one function moves into it, and is inlined there when used once. Values the language or
-    framework needs at module scope (decorator and default arguments, class bodies, exports, type aliases, test markers)
-    stay, as do values whose identity must stay stable across calls (a memoization key, a UI hook dependency) and a
-    value expensive to rebuild on a hot path, with a one-line comment saying so.
+    scope). A value used by one function moves into it, and is inlined there when used once.
+
+    Values the language or framework needs at module scope (decorator and default arguments, class bodies, exports, type
+    aliases, test markers) stay, as do values whose identity must stay stable across calls (a memoization key, a UI hook
+    dependency) and a value expensive to rebuild on a hot path, with a one-line comment saying so.
 
 06. **Descriptive names.** Give every name a descriptive word. Single-character names are allowed only as loop or
     comprehension targets (`[x.id for x in rows]`); everywhere else name the thing. Avoid architecture jargon whose
@@ -118,7 +119,7 @@ idioms, mapping the Python specifics yourself (its formatter for `ruff`, its tes
     The order is depth-first: a callee sits directly after the caller that first references it, before that caller's
     next sibling, whether it is public or private (never group private helpers at the bottom). A private module-level
     helper used by one class becomes a method of it (static when it needs no state) so it can sit after its caller. The
-    only exceptions are genuine runtime ordering requirements — a name that must already exist when a line *executes* (a
+    only exceptions are genuine runtime ordering requirements: a name that must already exist when a line *executes* (a
     module-scope value, a decorator, a default argument, a base class).
 
 08. **Functions separate tasks or share code.** A function exists to name a distinct task or to reuse code, not to cut a
@@ -147,15 +148,18 @@ idioms, mapping the Python specifics yourself (its formatter for `ruff`, its tes
     modules, propose it. Remove an interface (protocol, ABC) with one implementation in the same package; its consumers
     name the implementation. An interface that does decouple layers lives with the code that consumes it, not in a
     shared "interfaces" module, and each implementation inherits it explicitly so the type checker verifies it where it
-    is defined (a narrow private view several classes satisfy may stay structural). A resource with paired setup and
-    teardown (signal handlers, a lock, a temporary install) is a context manager, so the teardown cannot be forgotten.
+    is defined (a narrow private view several classes satisfy may stay structural).
+
+    A resource with paired setup and teardown (signal handlers, a lock, a temporary install) is a context manager, so
+    the teardown cannot be forgotten.
 
 13. **Keep details with their owner.** Moving a value or type to another module is a structural refactor, so propose it.
     A value specific to one component (its lease duration, its capacity, a feed name) is declared by that component and
-    read through its interface, never hard-coded in a generic module with a comment naming the component. A type lives
-    with the logic that builds and operates on it, not in a shared `model` or `types` package: one used by a single
-    concept moves to it, one shared by several goes to the owner of the contract they meet at, and packages never import
-    each other at runtime (annotation-only references go under `TYPE_CHECKING`).
+    read through its interface, never hard-coded in a generic module with a comment naming the component.
+
+    A type lives with the logic that builds and operates on it, not in a shared `model` or `types` package: one used by
+    a single concept moves to it, one shared by several goes to the owner of the contract they meet at, and packages
+    never import each other at runtime (annotation-only references go under `TYPE_CHECKING`).
 
 14. **Explicit errors.** Catch only the exception types the guarded call can raise; read the callee to find them. A
     catch-all is allowed only at a deliberate containment boundary (a service loop's per-cycle or per-item handler),
@@ -166,23 +170,22 @@ idioms, mapping the Python specifics yourself (its formatter for `ruff`, its tes
     load time. Do not wrap its import in a guard that turns its absence into a friendly refusal or a degraded mode.
 
 16. **No defensive code for impossible states.** Don't guard against a condition the callers, types, or invariants
-    already preclude — delete the branch instead of writing an `if` (or a test) for a case that cannot occur. A guard
+    already preclude; delete the branch instead of writing an `if` (or a test) for a case that cannot occur. A guard
     earns its place only when something real can violate it at runtime (untrusted input, an allocation/OS failure, a
     documented `None`).
 
-    If a branch is unreachable without a bug elsewhere it is dead code: remove it, or — when removing it would lose a
-    genuinely-untestable safety net (an allocation failure, an exhaustive-`switch` default the compiler requires) —
-    exclude it from coverage with a one-line justification, never a hollow test.
+    If a branch is unreachable without a bug elsewhere it is dead code: remove it, or, when removing it would lose an
+    untestable safety net (an allocation failure, an exhaustive-`switch` default the compiler requires), exclude it from
+    coverage with a one-line justification, never a hollow test.
 
 17. **Compare composite values in one check.** When comparing or asserting a structured value (`dict`, `list`, `tuple`,
     dataclass, model), compare the whole object with a single `==` against one expected literal rather than picking it
     apart field by field across several comparisons. One equality reads better, gives a full diff on failure, and can't
-    drift out of sync. Break it up only when you genuinely assert on a subset.
+    drift out of sync. Break it up only when you assert on a subset.
 
 18. **Fix, never suppress, linter and type-checker findings.** Resolve every finding by fixing the code. Do not add
     ignore directives or disable rules to silence them. When a genuine fix is impossible (e.g. an upstream stub bug),
-    the suppression names the specific error code and carries an inline reason or upstream link — never a blanket
-    ignore.
+    the suppression names the specific error code and carries an inline reason or upstream link, never a blanket ignore.
 
 19. **Explicit public API.** Expose only the names other modules use; keep everything else internal to the file. Never
     widen a symbol's visibility just to reach it from elsewhere.
@@ -212,25 +215,25 @@ idioms, mapping the Python specifics yourself (its formatter for `ruff`, its tes
    through the public caller instead.
 
 7. **Mock only true boundaries; never hand-roll fakes.** Exercise real collaborators by default. Reach for a mock only
-   at a genuine seam you cannot run in-process — network, clock, filesystem, subprocess. Prefer a spec-bound mock that
+   at a genuine seam you cannot run in-process: network, clock, filesystem, subprocess. Prefer a spec-bound mock that
    tracks the real signature over a free-form one, and build it compactly. Never sleep to let a thread run: wait on an
-   event the mock sets. A test built mostly of mocks asserting mock calls tests the mock, not the code — prefer one
+   event the mock sets. A test built mostly of mocks asserting mock calls tests the mock, not the code; prefer one
    integration test through the real path.
 
 8. **Every test must be able to fail for the right reason.** Breaking the behavior a test targets must make that test
    fail; reaching a line or branch is not the same as testing it, and a test that passes regardless is as empty as no
    test at all. Two ways tests fall short:
 
-   - *Tautological assertions* — `assert True`, asserting a literal that was just passed in, or asserting only that a
+   - *Tautological assertions*: `assert True`, asserting a literal that was just passed in, or asserting only that a
      mock was called without checking the resulting value or state. If the test would still pass with the function body
      replaced by `pass`/`raise`, it tests nothing.
-   - *Coverage without discrimination* — executing a branch only to satisfy the coverage gate while asserting something
+   - *Coverage without discrimination*: executing a branch only to satisfy the coverage gate while asserting something
      that holds whether or not that branch fired: an idempotence or round-trip check that still passes on a no-op, a
      "does not raise" / truthy assertion, or a differential that passes regardless. Pin the observable difference *that*
-     branch produces — the exact output, the specific value, the state change.
+     branch produces: the exact output, the specific value, the state change.
 
    When a path has no observable effect to assert (a defensive guard, an unreachable-without-a-bug invariant), do not
-   manufacture a hollow test — delete it or exclude it per *No defensive code for impossible states*.
+   manufacture a hollow test; delete it or exclude it per *No defensive code for impossible states*.
 
 ## Python
 
@@ -240,16 +243,16 @@ After editing, fix linting before the PR is opened. If the project has a `.lintr
 `linterator check -l info --fix .` (linterator already runs ruff, so do not also run it separately). Otherwise, run
 `ruff format .; ruff check --fix --unsafe-fixes --output-format=concise .`. Either way, ensure it passes.
 
-These rules cover only what ruff cannot. Anything ruff already enforces and auto-fixes under `select = ["ALL"]` —
-argument-count caps (`PLR0913`), `TYPE_CHECKING` import moves (`TC00x`), modern-syntax upgrades (`UP`),
-exception-message/`raise ... from` hygiene (`EM`/`B904`), blind-except bans (`BLE001`/`E722`) — is handled by the lint
-step above and must not be restated here.
+These rules cover only what ruff cannot. The lint step above handles anything ruff already enforces and auto-fixes under
+`select = ["ALL"]`, so these rules must not restate it: argument-count caps (`PLR0913`), `TYPE_CHECKING` import moves
+(`TC00x`), modern-syntax upgrades (`UP`), exception-message/`raise ... from` hygiene (`EM`/`B904`), and blind-except
+bans (`BLE001`/`E722`).
 
 01. **Walrus.** Use `:=` whenever it makes the code more compact without hurting readability.
 
 02. **`Final` for constants.** Any value that is never reassigned, especially at module scope, is typed `Final[<type>]`.
 
-03. **Global naming.** Module-scope variables are `UPPER_CASE`, additionally `_`-prefixed when not imported by another
+03. **Global naming.** Module-scope variables are `UPPER_CASE`, also `_`-prefixed when not imported by another
     business-logic module (e.g. `_DEFAULT_TIMEOUT: Final[int] = 30`, `_LOGGER: Final[logging.Logger] = ...`).
 
 04. **Explicit exports.** Every name imported by other modules appears in an `__all__ = [...]` at the end of the file.

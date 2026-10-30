@@ -1,7 +1,7 @@
-# Codex execpolicy allowlist — parity with Claude Code's permissions.allow Bash(...) rules.
-# Allow-listed commands auto-run under approval_policy = "on-request"; everything else prompts.
-# prefix_rule matches an ordered argv prefix (NOT a glob), so pattern=["git"] == Bash(git *).
-# Note: execpolicy is a Codex preview feature; an "allow" decision also bypasses the sandbox.
+# Mirrors Claude Code's permissions.allow Bash(...) rules. Listed commands auto-run under
+# approval_policy = "on-request"; everything else prompts. prefix_rule matches an ordered argv prefix, not a glob, so
+# pattern=["git"] is Bash(git *). execpolicy is a Codex preview feature, and an "allow" decision also bypasses the
+# sandbox.
 
 prefix_rule(pattern = ["awk"], decision = "allow")
 prefix_rule(pattern = ["brew"], decision = "allow")

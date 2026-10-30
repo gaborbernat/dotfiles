@@ -10,5 +10,5 @@ cornerstone, versatile, profound, fascinating, intriguing, ingenious, captivatin
 potential, findings, insights, comprehensive, holistic, streamline, optimize, landscape, ecosystem, framework, crucial,
 essential, key, vital.
 
-**Copula avoidance** — restore plain "is": "serves as" / "acts as" / "functions as" / "stands as" / "represents" (when
-it means is) → "is".
+**Copula avoidance**: replace "serves as" / "acts as" / "functions as" / "stands as" / "represents" (when it means is)
+with plain "is".

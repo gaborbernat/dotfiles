@@ -1,40 +1,33 @@
 #!/bin/sh
-# Title-setting helper for Claude Code hooks.
-# Claude spawns hooks in a detached session with no controlling terminal, so
-# writing to /dev/tty fails with ENXIO. We instead walk up the process tree to
-# find an ancestor still attached to the user's terminal and write the OSC
-# title-set escape there directly.
-
-event=$1
-emoji=$2
-sound=$3
+# Sets the terminal title for a Claude Code hook event: notify.sh EVENT EMOJI [SOUND].
+# Claude spawns hooks in a detached session with no controlling terminal, so writing to /dev/tty fails with ENXIO. We
+# walk up the process tree to an ancestor still attached to the user's terminal and write the OSC title escape there.
 
 if command -v logger >/dev/null 2>&1; then
-    printf '%s %s\n' "$(date '+%H:%M:%S.%N')" "$event" | logger -t claude-hooks
+    printf '%s %s\n' "$(date '+%H:%M:%S.%N')" "$1" | logger -t claude-hooks
 fi
 
-safe_emoji=$(printf '%s' "$emoji" | sed 's/[[:cntrl:]]//g')
+safe_emoji=$(printf '%s' "$2" | sed 's/[[:cntrl:]]//g')
 safe_dir=$(basename "$PWD" | sed 's/[[:cntrl:]]//g')
 title=$(printf '\033]2;%s %s Claude\007' "$safe_emoji" "$safe_dir")
 
 if ! { printf '%s' "$title" > /dev/tty; } 2>/dev/null; then
     pid=$PPID
     while [ -n "$pid" ] && [ "$pid" != "1" ]; do
-        t=$(ps -o tty= -p "$pid" 2>/dev/null | tr -d ' ')
-        if [ -n "$t" ] && [ "$t" != "??" ]; then
-            { printf '%s' "$title" > "/dev/$t"; } 2>/dev/null
+        tty=$(ps -o tty= -p "$pid" 2>/dev/null | tr -d ' ')
+        if [ -n "$tty" ] && [ "$tty" != "??" ]; then
+            { printf '%s' "$title" > "/dev/$tty"; } 2>/dev/null
             break
         fi
         pid=$(ps -o ppid= -p "$pid" 2>/dev/null | tr -d ' ')
     done
 fi
 
-if [ -n "$sound" ] && [ -f "$HOME/.claude/sounds/$sound" ]; then
+sound="$HOME/.claude/sounds/$3"
+if [ -f "$sound" ]; then
     if command -v afplay >/dev/null 2>&1; then
-        afplay "$HOME/.claude/sounds/$sound" >/dev/null 2>&1 &
+        afplay "$sound" >/dev/null 2>&1 &
     elif command -v pw-play >/dev/null 2>&1; then
-        pw-play "$HOME/.claude/sounds/$sound" >/dev/null 2>&1 &
+        pw-play "$sound" >/dev/null 2>&1 &
     fi
 fi
-
-exit 0

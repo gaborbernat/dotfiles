@@ -56,9 +56,11 @@ gh api -X POST repos/{owner}/{repo}/security-advisories --input advisory.json
 3.1 vector you justify metric by metric from the reproduction; when the evidence leaves a metric between two values,
 pick the less severe one, so the score errs low rather than high), `cwe_ids`, and `vulnerabilities` with the package
 `ecosystem` and `name`, the `vulnerable_version_range` you confirmed, and `patched_versions` left empty until a release
-ships the fix. Write the body to a file and pass it as JSON; never inline it in the shell. Once the fix PR exists,
-update the advisory with `gh api -X PATCH repos/{owner}/{repo}/security-advisories/{ghsa_id} --input advisory.json` to
-add the fix paragraph and PR link under **Versions tested**.
+ships the fix.
+
+Write the body to a file and pass it as JSON; never inline it in the shell. Once the fix PR exists, update the advisory
+with `gh api -X PATCH repos/{owner}/{repo}/security-advisories/{ghsa_id} --input advisory.json` to add the fix paragraph
+and PR link under **Versions tested**.
 
 Structure the description after
 [GHSA-cw65-gx24-rc82](https://github.com/pypa/virtualenv/security/advisories/GHSA-cw65-gx24-rc82), with these `##`
