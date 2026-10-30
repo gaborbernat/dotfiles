@@ -144,7 +144,11 @@ powers the adapter off for both users. Fish `u` shows new upstream session commi
 Connecting an Xbox controller opens Big Picture through a [udev trigger](scripts/fedora/steam-tv/steam-tv-trigger): in
 the session on screen if someone is logged in, otherwise by logging in `gaming` once through GDM's runtime config. A
 controller reconnecting mid-game is ignored. On the desktop, `order-monitors` makes the left BenQ primary while it is
-connected and the TV otherwise, so Big Picture and games open on the TV when the desk screens are off.
+connected and the TV otherwise, so Big Picture and games open on the TV when the desk screens are off. An unknown
+display keeps its place, but the primary rule still applies. The trigger first wakes the TV over Wake-on-LAN and
+switches it to HDMI 1 through webOS; enable Turn on via Wi-Fi on the TV, and accept the pairing prompt it shows on the
+first connect. GNOME ignores gamepad input, so the desktop wakes the screens and holds off blanking until the last Xbox
+controller disconnects.
 
 For iMessage on Fedora, [BlueBubbles](https://bluebubbles.app/install/) needs its server running on an awake Mac signed
 in to Messages. Complete the server's Full Disk Access, notification, and connection setup on the Mac, then connect the

@@ -91,6 +91,7 @@ nmap-ncat
 nvtop
 pinentry-gnome3
 python3-gobject
+python3-websockets
 pipewire-utils
 poppler-utils
 ShellCheck

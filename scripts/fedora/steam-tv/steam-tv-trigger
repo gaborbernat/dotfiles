@@ -1,6 +1,7 @@
 #!/usr/bin/bash
-# Runs as root when an Xbox controller connects: opens Steam Big Picture for whoever owns
-# the seat, or logs in the gaming user, whose gamescope session is Big Picture on the TV.
+# Runs as root when an Xbox controller connects: turns the TV on at HDMI 1, then opens Steam
+# Big Picture for whoever owns the seat, or logs in the gaming user, whose gamescope session
+# is Big Picture on the TV.
 set -euo pipefail
 
 readonly GAMING_USER=gaming
@@ -11,6 +12,9 @@ seat_user() {
             '.[] | select(.seat == "seat0" and .class == "user" and ($id == "" or .session == $id)) | "\(.session) \(.user)"' \
         | /usr/bin/head -n1
 }
+
+# The first run shows a pairing prompt on the TV; a TV that cannot be reached must not block Steam.
+/usr/local/bin/lgtv-hdmi "$STATE_DIRECTORY/lgtv-client-key" || true
 
 active=$(/usr/bin/loginctl show-seat seat0 --property=ActiveSession --value)
 read -r session user <<< "$(seat_user "$active")" || true
