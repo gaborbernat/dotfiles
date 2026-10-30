@@ -7,7 +7,7 @@ from typing import Any, Final
 import gi
 
 gi.require_version("Gio", "2.0")
-from gi.repository import Gio, GLib  # ruff: ignore[module-import-not-at-top-of-file] # ty: ignore[unresolved-import] # require_version must run first
+from gi.repository import Gio, GLib  # ruff: ignore[module-import-not-at-top-of-file] # require_version must run first
 
 _MUTTER: Final = ("org.gnome.Mutter.DisplayConfig", "/org/gnome/Mutter/DisplayConfig", "org.gnome.Mutter.DisplayConfig")
 _TV_RANK: Final = 3
@@ -16,6 +16,10 @@ _TV_RANK: Final = 3
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     bus: Final = Gio.bus_get_sync(Gio.BusType.SESSION)
+
+    def on_monitors_changed(*_: object) -> None:
+        GLib.timeout_add(500, arrange, bus)
+
     bus.signal_subscribe(
         _MUTTER[0],
         _MUTTER[2],
@@ -23,7 +27,7 @@ def main() -> None:
         _MUTTER[1],
         None,
         Gio.DBusSignalFlags.NONE,
-        lambda *_: GLib.timeout_add(500, arrange, bus),
+        on_monitors_changed,
     )
     arrange(bus)
     GLib.MainLoop().run()

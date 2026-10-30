@@ -10,7 +10,7 @@ from typing import Final
 import gi
 
 gi.require_version("Gio", "2.0")
-from gi.repository import Gio, GLib  # ruff: ignore[module-import-not-at-top-of-file] # ty: ignore[unresolved-import] # require_version must run first; gi modules are generated at runtime
+from gi.repository import Gio, GLib  # ruff: ignore[module-import-not-at-top-of-file] # require_version must run first
 
 _CONFIG: Final = Path.home() / ".config/rustdesk/RustDesk_local.toml"
 _MUTTER: Final = ("org.gnome.Mutter.DisplayConfig", "/org/gnome/Mutter/DisplayConfig", "org.gnome.Mutter.DisplayConfig")
