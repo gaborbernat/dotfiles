@@ -1,3 +1,4 @@
+---
 interface:
   display_name: "Pull Request"
   short_description: "Create or update a pull request"

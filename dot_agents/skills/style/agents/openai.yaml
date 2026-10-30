@@ -1,3 +1,4 @@
+---
 interface:
   display_name: "Full style audit"
   short_description: "Audit all simp and no-slop rules for a PR"

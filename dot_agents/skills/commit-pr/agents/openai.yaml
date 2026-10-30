@@ -1,3 +1,4 @@
+---
 interface:
   display_name: "Commit & PR"
   short_description: "Create a commit then open a pull request"

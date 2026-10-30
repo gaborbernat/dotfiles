@@ -1,10 +1,5 @@
 inline_height = 30
-history_filter = [
-  "^cd$",
-  "^pwd$",
-  "^exit$",
-  "^clear$"
-]
+history_filter = ["^cd$", "^pwd$", "^exit$", "^clear$"]
 delete_confirm = true
 enter_accept = true
 filter_mode_shell_up_key_binding = "session"

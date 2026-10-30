@@ -1,3 +1,4 @@
+---
 interface:
   display_name: "Review PRs"
   short_description: "Review and fix PRs before an approved push"

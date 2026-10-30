@@ -1,3 +1,4 @@
+---
 interface:
   display_name: "Simp"
   short_description: "Tighten code/tests to house style"

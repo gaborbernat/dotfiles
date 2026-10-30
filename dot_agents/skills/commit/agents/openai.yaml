@@ -1,3 +1,4 @@
+---
 interface:
   display_name: "Commit"
   short_description: "Create Commitizen-style git commits"

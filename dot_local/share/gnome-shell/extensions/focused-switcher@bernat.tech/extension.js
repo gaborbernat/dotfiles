@@ -4,23 +4,18 @@ import GObject from 'gi://GObject';
 import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
 import St from 'gi://St';
-
+import { Extension } from 'resource:///org/gnome/shell/extensions/extension.js';
 import * as AltTab from 'resource:///org/gnome/shell/ui/altTab.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
-import {Extension} from 'resource:///org/gnome/shell/extensions/extension.js';
 
-const APP_BINDINGS = [
-    'switch-applications',
-    'switch-applications-backward',
-    'switch-group',
-    'switch-group-backward',
-];
+const APP_BINDINGS = ['switch-applications', 'switch-applications-backward', 'switch-group', 'switch-group-backward'];
 const TV_PRODUCT = 'LG TV SSCR2';
 
 export default class FocusedSwitcherExtension extends Extension {
     enable() {
         this._backend = global.get_backend();
-        this._windowService = Gio.DBusExportedObject.wrapJSObject(`<node>
+        this._windowService = Gio.DBusExportedObject.wrapJSObject(
+            `<node>
             <interface name="org.bernat.FocusedSwitcher">
                 <method name="ListWindows">
                     <arg type="s" direction="out"/>
@@ -29,7 +24,9 @@ export default class FocusedSwitcherExtension extends Extension {
                     <arg type="u" direction="in"/>
                 </method>
             </interface>
-        </node>`, this);
+        </node>`,
+            this,
+        );
         this._windowService.export(Gio.DBus.session, '/org/gnome/Shell/Extensions/FocusedSwitcher');
         this._deviceName = null;
         this._mxMouseActive = false;
@@ -40,48 +37,46 @@ export default class FocusedSwitcherExtension extends Extension {
 
         this._deviceChangedId = this._backend.connect('last-device-changed', (_backend, device) => {
             this._deviceName = device?.get_device_name();
-            if (device?.get_device_type() !== Clutter.InputDeviceType.POINTER_DEVICE)
-                return;
+            if (device?.get_device_type() !== Clutter.InputDeviceType.POINTER_DEVICE) return;
             if (this._deviceName !== mxMaster) {
                 this._mxMouseActive = false;
                 return;
             }
-            if (this._mxMouseActive)
-                return;
+            if (this._mxMouseActive) return;
 
             this._mxMouseActive = true;
             const monitorIndex = this._tvMonitor();
-            if (monitorIndex < 0 || global.display.get_current_monitor() === monitorIndex)
-                return;
+            if (monitorIndex < 0 || global.display.get_current_monitor() === monitorIndex) return;
 
             const monitor = Main.layoutManager.monitors[monitorIndex];
             if (monitor)
-                Clutter.get_default_backend().get_default_seat().warp_pointer(
-                    Math.floor(monitor.x + monitor.width / 2),
-                    Math.floor(monitor.y + monitor.height / 2));
+                Clutter.get_default_backend()
+                    .get_default_seat()
+                    .warp_pointer(
+                        Math.floor(monitor.x + monitor.width / 2),
+                        Math.floor(monitor.y + monitor.height / 2),
+                    );
         });
 
         this._focusChangedId = global.display.connect('notify::focus-window', () => {
             const window = global.display.focus_window;
-            if (window?.get_window_type() !== Meta.WindowType.NORMAL)
-                return;
+            if (window?.get_window_type() !== Meta.WindowType.NORMAL) return;
 
             this._previousFocusMonitor = this._focusMonitor;
             this._focusMonitor = window.get_monitor();
         });
 
         this._windowCreatedId = global.display.connect('window-created', (_display, window) => {
-            if (window.get_window_type() !== Meta.WindowType.NORMAL || window.get_transient_for())
-                return;
+            if (window.get_window_type() !== Meta.WindowType.NORMAL || window.get_transient_for()) return;
 
             const focused = global.display.focus_window;
-            const focusMonitor = focused === window
-                ? this._previousFocusMonitor
-                : focused?.get_monitor() ?? global.display.get_current_monitor();
+            const focusMonitor =
+                focused === window
+                    ? this._previousFocusMonitor
+                    : (focused?.get_monitor() ?? global.display.get_current_monitor());
             const tvMonitor = [mxMaster, 'Logitech MX Keys'].includes(this._deviceName) ? this._tvMonitor() : -1;
             const monitorIndex = tvMonitor >= 0 ? tvMonitor : focusMonitor;
-            if (monitorIndex < 0 || monitorIndex >= global.display.get_n_monitors())
-                return;
+            if (monitorIndex < 0 || monitorIndex >= global.display.get_n_monitors()) return;
 
             const clearPending = () => {
                 window.disconnect(shownId);
@@ -92,8 +87,7 @@ export default class FocusedSwitcherExtension extends Extension {
                 clearPending();
                 if (!window.get_transient_for() && !window.is_fullscreen() && window.get_monitor() !== monitorIndex)
                     window.move_to_monitor(monitorIndex);
-                if (global.display.focus_window === window)
-                    this._focusMonitor = window.get_monitor();
+                if (global.display.focus_window === window) this._focusMonitor = window.get_monitor();
             });
             const unmanagedId = window.connect('unmanaged', clearPending);
             this._pendingWindows.set(window, [shownId, unmanagedId]);
@@ -103,48 +97,43 @@ export default class FocusedSwitcherExtension extends Extension {
             Main.wm.setCustomKeybindingHandler(name, Shell.ActionMode.NORMAL, (_display, _window, _event, binding) => {
                 Main.wm._workspaceSwitcherPopup?.destroy();
                 const popup = new FocusedAppSwitcherPopup();
-                if (!popup.show(binding.is_reversed(), binding.get_name(), binding.get_mask()))
-                    popup.destroy();
+                if (!popup.show(binding.is_reversed(), binding.get_name(), binding.get_mask())) popup.destroy();
             });
         }
     }
 
     _tvMonitor() {
         const monitorManager = this._backend.get_monitor_manager();
-        const monitor = monitorManager.get_monitors()
-            .find(candidate => candidate.is_active() && candidate.get_product() === TV_PRODUCT);
+        const monitor = monitorManager
+            .get_monitors()
+            .find((candidate) => candidate.is_active() && candidate.get_product() === TV_PRODUCT);
         return monitor ? monitorManager.get_monitor_for_connector(monitor.get_connector()) : -1;
     }
 
     ListWindows() {
         const monitorManager = this._backend.get_monitor_manager();
-        const monitors = Array.from({length: global.display.get_n_monitors()}, (_, index) => `Monitor ${index + 1}`);
+        const monitors = Array.from({ length: global.display.get_n_monitors() }, (_, index) => `Monitor ${index + 1}`);
         for (const monitor of monitorManager.get_monitors()) {
-            if (!monitor.is_active())
-                continue;
+            if (!monitor.is_active()) continue;
             const index = monitorManager.get_monitor_for_connector(monitor.get_connector());
-            if (index < 0)
-                continue;
+            if (index < 0) continue;
             const product = monitor.get_product();
             const serial = monitor.get_serial();
-            if (monitor.get_vendor() === 'FUE')
-                monitors[index] = 'Dummy';
-            else if (serial === '34R01091019')
-                monitors[index] = 'BenQ Left';
-            else if (serial === 'C6P06071019')
-                monitors[index] = 'BenQ Right';
-            else if (product === TV_PRODUCT)
-                monitors[index] = 'LG TV';
+            if (monitor.get_vendor() === 'FUE') monitors[index] = 'Dummy';
+            else if (serial === '34R01091019') monitors[index] = 'BenQ Left';
+            else if (serial === 'C6P06071019') monitors[index] = 'BenQ Right';
+            else if (product === TV_PRODUCT) monitors[index] = 'LG TV';
             else {
                 const model = product?.startsWith('0x') ? monitor.get_vendor() : product;
                 monitors[index] = `${monitor.get_connector()} · ${model}`;
             }
         }
         return JSON.stringify({
-            windows: global.get_window_actors()
-                .map(actor => actor.meta_window)
-                .filter(window => window?.get_window_type() === Meta.WindowType.NORMAL)
-                .map(window => ({
+            windows: global
+                .get_window_actors()
+                .map((actor) => actor.meta_window)
+                .filter((window) => window?.get_window_type() === Meta.WindowType.NORMAL)
+                .map((window) => ({
                     id: window.get_id(),
                     title: window.get_title(),
                     app: window.get_wm_class() || 'Unknown app',
@@ -154,11 +143,11 @@ export default class FocusedSwitcherExtension extends Extension {
     }
 
     BringToCurrentMonitor(id) {
-        const window = global.get_window_actors()
-            .map(actor => actor.meta_window)
-            .find(candidate => candidate?.get_id() === id && candidate.get_window_type() === Meta.WindowType.NORMAL);
-        if (!window)
-            throw new Error('Window not found');
+        const window = global
+            .get_window_actors()
+            .map((actor) => actor.meta_window)
+            .find((candidate) => candidate?.get_id() === id && candidate.get_window_type() === Meta.WindowType.NORMAL);
+        if (!window) throw new Error('Window not found');
         window.move_to_monitor(global.display.get_current_monitor());
         Main.activateWindow(window);
     }
@@ -170,8 +159,7 @@ export default class FocusedSwitcherExtension extends Extension {
         global.display.disconnect(this._focusChangedId);
         global.display.disconnect(this._windowCreatedId);
         for (const [window, signalIds] of this._pendingWindows)
-            for (const signalId of signalIds)
-                window.disconnect(signalId);
+            for (const signalId of signalIds) window.disconnect(signalId);
         this._pendingWindows = null;
         this._backend = null;
 
@@ -181,49 +169,51 @@ export default class FocusedSwitcherExtension extends Extension {
 }
 
 const FocusedAppSwitcherPopup = GObject.registerClass(
-class FocusedAppSwitcherPopup extends AltTab.AppSwitcherPopup {
-    _init() {
-        super._init();
-        this._monitorIndex = global.display.focus_window?.get_monitor() ?? global.display.get_current_monitor();
-    }
-
-    vfunc_allocate(box) {
-        // GNOME Shell uses the primary monitor for both icon and thumbnail allocation.
-        this.set_allocation(box);
-
-        const monitor = Main.layoutManager.monitors[this._monitorIndex] ?? Main.layoutManager.primaryMonitor;
-        const themeNode = this.get_theme_node();
-        const leftPadding = themeNode.get_padding(St.Side.LEFT);
-        const rightPadding = themeNode.get_padding(St.Side.RIGHT);
-        const hPadding = leftPadding + rightPadding;
-        const childBox = new Clutter.ActorBox();
-        const [, height] = this._switcherList.get_preferred_height(monitor.width - hPadding);
-        const [, width] = this._switcherList.get_preferred_width(height);
-
-        childBox.x1 = Math.max(monitor.x + leftPadding, monitor.x + Math.floor((monitor.width - width) / 2));
-        childBox.x2 = Math.min(monitor.x + monitor.width - rightPadding, childBox.x1 + width);
-        childBox.y1 = monitor.y + Math.floor((monitor.height - height) / 2);
-        childBox.y2 = childBox.y1 + height;
-        this._switcherList.allocate(childBox);
-
-        if (!this._thumbnails)
-            return;
-
-        const icon = this._items[this._selectedIndex];
-        const [iconX] = icon.get_transformed_position();
-        const thumbnailCenter = iconX + icon.width / 2;
-        const [, thumbnailWidth] = this._thumbnails.get_preferred_width(-1);
-        childBox.x1 = Math.max(monitor.x + leftPadding, Math.floor(thumbnailCenter - thumbnailWidth / 2));
-        if (childBox.x1 + thumbnailWidth > monitor.x + monitor.width - hPadding) {
-            const offset = childBox.x1 + thumbnailWidth - monitor.width + hPadding;
-            childBox.x1 = Math.max(monitor.x + leftPadding, childBox.x1 - offset - hPadding);
+    class FocusedAppSwitcherPopup extends AltTab.AppSwitcherPopup {
+        _init() {
+            super._init();
+            this._monitorIndex = global.display.focus_window?.get_monitor() ?? global.display.get_current_monitor();
         }
 
-        childBox.x2 = Math.min(childBox.x1 + thumbnailWidth, monitor.x + monitor.width - rightPadding);
-        childBox.y1 = this._switcherList.allocation.y2 + themeNode.get_length('spacing');
-        this._thumbnails.addClones(monitor.y + monitor.height - themeNode.get_padding(St.Side.BOTTOM) - childBox.y1);
-        const [, thumbnailHeight] = this._thumbnails.get_preferred_height(-1);
-        childBox.y2 = childBox.y1 + thumbnailHeight;
-        this._thumbnails.allocate(childBox);
-    }
-});
+        vfunc_allocate(box) {
+            // GNOME Shell uses the primary monitor for both icon and thumbnail allocation.
+            this.set_allocation(box);
+
+            const monitor = Main.layoutManager.monitors[this._monitorIndex] ?? Main.layoutManager.primaryMonitor;
+            const themeNode = this.get_theme_node();
+            const leftPadding = themeNode.get_padding(St.Side.LEFT);
+            const rightPadding = themeNode.get_padding(St.Side.RIGHT);
+            const hPadding = leftPadding + rightPadding;
+            const childBox = new Clutter.ActorBox();
+            const [, height] = this._switcherList.get_preferred_height(monitor.width - hPadding);
+            const [, width] = this._switcherList.get_preferred_width(height);
+
+            childBox.x1 = Math.max(monitor.x + leftPadding, monitor.x + Math.floor((monitor.width - width) / 2));
+            childBox.x2 = Math.min(monitor.x + monitor.width - rightPadding, childBox.x1 + width);
+            childBox.y1 = monitor.y + Math.floor((monitor.height - height) / 2);
+            childBox.y2 = childBox.y1 + height;
+            this._switcherList.allocate(childBox);
+
+            if (!this._thumbnails) return;
+
+            const icon = this._items[this._selectedIndex];
+            const [iconX] = icon.get_transformed_position();
+            const thumbnailCenter = iconX + icon.width / 2;
+            const [, thumbnailWidth] = this._thumbnails.get_preferred_width(-1);
+            childBox.x1 = Math.max(monitor.x + leftPadding, Math.floor(thumbnailCenter - thumbnailWidth / 2));
+            if (childBox.x1 + thumbnailWidth > monitor.x + monitor.width - hPadding) {
+                const offset = childBox.x1 + thumbnailWidth - monitor.width + hPadding;
+                childBox.x1 = Math.max(monitor.x + leftPadding, childBox.x1 - offset - hPadding);
+            }
+
+            childBox.x2 = Math.min(childBox.x1 + thumbnailWidth, monitor.x + monitor.width - rightPadding);
+            childBox.y1 = this._switcherList.allocation.y2 + themeNode.get_length('spacing');
+            this._thumbnails.addClones(
+                monitor.y + monitor.height - themeNode.get_padding(St.Side.BOTTOM) - childBox.y1,
+            );
+            const [, thumbnailHeight] = this._thumbnails.get_preferred_height(-1);
+            childBox.y2 = childBox.y1 + thumbnailHeight;
+            this._thumbnails.allocate(childBox);
+        }
+    },
+);

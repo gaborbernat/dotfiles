@@ -1,3 +1,4 @@
+---
 interface:
   display_name: "Security Report"
   short_description: "Validate a security report, open advisories and fix PRs"
