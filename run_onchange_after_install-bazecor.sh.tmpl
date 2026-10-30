@@ -2,21 +2,22 @@
 #!/bin/bash
 set -euo pipefail
 
-if [[ $(uname -m) != x86_64 ]]; then
+arch=$(uname -m)
+if [[ ${arch} != x86_64 ]]; then
     echo "Bazecor AppImage here is x86_64 only; skipping" >&2
     exit 0
 fi
 
 checksum=b5d92e67b6087477ad74b8b911493d1ccbd6d265b43aab1bdbcc6c7a2b1eb364
-target="$HOME/.local/opt/bazecor/Bazecor.AppImage"
-if [[ -f "$target" ]] && printf '%s  %s\n' "$checksum" "$target" | sha256sum -c - >/dev/null 2>&1; then
+target="${HOME}/.local/opt/bazecor/Bazecor.AppImage"
+if [[ -f "${target}" ]] && printf '%s  %s\n' "${checksum}" "${target}" | sha256sum -c - >/dev/null 2>&1; then
     exit 0
 fi
 
 download=$(mktemp --suffix=.AppImage)
 trap 'rm -f "$download"' EXIT
-curl -fL -sS -o "$download" 'https://github.com/Dygmalab/Bazecor/releases/download/v1.10.0/Bazecor-1.10.0-x64.AppImage'
-printf '%s  %s\n' "$checksum" "$download" | sha256sum -c -
-install -D -m 0755 "$download" "$target"
+curl -fL -sS -o "${download}" 'https://github.com/Dygmalab/Bazecor/releases/download/v1.10.0/Bazecor-1.10.0-x64.AppImage'
+printf '%s  %s\n' "${checksum}" "${download}" | sha256sum -c -
+install -D -m 0755 "${download}" "${target}"
 echo "Bazecor installed from the checksum-pinned Dygma release"
 {{ end -}}

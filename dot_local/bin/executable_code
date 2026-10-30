@@ -1,2 +1,2 @@
 #!/usr/bin/env sh
-XDG_CACHE_HOME="$HOME/.cache/vscode" exec /usr/bin/code "$@"
+XDG_CACHE_HOME="${HOME}/.cache/vscode" exec /usr/bin/code "$@"

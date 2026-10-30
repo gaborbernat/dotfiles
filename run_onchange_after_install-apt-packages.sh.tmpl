@@ -8,7 +8,7 @@ if ! command -v apt-get >/dev/null 2>&1; then
     exit 1
 fi
 
-mapfile -t packages < <(grep -vE '^\s*(#|$)' "$HOME/.apt_packages.txt")
+mapfile -t packages < <(grep -vE '^\s*(#|$)' "${HOME}/.apt_packages.txt" || true)
 
 echo "📦 Installing apt packages (sudo required)..."
 sudo apt-get update
@@ -16,9 +16,9 @@ sudo DEBIAN_FRONTEND=noninteractive apt-get install -y "${packages[@]}"
 
 # Debian and Ubuntu name fd-find's binary fdfind to avoid a clash; link it as fd, the name other platforms and this
 # repo use.
-if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then
-    mkdir -p "$HOME/.local/bin"
-    ln -sf "$(command -v fdfind)" "$HOME/.local/bin/fd"
+if ! command -v fd >/dev/null 2>&1 && fdfind=$(command -v fdfind); then
+    mkdir -p "${HOME}/.local/bin"
+    ln -sf "${fdfind}" "${HOME}/.local/bin/fd"
 fi
 
 echo "✅ apt packages installed"

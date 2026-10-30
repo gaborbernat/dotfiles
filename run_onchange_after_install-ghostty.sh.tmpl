@@ -4,7 +4,7 @@
 # Ghostty patch hash: {{ include "scripts/fedora/ghostty-undo.diff" | sha256sum }}
 set -euo pipefail
 
-"$HOME/.local/bin/update_fedora_extras" ghostty
+"${HOME}/.local/bin/update_fedora_extras" ghostty
 if rpm -q ghostty >/dev/null 2>&1; then
     sudo dnf remove -y ghostty
 fi

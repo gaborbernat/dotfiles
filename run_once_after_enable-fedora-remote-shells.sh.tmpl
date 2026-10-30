@@ -8,9 +8,9 @@ sudo systemctl enable --now sshd.service et.service
 
 if systemctl is-active --quiet firewalld.service; then
     zone=$(firewall-cmd --get-default-zone)
-    sudo firewall-cmd --permanent --zone="$zone" --add-service=ssh
-    sudo firewall-cmd --permanent --zone="$zone" --add-port=2022/tcp
-    sudo firewall-cmd --permanent --zone="$zone" --add-port=60000-61000/udp
+    sudo firewall-cmd --permanent --zone="${zone}" --add-service=ssh
+    sudo firewall-cmd --permanent --zone="${zone}" --add-port=2022/tcp
+    sudo firewall-cmd --permanent --zone="${zone}" --add-port=60000-61000/udp
     sudo firewall-cmd --reload
 fi
 

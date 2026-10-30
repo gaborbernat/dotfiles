@@ -9,11 +9,11 @@ if ! command -v dnf >/dev/null 2>&1; then
 fi
 
 mapfile -t packages < <(sed -e 's/#.*//' -e '/^[[:space:]]*$/d' \
-    {{ joinPath .chezmoi.sourceDir "dot_dnf_packages.txt" | quote }})
+    {{ joinPath .chezmoi.sourceDir "dot_dnf_packages.txt" | quote }} || true)
 sudo dnf install -y "${packages[@]}"
 
-if [[ -e "$HOME/.local/bin/mise" || -L "$HOME/.local/bin/mise" ]]; then
-    ln -sfn /usr/bin/mise "$HOME/.local/bin/mise"
+if [[ -e "${HOME}/.local/bin/mise" || -L "${HOME}/.local/bin/mise" ]]; then
+    ln -sfn /usr/bin/mise "${HOME}/.local/bin/mise"
 fi
 
 echo "Fedora RPMs installed"

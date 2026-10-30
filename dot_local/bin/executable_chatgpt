@@ -1,2 +1,2 @@
 #!/usr/bin/env sh
-XDG_CACHE_HOME="$HOME/.cache/chatgpt" exec /usr/bin/chatgpt "$@"
+XDG_CACHE_HOME="${HOME}/.cache/chatgpt" exec /usr/bin/chatgpt "$@"

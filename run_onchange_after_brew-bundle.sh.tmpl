@@ -11,32 +11,32 @@ if ! command -v brew >/dev/null 2>&1; then
     exit 1
 fi
 
-private_dir="$HOME/.local/share/chezmoi-private"
+private_dir="${HOME}/.local/share/chezmoi-private"
 combined="$(mktemp)"
 trap 'rm -f "$combined" "$combined.tmp"' EXIT
 
-cat "$HOME/.Brewfile" >"$combined"
+cat "${HOME}/.Brewfile" >"${combined}"
 
-if [[ -f "$private_dir/Brewfile" ]]; then
-    printf '\n# --- private overlay additions ---\n' >>"$combined"
-    cat "$private_dir/Brewfile" >>"$combined"
+if [[ -f "${private_dir}/Brewfile" ]]; then
+    printf '\n# --- private overlay additions ---\n' >>"${combined}"
+    cat "${private_dir}/Brewfile" >>"${combined}"
 fi
 
-if [[ -f "$private_dir/Brewfile.skip" ]]; then
+if [[ -f "${private_dir}/Brewfile.skip" ]]; then
     while IFS= read -r entry; do
         entry="${entry%%#*}"
-        entry="$(echo "$entry" | xargs)"
-        [[ -z "$entry" ]] && continue
-        escaped_entry=$(printf '%s' "$entry" | sed 's/[][\\.^$*+?(){}|]/\\&/g')
+        entry="$(echo "${entry}" | xargs)"
+        [[ -z "${entry}" ]] && continue
+        escaped_entry=$(printf '%s' "${entry}" | sed 's/[][\\.^$*+?(){}|]/\\&/g')
         # grep -v exits 1 when it filters out every line; an empty Brewfile is still valid.
-        grep -vE "^(brew|cask|mas) \"${escaped_entry}\"" "$combined" >"$combined.tmp" || (($? == 1))
-        mv "$combined.tmp" "$combined"
-    done <"$private_dir/Brewfile.skip"
+        grep -vE "^(brew|cask|mas) \"${escaped_entry}\"" "${combined}" >"${combined}.tmp" || (($? == 1))
+        mv "${combined}.tmp" "${combined}"
+    done <"${private_dir}/Brewfile.skip"
 fi
 
 # Install only what is missing; upgrades belong to the `u` function's brew stage.
 # Homebrew's formula locks are non-blocking, so a bundle upgrade racing `u` fails
 # instantly rather than waiting.
 echo "🍺 Installing Homebrew packages..."
-brew bundle install --no-upgrade --file="$combined"
+brew bundle install --no-upgrade --file="${combined}"
 echo "✅ Homebrew packages installed"

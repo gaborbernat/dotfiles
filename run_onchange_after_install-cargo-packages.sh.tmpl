@@ -3,10 +3,10 @@
 # cargo packages hash: {{ include "dot_cargo_packages.txt.tmpl" | sha256sum }}
 set -euo pipefail
 
-export PATH="$HOME/.cargo/bin:$PATH"
+export PATH="${HOME}/.cargo/bin:${PATH}"
 
-if [ -d /opt/bb/lib/pkgconfig ]; then
-    export PKG_CONFIG_PATH="/opt/bb/lib64/pkgconfig:/opt/bb/lib/pkgconfig${PKG_CONFIG_PATH:+:$PKG_CONFIG_PATH}"
+if [[ -d /opt/bb/lib/pkgconfig ]]; then
+    export PKG_CONFIG_PATH="/opt/bb/lib64/pkgconfig:/opt/bb/lib/pkgconfig${PKG_CONFIG_PATH:+:${PKG_CONFIG_PATH}}"
 fi
 
 if ! command -v cargo >/dev/null 2>&1; then
@@ -17,17 +17,17 @@ fi
 echo "📦 Installing cargo packages..."
 
 while IFS= read -r pkg; do
-    [[ -z "$pkg" || "$pkg" =~ ^# ]] && continue
-    echo "  Installing $pkg..."
-    cargo install --locked "$pkg"
-done < "$HOME/.cargo_packages.txt"
+    [[ -z "${pkg}" || "${pkg}" =~ ^# ]] && continue
+    echo "  Installing ${pkg}..."
+    cargo install --locked "${pkg}"
+done <"${HOME}/.cargo_packages.txt"
 
 {{- if and (eq .chezmoi.os "linux") (eq (get .chezmoi.osRelease "id") "fedora") }}
 # GNOME Shell does not necessarily inherit Fish's ~/.cargo/bin PATH. Astra
 # Monitor searches /usr/local/bin explicitly, and this link follows Cargo
 # upgrades without copying the binary.
-if [[ -x "$HOME/.cargo/bin/amdgpu_top" ]]; then
-    sudo ln -sfn "$HOME/.cargo/bin/amdgpu_top" /usr/local/bin/amdgpu_top
+if [[ -x "${HOME}/.cargo/bin/amdgpu_top" ]]; then
+    sudo ln -sfn "${HOME}/.cargo/bin/amdgpu_top" /usr/local/bin/amdgpu_top
 fi
 {{- end }}
 

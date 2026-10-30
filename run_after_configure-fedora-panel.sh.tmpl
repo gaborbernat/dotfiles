@@ -26,41 +26,41 @@ gsettings set org.gnome.shell.extensions.dash-to-panel panel-position 'TOP'
 gsettings set org.gnome.shell.extensions.dash-to-panel show-favorites-all-monitors true
 uuid=dash-to-panel@jderose9.github.com
 schema=org.gnome.shell.extensions.dash-to-panel
-if [[ $(gsettings get "$schema" panel-positions) =~ :\"(BOTTOM|LEFT|RIGHT)\" ]]; then
-    gsettings set "$schema" panel-positions '{}'
+if [[ $(gsettings get "${schema}" panel-positions || true) =~ :\"(BOTTOM|LEFT|RIGHT)\" ]]; then
+    gsettings set "${schema}" panel-positions '{}'
 fi
-system_schema=/usr/share/glib-2.0/schemas/$schema.gschema.xml
-override=$HOME/.local/share/gnome-shell/extensions/$uuid
-if [[ -f "$system_schema" ]] && grep -q 'name="clone-main-panel"' "$system_schema"; then
-    if [[ -f "$override/metadata.json" ]] && jq -e '.version == 9999' "$override/metadata.json" >/dev/null; then
-        gnome-extensions uninstall "$uuid"
+system_schema=/usr/share/glib-2.0/schemas/${schema}.gschema.xml
+override=${HOME}/.local/share/gnome-shell/extensions/${uuid}
+if [[ -f "${system_schema}" ]] && grep -q 'name="clone-main-panel"' "${system_schema}"; then
+    if [[ -f "${override}/metadata.json" ]] && jq -e '.version == 9999' "${override}/metadata.json" >/dev/null; then
+        gnome-extensions uninstall "${uuid}"
     fi
-    gsettings set "$schema" clone-main-panel true
+    gsettings set "${schema}" clone-main-panel true
 else
     if ! printf '%s  %s\n' \
-        e6668dd6bef3ea7ab669d51400d75e1e48684b803850e515aeb3f2d997cf8703 "$override/panel.js" \
-        050741a10e5755dd51322e10d70b43e27ed4584092e1707203e8083bb41d95c2 "$override/appIcons.js" |
+        e6668dd6bef3ea7ab669d51400d75e1e48684b803850e515aeb3f2d997cf8703 "${override}/panel.js" \
+        050741a10e5755dd51322e10d70b43e27ed4584092e1707203e8083bb41d95c2 "${override}/appIcons.js" |
         sha256sum -c - >/dev/null 2>&1; then
         archive=$(mktemp --suffix=.tar.gz)
         source=$(mktemp -d)
         trap 'rm -f "$archive"; rm -rf "$source"' EXIT
-        curl -fsSL --retry 3 -o "$archive" \
+        curl -fsSL --retry 3 -o "${archive}" \
             https://codeload.github.com/Laertes87/dash-to-panel/tar.gz/e3ef7d2a9e528d24a8e72fd1652aba722f2bd8aa
-        echo "943de3a6483714f0d22edbf626810c6b6d5dee8066696b940f3cc5d2accd1c0c  $archive" | sha256sum -c -
-        tar -xzf "$archive" -C "$source" --strip-components=1
-        git -C "$source" apply --unidiff-zero \
+        echo "943de3a6483714f0d22edbf626810c6b6d5dee8066696b940f3cc5d2accd1c0c  ${archive}" | sha256sum -c -
+        tar -xzf "${archive}" -C "${source}" --strip-components=1
+        git -C "${source}" apply --unidiff-zero \
             {{ joinPath .chezmoi.sourceDir "scripts/fedora/dash-to-panel-compat.diff" | quote }}
-        make -s -C "$source" zip-file VERSION=9999
-        gnome-extensions install --force "$source/$uuid"_v9999.zip
+        make -s -C "${source}" zip-file VERSION=9999
+        gnome-extensions install --force "${source}/${uuid}"_v9999.zip
     fi
-    GSETTINGS_SCHEMA_DIR="$override/schemas" gsettings set "$schema" clone-main-panel true
+    GSETTINGS_SCHEMA_DIR="${override}/schemas" gsettings set "${schema}" clone-main-panel true
 fi
 current=$(gsettings get org.gnome.shell enabled-extensions)
 extensions=(dash-to-panel@jderose9.github.com focused-switcher@bernat.tech magnet-tiling@bernat.tech)
 if [[ -d /usr/share/gnome-shell/extensions/appindicatorsupport@rgcjonas.gmail.com ]]; then
     extensions+=(appindicatorsupport@rgcjonas.gmail.com)
 fi
-if [[ -d "$HOME/.local/share/gnome-shell/extensions/monitor@astraext.github.io" ]]; then
+if [[ -d "${HOME}/.local/share/gnome-shell/extensions/monitor@astraext.github.io" ]]; then
     extensions+=(monitor@astraext.github.io)
 fi
 updated=$(python3 -c '
@@ -77,8 +77,8 @@ for name in sys.argv[2:]:
     if name not in options:
         options.append(name)
 print(repr(options))
-' "$current" "${extensions[@]}")
-if [[ "$updated" != "$current" ]]; then
-    gsettings set org.gnome.shell enabled-extensions "$updated"
+' "${current}" "${extensions[@]}")
+if [[ "${updated}" != "${current}" ]]; then
+    gsettings set org.gnome.shell enabled-extensions "${updated}"
     echo "Enabled Fedora GNOME extensions (log out and back in if they are not visible yet)"
 fi

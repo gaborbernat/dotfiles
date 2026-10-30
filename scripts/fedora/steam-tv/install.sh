@@ -2,7 +2,10 @@
 # Installs the trigger that opens Steam Big Picture when an Xbox controller connects.
 set -euo pipefail
 
-(( EUID == 0 )) || { echo 'Run with sudo.' >&2; exit 1; }
+((EUID == 0)) || {
+    echo 'Run with sudo.' >&2
+    exit 1
+}
 cd "$(dirname "$0")"
 
 install --mode=0755 steam-tv-trigger steam-tv lgtv-hdmi /usr/local/bin/

@@ -5,19 +5,19 @@ if [[ ! -f /etc/fedora-release ]] || ! flatpak info com.core447.StreamController
     exit 0
 fi
 
-plugins_dir="$HOME/.var/app/com.core447.StreamController/data/plugins"
-settings="$HOME/.var/app/com.core447.StreamController/data/settings/settings.json"
+plugins_dir="${HOME}/.var/app/com.core447.StreamController/data/plugins"
+settings="${HOME}/.var/app/com.core447.StreamController/data/settings/settings.json"
 for id in com_core447_OSPlugin com_core447_MediaPlugin com_core447_DeckPlugin com_larkum_WorldClocks \
     com_jul_AMDGPUTop; do
-    if [[ ! -f "$plugins_dir/$id/manifest.json" ]]; then
-        "$HOME/.local/bin/update_fedora_extras" streamdeck
+    if [[ ! -f "${plugins_dir}/${id}/manifest.json" ]]; then
+        "${HOME}/.local/bin/update_fedora_extras" streamdeck
         break
     fi
 done
-if [[ ! -f "$settings" ]] || ! jq -e '.store["auto-update"] == false' "$settings" >/dev/null || \
-    ! git -C "$plugins_dir/com_core447_OSPlugin" apply --reverse --check --unidiff-zero \
+if [[ ! -f "${settings}" ]] || ! jq -e '.store["auto-update"] == false' "${settings}" >/dev/null ||
+    ! git -C "${plugins_dir}/com_core447_OSPlugin" apply --reverse --check --unidiff-zero \
         {{ joinPath .chezmoi.sourceDir "scripts/fedora/streamcontroller-unicode.diff" | quote }} 2>/dev/null; then
-    "$HOME/.local/bin/update_fedora_extras" streamdeck
+    "${HOME}/.local/bin/update_fedora_extras" streamdeck
 fi
 
 flatpak permission-set background background com.core447.StreamController yes

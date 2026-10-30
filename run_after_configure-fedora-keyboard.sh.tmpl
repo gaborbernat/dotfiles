@@ -9,8 +9,9 @@ if ! command -v xremap >/dev/null 2>&1; then
     exit 0
 fi
 
+user=$(id -un)
 sudo bash '{{ .chezmoi.sourceDir }}/scripts/fedora/keyboard/install-system.sh' \
-    '{{ .chezmoi.sourceDir }}/scripts/fedora/keyboard/config.yml' "$(id -un)"
+    '{{ .chezmoi.sourceDir }}/scripts/fedora/keyboard/config.yml' "${user}"
 
 if [[ "${XDG_CURRENT_DESKTOP:-}" != *GNOME* ]] ||
     [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" && ! -S "${XDG_RUNTIME_DIR:-}/bus" ]]; then
@@ -26,16 +27,16 @@ from pathlib import Path
 
 path = Path(sys.argv[1])
 print(json.loads(path.read_text())["version"] if path.is_file() else "")
-' "$HOME/.local/share/gnome-shell/extensions/$uuid/metadata.json")
-if [[ "$installed_version" != 16 ]]; then
+' "${HOME}/.local/share/gnome-shell/extensions/${uuid}/metadata.json")
+if [[ "${installed_version}" != 16 ]]; then
     zip=$(mktemp --suffix=.zip)
     trap 'rm -f "$zip"' EXIT
-    curl -fL -sS -o "$zip" \
-        "https://extensions.gnome.org/download-extension/$uuid.shell-extension.zip?version_tag=76494"
+    curl -fL -sS -o "${zip}" \
+        "https://extensions.gnome.org/download-extension/${uuid}.shell-extension.zip?version_tag=76494"
     printf '%s  %s\n' \
         'ec9544258550a4e84b1fb0e86eb6eea9174ba15f3c0b2acb41576eca6ebb620f' \
-        "$zip" | sha256sum -c -
-    gnome-extensions install --force "$zip"
+        "${zip}" | sha256sum -c -
+    gnome-extensions install --force "${zip}"
 fi
 
 current=$(gsettings get org.gnome.shell enabled-extensions)
@@ -47,9 +48,9 @@ extensions = ast.literal_eval(sys.argv[1].removeprefix("@as "))
 if sys.argv[2] not in extensions:
     extensions.append(sys.argv[2])
 print(repr(extensions))
-' "$current" "$uuid")
-if [[ "$updated" != "$current" ]]; then
-    gsettings set org.gnome.shell enabled-extensions "$updated"
+' "${current}" "${uuid}")
+if [[ "${updated}" != "${current}" ]]; then
+    gsettings set org.gnome.shell enabled-extensions "${updated}"
 fi
 current=$(gsettings get org.gnome.shell disabled-extensions)
 updated=$(python3 -c '
@@ -59,12 +60,12 @@ import sys
 extensions = ast.literal_eval(sys.argv[1].removeprefix("@as "))
 extensions = [extension for extension in extensions if extension != sys.argv[2]]
 print(repr(extensions) if extensions else "@as []")
-' "$current" "$uuid")
-if [[ "$updated" != "$current" ]]; then
-    gsettings set org.gnome.shell disabled-extensions "$updated"
+' "${current}" "${uuid}")
+if [[ "${updated}" != "${current}" ]]; then
+    gsettings set org.gnome.shell disabled-extensions "${updated}"
 fi
 for digit in {1..9}; do
-    gsettings set org.gnome.shell.keybindings "switch-to-application-$digit" '@as []'
+    gsettings set org.gnome.shell.keybindings "switch-to-application-${digit}" '@as []'
 done
 gsettings set org.gnome.shell.keybindings toggle-message-tray "['<Super>m']"
 gsettings set org.gnome.mutter.keybindings switch-monitor "['XF86Display']"
@@ -75,6 +76,6 @@ gsettings set org.gnome.mutter.keybindings toggle-tiled-right "['<Shift><Super>R
 gsettings set org.gnome.desktop.wm.keybindings maximize "['<Shift><Super>Up']"
 gsettings set org.gnome.desktop.wm.keybindings unmaximize "['<Shift><Super>Down', '<Alt>F5']"
 for direction in left right up down; do
-    gsettings set org.gnome.desktop.wm.keybindings "move-to-monitor-$direction" '@as []'
+    gsettings set org.gnome.desktop.wm.keybindings "move-to-monitor-${direction}" '@as []'
 done
 echo "xremap extension enabled"

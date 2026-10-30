@@ -3,20 +3,22 @@
 set -euo pipefail
 
 seat_user() {
-    /usr/bin/loginctl list-sessions --json=short \
-        | /usr/bin/jq -r --arg id "${1:-}" \
+    /usr/bin/loginctl list-sessions --json=short |
+        /usr/bin/jq -r --arg id "${1:-}" \
             '.[] | select(.seat == "seat0" and .class == "user" and ($id == "" or .session == $id))
-                | "\(.session) \(.user)"' \
-        | /usr/bin/head -n1
+                | "\(.session) \(.user)"' |
+        /usr/bin/head -n1 || true
 }
 
 # The first run shows a pairing prompt on the TV; a TV that cannot be reached must not block Steam.
-/usr/local/bin/lgtv-hdmi "$STATE_DIRECTORY/lgtv-client-key" || true
+/usr/local/bin/lgtv-hdmi "${STATE_DIRECTORY?set by systemd StateDirectory=}/lgtv-client-key" || true
 
 active=$(/usr/bin/loginctl show-seat seat0 --property=ActiveSession --value)
-read -r session user <<< "$(seat_user "$active")" || true
+seat=$(seat_user "${active}")
+read -r session user <<<"${seat}" || true
 if [[ -z "${user:-}" ]]; then
-    read -r session user <<< "$(seat_user)" || true
+    seat=$(seat_user)
+    read -r session user <<<"${seat}" || true
     if [[ -z "${user:-}" ]]; then
         # The gaming user's Gamescope session is Big Picture on the TV. GDM only autologins when it starts, and the
         # runtime config resets at boot.
@@ -24,20 +26,21 @@ if [[ -z "${user:-}" ]]; then
         /usr/libexec/gdm-runtime-config set daemon AutomaticLogin gaming
         /usr/bin/systemctl restart gdm.service
         for _ in {1..60}; do
-            [[ -n "$(seat_user)" ]] && break
+            seat=$(seat_user)
+            [[ -n "${seat}" ]] && break
             sleep 1
         done
         /usr/libexec/gdm-runtime-config set daemon AutomaticLoginEnable false
         exit 0
     fi
-    /usr/bin/loginctl activate "$session"
+    /usr/bin/loginctl activate "${session}"
 fi
-if /usr/bin/pgrep --uid "$user" --exact gamescope > /dev/null; then
+if /usr/bin/pgrep --uid "${user}" --exact gamescope >/dev/null; then
     exit 0
 fi
 
 for _ in {1..60}; do
-    /usr/bin/systemctl --user --machine="$user@" is-active --quiet graphical-session.target && break
+    /usr/bin/systemctl --user --machine="${user}@" is-active --quiet graphical-session.target && break
     sleep 1
 done
-exec /usr/bin/systemctl --user --machine="$user@" start steam-tv.service
+exec /usr/bin/systemctl --user --machine="${user}@" start steam-tv.service

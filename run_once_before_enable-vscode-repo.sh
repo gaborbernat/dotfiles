@@ -5,7 +5,7 @@ set -euo pipefail
 sudo rpm --import https://packages.microsoft.com/keys/microsoft.asc
 repo=$(mktemp)
 trap 'rm -f "$repo"' EXIT
-cat >"$repo" <<'REPO'
+cat >"${repo}" <<'REPO'
 [code]
 name=Visual Studio Code
 baseurl=https://packages.microsoft.com/yumrepos/vscode
@@ -15,4 +15,4 @@ type=rpm-md
 gpgcheck=1
 gpgkey=https://packages.microsoft.com/keys/microsoft.asc
 REPO
-sudo install -m 0644 "$repo" /etc/yum.repos.d/vscode.repo
+sudo install -m 0644 "${repo}" /etc/yum.repos.d/vscode.repo

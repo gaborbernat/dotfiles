@@ -5,8 +5,8 @@ if ! flatpak info com.core447.StreamController >/dev/null 2>&1; then
     exit 0
 fi
 
-icon_dir="$HOME/.local/share/streamcontroller-icons"
-mkdir -p "$icon_dir"
+icon_dir="${HOME}/.local/share/streamcontroller-icons"
+mkdir -p "${icon_dir}"
 
 icons=(
     fedora-logo-icon.png
@@ -29,30 +29,30 @@ icons=(
 
 for icon in "${icons[@]}"; do
     source=
-    for root in "$HOME/.local/share/icons/hicolor" /usr/share/icons/hicolor \
-        /var/lib/flatpak/exports/share/icons/hicolor "$HOME/.local/share/flatpak/exports/share/icons/hicolor"; do
+    for root in "${HOME}/.local/share/icons/hicolor" /usr/share/icons/hicolor \
+        /var/lib/flatpak/exports/share/icons/hicolor "${HOME}/.local/share/flatpak/exports/share/icons/hicolor"; do
         for size in 128x128 256x256 512x512 scalable; do
-            candidate="$root/$size/apps/$icon"
-            if [[ -f "$candidate" ]]; then
-                source="$candidate"
+            candidate="${root}/${size}/apps/${icon}"
+            if [[ -f "${candidate}" ]]; then
+                source="${candidate}"
                 break 2
             fi
         done
     done
 
-    if [[ -z "$source" ]]; then
-        printf 'Stream Deck icon missing: %s\n' "$icon" >&2
+    if [[ -z "${source}" ]]; then
+        printf 'Stream Deck icon missing: %s\n' "${icon}" >&2
         continue
     fi
 
-    if ! cmp -s "$source" "$icon_dir/$icon"; then
-        install -m 0644 "$source" "$icon_dir/$icon"
+    if ! cmp -s "${source}" "${icon_dir}/${icon}"; then
+        install -m 0644 "${source}" "${icon_dir}/${icon}"
     fi
 done
 
 music_icon=/usr/share/icons/Adwaita/scalable/places/folder-music.svg
-if [[ -f "$music_icon" ]] && ! cmp -s "$music_icon" "$icon_dir/folder-music.svg"; then
-    install -m 0644 "$music_icon" "$icon_dir/folder-music.svg"
+if [[ -f "${music_icon}" ]] && ! cmp -s "${music_icon}" "${icon_dir}/folder-music.svg"; then
+    install -m 0644 "${music_icon}" "${icon_dir}/folder-music.svg"
 fi
 
 symbolic_icons=(
@@ -67,19 +67,19 @@ symbolic_icons=(
     'sound devices/audio-speakers-symbolic.svg'
 )
 
-temp_icon=$(mktemp "$icon_dir/.icon.XXXXXX")
+temp_icon=$(mktemp "${icon_dir}/.icon.XXXXXX")
 trap 'rm -f "$temp_icon"' EXIT
 
 for entry in "${symbolic_icons[@]}"; do
-    read -r name icon <<<"$entry"
-    source="/usr/share/icons/Adwaita/symbolic/$icon"
-    if [[ ! -f "$source" ]]; then
-        printf 'Stream Deck icon missing: %s\n' "$source" >&2
+    read -r name icon <<<"${entry}"
+    source="/usr/share/icons/Adwaita/symbolic/${icon}"
+    if [[ ! -f "${source}" ]]; then
+        printf 'Stream Deck icon missing: %s\n' "${source}" >&2
         continue
     fi
 
-    sed -E 's/#[[:xdigit:]]{6}/#ffffff/g' "$source" >"$temp_icon"
-    if ! cmp -s "$temp_icon" "$icon_dir/$name.svg"; then
-        install -m 0644 "$temp_icon" "$icon_dir/$name.svg"
+    sed -E 's/#[[:xdigit:]]{6}/#ffffff/g' "${source}" >"${temp_icon}"
+    if ! cmp -s "${temp_icon}" "${icon_dir}/${name}.svg"; then
+        install -m 0644 "${temp_icon}" "${icon_dir}/${name}.svg"
     fi
 done

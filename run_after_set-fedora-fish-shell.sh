@@ -6,6 +6,8 @@ if [[ "${SKIP_FEDORA_FISH_SHELL:-}" == 1 ]]; then
 fi
 
 fish=$(command -v fish)
-if [[ "$(getent passwd "$(id -un)" | cut -d: -f7)" != "$fish" ]]; then
-    sudo usermod --shell "$fish" "$(id -un)"
+user=$(id -un)
+shell=$(getent passwd "${user}" | cut -d: -f7 || true)
+if [[ "${shell}" != "${fish}" ]]; then
+    sudo usermod --shell "${fish}" "${user}"
 fi

@@ -4,7 +4,7 @@ set -euo pipefail
 
 if command -v duti >/dev/null 2>&1; then
     echo "Setting file associations..."
-    duti "$HOME/.duti"
+    duti "${HOME}/.duti"
     echo "File associations applied"
 else
     echo "duti is required to apply file associations" >&2

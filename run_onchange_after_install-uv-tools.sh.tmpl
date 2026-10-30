@@ -4,15 +4,15 @@
 # Work uv tools hash: {{ if stat $workTools }}{{ output "cat" $workTools | sha256sum }}{{ else }}none{{ end }}
 set -euo pipefail
 
-export PATH="$HOME/.local/bin:$PATH"
+export PATH="${HOME}/.local/bin:${PATH}"
 
 # Some package builds (e.g. taplo, pulled in by mdformat-config) shell out to Python's httpx/certifi
 # instead of the OS trust store. On networks that intercept TLS with a corporate CA (already trusted
 # by curl/git via the OS store), that fails unless Python is pointed at the same bundle explicitly.
 for bundle in /etc/ssl/cert.pem /etc/ssl/certs/ca-certificates.crt /etc/pki/tls/certs/ca-bundle.crt; do
-    if [[ -f "$bundle" ]]; then
-        export SSL_CERT_FILE="$bundle"
-        export REQUESTS_CA_BUNDLE="$bundle"
+    if [[ -f "${bundle}" ]]; then
+        export SSL_CERT_FILE="${bundle}"
+        export REQUESTS_CA_BUNDLE="${bundle}"
         break
     fi
 done
@@ -20,36 +20,34 @@ done
 install_tools() {
     local file="$1"
     local default_python=""
-    local failed=0
     while IFS= read -r line; do
-        if [[ "$line" =~ ^#\ python:\ (.+) ]]; then
+        if [[ "${line}" =~ ^#\ python:\ (.+) ]]; then
             default_python="${BASH_REMATCH[1]}"
             continue
         fi
-        [[ -z "$line" || "$line" =~ ^# ]] && continue
-        read -ra args <<< "$line"
-        if [[ -n "$default_python" && ! "$line" =~ --python ]]; then
-            args+=(--python "$default_python")
+        [[ -z "${line}" || "${line}" =~ ^# ]] && continue
+        read -ra args <<<"${line}"
+        if [[ -n "${default_python}" && ! "${line}" =~ --python ]]; then
+            args+=(--python "${default_python}")
         fi
         echo "  Installing ${args[0]}..."
         if ! uv tool install --upgrade "${args[@]}"; then
             echo "  ⚠️  Failed to install ${args[0]}"
-            failed=1
+            any_failed=1
         fi
-    done < "$file"
-    return "$failed"
+    done <"${file}" || true
 }
 
 echo "📦 Installing uv tools..."
 any_failed=0
-install_tools "$HOME/.uv_tools.txt" || any_failed=1
+install_tools "${HOME}/.uv_tools.txt"
 
-if [[ -f "$HOME/.local/share/chezmoi-private/uv_tools_work.txt" ]]; then
+if [[ -f "${HOME}/.local/share/chezmoi-private/uv_tools_work.txt" ]]; then
     echo "📦 Installing work uv tools..."
-    install_tools "$HOME/.local/share/chezmoi-private/uv_tools_work.txt" || any_failed=1
+    install_tools "${HOME}/.local/share/chezmoi-private/uv_tools_work.txt"
 fi
 
-if [[ "$any_failed" == "1" ]]; then
+if [[ "${any_failed}" == "1" ]]; then
     echo "uv tool installation failed; chezmoi will retry on the next apply" >&2
     exit 1
 fi

@@ -14,8 +14,8 @@ apps=(
 )
 missing=()
 for app in "${apps[@]}"; do
-    if ! flatpak info "$app" >/dev/null 2>&1; then
-        missing+=("$app")
+    if ! flatpak info "${app}" >/dev/null 2>&1; then
+        missing+=("${app}")
     fi
 done
 

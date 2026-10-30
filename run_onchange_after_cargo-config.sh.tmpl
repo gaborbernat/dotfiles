@@ -4,8 +4,8 @@
 # through it instead.
 set -euo pipefail
 
-mkdir -p "$HOME/.cargo"
-cat >"$HOME/.cargo/config.toml" <<'CARGO_CONFIG'
+mkdir -p "${HOME}/.cargo"
+cat >"${HOME}/.cargo/config.toml" <<'CARGO_CONFIG'
 {{ template "cargo-config.toml.tmpl" . -}}
 CARGO_CONFIG
 echo "✅ cargo config written"

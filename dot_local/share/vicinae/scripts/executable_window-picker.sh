@@ -11,19 +11,19 @@ if ! response=$(busctl --user --json=short call org.gnome.Shell \
     exit 1
 fi
 
-windows=$(printf '%s\n' "$response" | jq -er '.data[0]')
-labels=$(printf '%s\n' "$windows" | jq -r '
+windows=$(printf '%s\n' "${response}" | jq -er '.data[0]')
+labels=$(printf '%s\n' "${windows}" | jq -r '
     .windows | sort_by(.monitor, .app, .title) | .[] |
     "\(.monitor) · \(.app) · \(.title | gsub("[\r\n]"; " ")) [#\(.id)]"
 ')
-[ -n "$labels" ] || exit 0
+[ -n "${labels}" ] || exit 0
 
-if ! selection=$(printf '%s\n' "$labels" | vicinae dmenu \
+if ! selection=$(printf '%s\n' "${labels}" | vicinae dmenu \
     --navigation-title 'Windows by monitor' --placeholder 'Find a window' --format data); then
     exit 0
 fi
 
-id=$(printf '%s\n' "$selection" | sed -n 's/.* \[#\([0-9][0-9]*\)\]$/\1/p')
-[ -n "$id" ] || exit 1
+id=$(printf '%s\n' "${selection}" | sed -n 's/.* \[#\([0-9][0-9]*\)\]$/\1/p')
+[ -n "${id}" ] || exit 1
 busctl --user call org.gnome.Shell /org/gnome/Shell/Extensions/FocusedSwitcher \
-    org.bernat.FocusedSwitcher BringToCurrentMonitor u "$id"
+    org.bernat.FocusedSwitcher BringToCurrentMonitor u "${id}"

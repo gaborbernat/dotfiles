@@ -2,35 +2,42 @@
 # store: {{ output "sh" "-c" "ls -1 \"$HOME/.agents/skills\" 2>/dev/null | sort | tr '\\n' ',' || true" }}
 set -eu
 
-store="$HOME/.agents/skills"
-[ -d "$store" ] || { echo "Skill store missing: $store" >&2; exit 1; }
+store="${HOME}/.agents/skills"
+[ -d "${store}" ] || {
+    echo "Skill store missing: ${store}" >&2
+    exit 1
+}
 
-for agent_dir in "$HOME/.claude/skills" "$HOME/.codex/skills" "${CLAUDE_CONFIG_DIR:+$CLAUDE_CONFIG_DIR/skills}"; do
-    [ -n "$agent_dir" ] || continue
-    mkdir -p "$agent_dir"
+for agent_dir in "${HOME}/.claude/skills" "${HOME}/.codex/skills" "${CLAUDE_CONFIG_DIR:+${CLAUDE_CONFIG_DIR}/skills}"; do
+    [ -n "${agent_dir}" ] || continue
+    mkdir -p "${agent_dir}"
 
-    for dir in "$store"/*/; do
-        [ -d "$dir" ] || continue
-        name=$(basename "$dir")
-        [ "$name" = ".system" ] && continue
-        target="$agent_dir/$name"
-        if [ -L "$target" ]; then
-            case "$(readlink "$target")" in
-                "$store"/*) ln -sfn "$store/$name" "$target" ;;
-                *) echo "Skill path is not managed by chezmoi: $target" >&2; exit 1 ;;
+    for dir in "${store}"/*/; do
+        [ -d "${dir}" ] || continue
+        name=$(basename "${dir}")
+        [ "${name}" = ".system" ] && continue
+        target="${agent_dir}/${name}"
+        if [ -L "${target}" ]; then
+            case "$(readlink "${target}")" in
+                "${store}"/*) ln -sfn "${store}/${name}" "${target}" ;;
+                *)
+                    echo "Skill path is not managed by chezmoi: ${target}" >&2
+                    exit 1
+                    ;;
             esac
-        elif [ -e "$target" ]; then
-            echo "Skill path is not managed by chezmoi: $target" >&2
+        elif [ -e "${target}" ]; then
+            echo "Skill path is not managed by chezmoi: ${target}" >&2
             exit 1
         else
-            ln -s "$store/$name" "$target"
+            ln -s "${store}/${name}" "${target}"
         fi
     done
 
-    for link in "$agent_dir"/*; do
-        [ -L "$link" ] || continue
-        case "$(readlink "$link")" in
-            "$store"/*) [ -e "$link" ] || rm -f "$link" ;;
+    for link in "${agent_dir}"/*; do
+        [ -L "${link}" ] || continue
+        case "$(readlink "${link}")" in
+            "${store}"/*) [ -e "${link}" ] || rm -f "${link}" ;;
+            *) ;;
         esac
     done
 done

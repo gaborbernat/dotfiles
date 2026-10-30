@@ -8,10 +8,11 @@ add() {
     name=$1 account=$2
     shift 2
     args=$(printf '"%s",' workspace-mcp@latest --single-user "$@")
-    if claude mcp get "$name" >/dev/null 2>&1; then
-        claude mcp remove --scope user "$name" >/dev/null
+    if claude mcp get "${name}" >/dev/null 2>&1; then
+        claude mcp remove --scope user "${name}" >/dev/null
     fi
-    claude mcp add-json --scope user "$name" "$(cat <<EOF
+    config=$(
+        cat <<EOF
 {
   "type": "stdio",
   "command": "uvx",
@@ -19,12 +20,13 @@ add() {
   "env": {
     "GOOGLE_OAUTH_CLIENT_ID": "\${GOOGLE_OAUTH_CLIENT_ID}",
     "GOOGLE_OAUTH_CLIENT_SECRET": "\${GOOGLE_OAUTH_CLIENT_SECRET}",
-    "WORKSPACE_MCP_CREDENTIALS_DIR": "{{ .chezmoi.homeDir }}/.local/share/workspace-mcp/$account",
-    "USER_GOOGLE_EMAIL": "$account@gmail.com"
+    "WORKSPACE_MCP_CREDENTIALS_DIR": "{{ .chezmoi.homeDir }}/.local/share/workspace-mcp/${account}",
+    "USER_GOOGLE_EMAIL": "${account}@gmail.com"
   }
 }
 EOF
-)"
+    )
+    claude mcp add-json --scope user "${name}" "${config}"
 }
 
 add gmail gaborjbernat --permissions gmail:full --disabled-tools send_gmail_message

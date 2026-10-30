@@ -2,13 +2,13 @@
 # Shares the Windows test VM between agents.
 set -euo pipefail
 
-state="$HOME/.local/state/windows-vm"
-lock="$state/lock"
-compose=(docker compose -f "$HOME/.config/windows-vm/compose.yml")
+state="${HOME}/.local/state/windows-vm"
+lock="${state}/lock"
+compose=(docker compose -f "${HOME}/.config/windows-vm/compose.yml")
 # The VM gets a new host key on every reinstall
 remote=(ssh -p 2222 -o BatchMode=yes -o ConnectTimeout=5 -o LogLevel=ERROR -o StrictHostKeyChecking=no
-    -o UserKnownHostsFile=/dev/null "$USER@localhost")
-mkdir -p "$state/holders"
+    -o UserKnownHostsFile=/dev/null "${USER}@localhost")
+mkdir -p "${state}/holders"
 
 usage() {
     cat <<'EOF'
@@ -30,41 +30,41 @@ EOF
 
 # The first ancestor that is not a shell is the agent (claude, codex) or the terminal running this command
 owner() {
-    local pid=$PPID comm
-    while [ "$pid" -gt 1 ]; do
-        comm=$(ps -o comm= -p "$pid")
-        case "$comm" in
-            bash | sh | dash | zsh | fish | env | timeout | winvm) pid=$(ps -o ppid= -p "$pid" | tr -d ' ') ;;
-            *) echo "$pid" && return ;;
+    local pid=${PPID} comm
+    while [[ "${pid}" -gt 1 ]]; do
+        comm=$(ps -o comm= -p "${pid}")
+        case "${comm}" in
+            bash | sh | dash | zsh | fish | env | timeout | winvm) pid=$(ps -o ppid= -p "${pid}" | tr -d ' ') ;;
+            *) echo "${pid}" && return ;;
         esac
     done
-    echo $PPID
+    echo "${PPID}"
 }
 
 workdir() {
-    echo "C:\\src\\$(basename "$PWD")-$(owner)"
+    echo "C:\\src\\$(basename "${PWD}")-$(owner)"
 }
 
 holder_alive() {
-    local pid_file="$state/holders/$1"
-    [ -f "$pid_file" ] && kill -0 "$(cat "$pid_file")" 2>/dev/null
+    local pid_file="${state}/holders/$1"
+    [[ -f "${pid_file}" ]] && kill -0 "$(cat "${pid_file}")" 2>/dev/null
 }
 
 up() {
     local agent ready output deadline new_lease=false
     agent=$(owner)
-    if ! holder_alive "$agent"; then
-        ready="$state/holders/$agent.ready"
-        rm -f "$ready"
+    if ! holder_alive "${agent}"; then
+        ready="${state}/holders/${agent}.ready"
+        rm -f "${ready}"
         # The lease is a shared flock held by a process that lives as long as the agent, so a crashed agent releases it
         # on its own; while a stop holds the lock exclusively, a start blocks here.
         # shellcheck disable=SC2016 # $1 and $2 expand in the inner sh, not here
-        setsid flock -s -o "$lock" sh -c 'touch "$1"; exec tail --pid="$2" -f /dev/null' _ "$ready" "$agent" \
+        setsid flock -s -o "${lock}" sh -c 'touch "$1"; exec tail --pid="$2" -f /dev/null' _ "${ready}" "${agent}" \
             </dev/null >/dev/null 2>&1 &
-        echo $! >"$state/holders/$agent"
+        echo $! >"${state}/holders/${agent}"
         new_lease=true
         deadline=$((SECONDS + 600))
-        until [ -f "$ready" ]; do
+        until [[ -f "${ready}" ]]; do
             if (( SECONDS >= deadline )); then
                 echo 'VM lease could not be acquired within 10 minutes' >&2
                 down
@@ -72,24 +72,24 @@ up() {
             fi
             sleep 1
         done
-        rm -f "$ready"
+        rm -f "${ready}"
     fi
     if ! output=$("${compose[@]}" up -d --quiet-pull 2>&1); then
-        printf '%s\n' "$output" >&2
-        if [[ "$new_lease" == true ]]; then down; fi
+        printf '%s\n' "${output}" >&2
+        if [[ "${new_lease}" == true ]]; then down; fi
         return 1
     fi
-    printf '%s\n' "$output" | grep -v -e '^ Container .* Running *$' -e '^$' || true
+    printf '%s\n' "${output}" | grep -v -e '^ Container .* Running *$' -e '^$' || true
     deadline=$((SECONDS + 600))
     until "${remote[@]}" exit 2>/dev/null; do
         if (( SECONDS >= deadline )); then
             echo 'VM did not become reachable over SSH within 10 minutes' >&2
-            if [[ "$new_lease" == true ]]; then down; fi
+            if [[ "${new_lease}" == true ]]; then down; fi
             return 1
         fi
         sleep 3
     done
-    echo "VM ready, lease held by PID $agent"
+    echo "VM ready, lease held by PID ${agent}"
 }
 
 sync() {
@@ -97,8 +97,8 @@ sync() {
     dir=$(workdir)
     snapshot=$(git stash create)
     git archive --format=tar "${snapshot:-HEAD}" |
-        "${remote[@]}" "cmd /c \"(if exist $dir rmdir /s /q $dir) & mkdir $dir && tar -xf - -C $dir\""
-    echo "$dir"
+        "${remote[@]}" "cmd /c \"(if exist ${dir} rmdir /s /q ${dir}) & mkdir ${dir} && tar -xf - -C ${dir}\""
+    echo "${dir}"
 }
 
 run() {
@@ -110,14 +110,14 @@ down() {
     agent=$(owner)
     dir=$(workdir)
     if "${remote[@]}" exit 2>/dev/null; then
-        "${remote[@]}" "if (Test-Path $dir) { Remove-Item -Recurse -Force $dir }"
+        "${remote[@]}" "if (Test-Path ${dir}) { Remove-Item -Recurse -Force ${dir} }"
     fi
-    if holder_alive "$agent"; then
-        kill -- "-$(cat "$state/holders/$agent")"
+    if holder_alive "${agent}"; then
+        kill -- "-$(cat "${state}/holders/${agent}")"
     fi
-    rm -f "$state/holders/$agent"
+    rm -f "${state}/holders/${agent}"
     # The exclusive lock succeeds only when no agent holds a lease
-    if flock -x -n "$lock" "${compose[@]}" stop; then
+    if flock -x -n "${lock}" "${compose[@]}" stop; then
         echo "VM stopped"
     else
         echo "VM left running for other agents"
@@ -127,13 +127,13 @@ down() {
 status() {
     local pid_file agent
     docker ps -a --filter name=windows-vm --format '{{.Status}}'
-    for pid_file in "$state"/holders/*; do
-        [ -f "$pid_file" ] || continue
-        agent=$(basename "$pid_file")
-        if holder_alive "$agent"; then
-            echo "lease: $agent $(ps -o comm= -p "$agent")"
+    for pid_file in "${state}"/holders/*; do
+        [[ -f "${pid_file}" ]] || continue
+        agent=$(basename "${pid_file}")
+        if holder_alive "${agent}"; then
+            echo "lease: ${agent} $(ps -o comm= -p "${agent}")"
         else
-            rm -f "$pid_file"
+            rm -f "${pid_file}"
         fi
     done
 }

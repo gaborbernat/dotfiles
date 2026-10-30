@@ -18,10 +18,11 @@ sudo dnf config-manager enable rpmfusion-nonfree-steam
 sudo bash {{ joinPath .chezmoi.sourceDir "scripts/fedora/install-insync.sh" | quote }}
 
 if ! rpm -q chatgpt >/dev/null 2>&1; then
+    arch=$(uname -m)
     chatgpt_rpm=$(mktemp --suffix=.rpm)
     trap 'rm -f "$chatgpt_rpm"' EXIT
     curl -fLsS --proto '=https' --proto-redir '=https' --tlsv1.2 \
-        -o "$chatgpt_rpm" "https://persistent.oaistatic.com/codex-app-prod/linux/rpm/latest/chatgpt.$(uname -m).rpm"
-    sudo dnf install -y "$chatgpt_rpm"
+        -o "${chatgpt_rpm}" "https://persistent.oaistatic.com/codex-app-prod/linux/rpm/latest/chatgpt.${arch}.rpm"
+    sudo dnf install -y "${chatgpt_rpm}"
 fi
 {{ end -}}

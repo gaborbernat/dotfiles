@@ -12,7 +12,8 @@ set -euo pipefail
 RESERVED_GB=4
 GB_PER_JOB=2
 
-if [[ "$(uname -s)" == "Darwin" ]]; then
+kernel=$(uname -s)
+if [[ "${kernel}" == "Darwin" ]]; then
     # perflevel0 is the performance cluster and is absent on Intel, where every
     # core is one tier and the physical count is the right ceiling.
     cores=$(sysctl -n hw.perflevel0.logicalcpu 2>/dev/null || sysctl -n hw.physicalcpu)
@@ -24,10 +25,10 @@ fi
 
 jobs=$(((ram_gb - RESERVED_GB) / GB_PER_JOB))
 if ((jobs > cores)); then
-    jobs=$cores
+    jobs=${cores}
 fi
 if ((jobs < 1)); then
     jobs=1
 fi
 
-echo "$jobs"
+echo "${jobs}"

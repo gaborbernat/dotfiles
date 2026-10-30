@@ -15,181 +15,186 @@ update_ghostty() {
     local release commit main_commit digest archive patch patch_id build_id source version zig_version merge_status
     patch={{ joinPath .chezmoi.sourceDir "scripts/fedora/ghostty-undo.diff" | quote }}
     release=$(curl -fsSL https://api.github.com/repos/ghostty-org/ghostty/releases/tags/tip)
-    commit=$(jq -er '.target_commitish | select(test("^[0-9a-f]{40}$"))' <<<"$release")
+    commit=$(jq -er '.target_commitish | select(test("^[0-9a-f]{40}$"))' <<<"${release}")
     main_commit=$(git ls-remote https://github.com/ghostty-org/ghostty.git refs/heads/main | cut -f1)
-    if [[ "$commit" != "$main_commit" ]]; then
+    if [[ "${commit}" != "${main_commit}" ]]; then
         echo 'Ghostty tip source has not caught up with main' >&2
         return 1
     fi
-    digest=$(jq -er '.assets[] | select(.name == "ghostty-source.tar.gz") | .digest | select(test("^sha256:[0-9a-f]{64}$")) | ltrimstr("sha256:")' <<<"$release")
+    digest=$(jq -er '.assets[] | select(.name == "ghostty-source.tar.gz") | .digest | select(test("^sha256:[0-9a-f]{64}$")) | ltrimstr("sha256:")' <<<"${release}")
     merge_status=$(curl -fsSL https://api.github.com/repos/ghostty-org/ghostty/pulls/14653 | jq -er '.merged_at // "open"')
-    if [[ "$merge_status" == open ]]; then
-        patch_id=$(sha256sum "$patch" | cut -d' ' -f1)
+    if [[ "${merge_status}" == open ]]; then
+        patch_id=$(sha256sum "${patch}" | cut -d' ' -f1)
     else
         patch_id=merged
     fi
-    build_id="$commit:$patch_id"
-    if [[ -x "$HOME/.local/bin/ghostty" && -f "$HOME/.local/share/ghostty/build-id" ]] &&
-        [[ $(<"$HOME/.local/share/ghostty/build-id") == "$build_id" ]]; then
+    build_id="${commit}:${patch_id}"
+    if [[ -x "${HOME}/.local/bin/ghostty" && -f "${HOME}/.local/share/ghostty/build-id" ]] &&
+        [[ $(<"${HOME}/.local/share/ghostty/build-id") == "${build_id}" ]]; then
         printf 'Ghostty %s is current\n' "${commit:0:7}"
         return
     fi
 
     GHOSTTY_BUILD_DIR=$(mktemp -d)
     trap 'rm -rf "$GHOSTTY_BUILD_DIR"' EXIT
-    archive="$GHOSTTY_BUILD_DIR/ghostty-source.tar.gz"
-    source="$GHOSTTY_BUILD_DIR/source"
-    curl -fsSL --retry 3 -o "$archive" \
+    archive="${GHOSTTY_BUILD_DIR}/ghostty-source.tar.gz"
+    source="${GHOSTTY_BUILD_DIR}/source"
+    curl -fsSL --retry 3 -o "${archive}" \
         https://github.com/ghostty-org/ghostty/releases/download/tip/ghostty-source.tar.gz
-    printf '%s  %s\n' "$digest" "$archive" | sha256sum -c -
-    mkdir "$source"
-    tar -xzf "$archive" -C "$source" --strip-components=1
-    version=$(<"$source/VERSION")
-    if [[ "$version" != *"+${commit:0:7}" ]]; then
+    printf '%s  %s\n' "${digest}" "${archive}" | sha256sum -c -
+    mkdir "${source}"
+    tar -xzf "${archive}" -C "${source}" --strip-components=1
+    version=$(<"${source}/VERSION")
+    if [[ "${version}" != *"+${commit:0:7}" ]]; then
         echo 'Ghostty source does not match main' >&2
         return 1
     fi
-    if [[ "$patch_id" != merged ]]; then
-        git -C "$source" apply --check "$patch"
-        git -C "$source" apply "$patch"
+    if [[ "${patch_id}" != merged ]]; then
+        git -C "${source}" apply --check "${patch}"
+        git -C "${source}" apply "${patch}"
     fi
-    zig_version=$(sed -n 's/^[[:space:]]*\.minimum_zig_version = "\([^"]*\)".*/\1/p' "$source/build.zig.zon")
-    if [[ ! "$zig_version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+    zig_version=$(sed -n 's/^[[:space:]]*\.minimum_zig_version = "\([^"]*\)".*/\1/p' "${source}/build.zig.zon")
+    if [[ ! "${zig_version}" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
         echo 'Cannot determine Ghostty Zig version' >&2
         return 1
     fi
-    mise install "zig@$zig_version"
-    (cd "$source" && mise exec "zig@$zig_version" -- zig build -p "$HOME/.local" -Doptimize=ReleaseFast "-Dversion-string=$version" \
-        "-Dinstalled-exe-path=$HOME/.local/bin/ghostty")
-    "$HOME/.local/bin/ghostty" --version | head -1
-    install -D -m 0644 /dev/stdin "$HOME/.local/share/ghostty/build-id" <<<"$build_id"
+    mise install "zig@${zig_version}"
+    (cd "${source}" && mise exec "zig@${zig_version}" -- zig build -p "${HOME}/.local" -Doptimize=ReleaseFast "-Dversion-string=${version}" \
+        "-Dinstalled-exe-path=${HOME}/.local/bin/ghostty")
+    "${HOME}/.local/bin/ghostty" --version | head -1
+    install -D -m 0644 /dev/stdin "${HOME}/.local/share/ghostty/build-id" <<<"${build_id}"
 }
 
 update_extensions() {
-    local shell_version uuid installed info available download zip metadata
+    local shell_version uuid installed info available current download zip metadata
     shell_version=$(gnome-shell --version | awk '{split($3, version, "."); print version[1]}')
     for uuid in \
         monitor@astraext.github.io \
         copyous@boerdereinar.dev \
         display-brightness-ddcutil@themightydeity.github.com \
         xremap@k0kubun.com; do
-        installed="$HOME/.local/share/gnome-shell/extensions/$uuid/metadata.json"
-        if [[ ! -f "$installed" ]]; then
-            printf 'Skip missing extension: %s\n' "$uuid"
+        installed="${HOME}/.local/share/gnome-shell/extensions/${uuid}/metadata.json"
+        if [[ ! -f "${installed}" ]]; then
+            printf 'Skip missing extension: %s\n' "${uuid}"
             continue
         fi
-        info=$(curl -fsS --get --data-urlencode "uuid=$uuid" --data-urlencode "shell_version=$shell_version" \
+        info=$(curl -fsS --get --data-urlencode "uuid=${uuid}" --data-urlencode "shell_version=${shell_version}" \
             https://extensions.gnome.org/extension-info/)
-        available=$(jq -r --arg shell "$shell_version" '.shell_version_map[$shell].version // empty' <<<"$info")
-        if [[ -z "$available" ]]; then
-            printf 'No compatible %s release for GNOME %s\n' "$uuid" "$shell_version"
+        available=$(jq -r --arg shell "${shell_version}" '.shell_version_map[$shell].version // empty' <<<"${info}")
+        if [[ -z "${available}" ]]; then
+            printf 'No compatible %s release for GNOME %s\n' "${uuid}" "${shell_version}"
             continue
         fi
-        if (( available <= $(jq -er '.version' "$installed") )); then
-            printf '%s is current\n' "$uuid"
+        current=$(jq -er '.version' "${installed}" || true)
+        if ((available <= current)); then
+            printf '%s is current\n' "${uuid}"
             continue
         fi
-        download=$(jq -er '.download_url | select(startswith("/download-extension/"))' <<<"$info")
+        download=$(jq -er '.download_url | select(startswith("/download-extension/"))' <<<"${info}")
         zip=$(mktemp --suffix=.zip)
-        if ! curl -fsSL -o "$zip" "https://extensions.gnome.org$download"; then
-            rm -f "$zip"
+        if ! curl -fsSL -o "${zip}" "https://extensions.gnome.org${download}"; then
+            rm -f "${zip}"
             return 1
         fi
-        if ! metadata=$(unzip -p "$zip" metadata.json); then
-            rm -f "$zip"
+        if ! metadata=$(unzip -p "${zip}" metadata.json); then
+            rm -f "${zip}"
             return 1
         fi
-        if ! jq -e --arg uuid "$uuid" --argjson version "$available" \
-            '.uuid == $uuid and .version == $version' <<<"$metadata" >/dev/null; then
-            printf 'Invalid extension bundle: %s\n' "$uuid" >&2
-            rm -f "$zip"
+        if ! jq -e --arg uuid "${uuid}" --argjson version "${available}" \
+            '.uuid == $uuid and .version == $version' <<<"${metadata}" >/dev/null; then
+            printf 'Invalid extension bundle: %s\n' "${uuid}" >&2
+            rm -f "${zip}"
             return 1
         fi
-        gnome-extensions install --force "$zip"
-        rm -f "$zip"
-        printf 'Updated %s; log out to load the new version\n' "$uuid"
+        gnome-extensions install --force "${zip}"
+        rm -f "${zip}"
+        printf 'Updated %s; log out to load the new version\n' "${uuid}"
     done
 }
 
 update_bazecor() {
-    if [[ $(uname -m) != x86_64 ]]; then
+    local arch
+    arch=$(uname -m)
+    if [[ ${arch} != x86_64 ]]; then
         echo 'Bazecor AppImage is x86_64 only'
         return
     fi
     local release version asset digest url target download
     release=$(curl -fsSL https://api.github.com/repos/Dygmalab/Bazecor/releases/latest)
-    version=$(jq -er '.tag_name | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))' <<<"$release")
+    version=$(jq -er '.tag_name | select(test("^v[0-9]+\\.[0-9]+\\.[0-9]+$"))' <<<"${release}")
     asset="Bazecor-${version#v}-x64.AppImage"
-    digest=$(jq -er --arg name "$asset" '.assets[] | select(.name == $name) | .digest | select(startswith("sha256:")) | ltrimstr("sha256:")' <<<"$release")
-    url=$(jq -er --arg name "$asset" '.assets[] | select(.name == $name) | .browser_download_url' <<<"$release")
-    target="$HOME/.local/opt/bazecor/Bazecor.AppImage"
-    if [[ -f "$target" ]] && printf '%s  %s\n' "$digest" "$target" | sha256sum -c - >/dev/null 2>&1; then
-        printf 'Bazecor %s is current\n' "$version"
+    digest=$(jq -er --arg name "${asset}" '.assets[] | select(.name == $name) | .digest | select(startswith("sha256:")) | ltrimstr("sha256:")' <<<"${release}")
+    url=$(jq -er --arg name "${asset}" '.assets[] | select(.name == $name) | .browser_download_url' <<<"${release}")
+    target="${HOME}/.local/opt/bazecor/Bazecor.AppImage"
+    if [[ -f "${target}" ]] && printf '%s  %s\n' "${digest}" "${target}" | sha256sum -c - >/dev/null 2>&1; then
+        printf 'Bazecor %s is current\n' "${version}"
         return
     fi
     mkdir -p "${target%/*}"
     download=$(mktemp "${target%/*}/.Bazecor.XXXXXX")
-    if ! curl -fsSL -o "$download" "$url" || ! printf '%s  %s\n' "$digest" "$download" | sha256sum -c -; then
-        rm -f "$download"
+    if ! curl -fsSL -o "${download}" "${url}" || ! printf '%s  %s\n' "${digest}" "${download}" | sha256sum -c -; then
+        rm -f "${download}"
         return 1
     fi
-    chmod 0755 "$download"
-    mv -f "$download" "$target"
-    printf 'Updated Bazecor to %s\n' "$version"
+    chmod 0755 "${download}"
+    mv -f "${download}" "${target}"
+    printf 'Updated Bazecor to %s\n' "${version}"
 }
 
 update_rustdesk() {
-    if [[ $(uname -m) != x86_64 ]]; then
+    local arch
+    arch=$(uname -m)
+    if [[ ${arch} != x86_64 ]]; then
         echo 'RustDesk RPM is x86_64 only'
         return
     fi
     local release version asset digest url current download
     release=$(curl -fsSL https://api.github.com/repos/rustdesk/rustdesk/releases/latest)
-    version=$(jq -er '.tag_name | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))' <<<"$release")
-    asset=$(jq -er --arg prefix "rustdesk-$version-" \
-        '.assets[] | select(.name | startswith($prefix) and endswith(".x86_64.rpm")) | .name' <<<"$release")
-    digest=$(jq -er --arg name "$asset" \
-        '.assets[] | select(.name == $name) | .digest | select(startswith("sha256:")) | ltrimstr("sha256:")' <<<"$release")
-    url=$(jq -er --arg name "$asset" '.assets[] | select(.name == $name) | .browser_download_url' <<<"$release")
+    version=$(jq -er '.tag_name | select(test("^[0-9]+\\.[0-9]+\\.[0-9]+$"))' <<<"${release}")
+    asset=$(jq -er --arg prefix "rustdesk-${version}-" \
+        '.assets[] | select(.name | startswith($prefix) and endswith(".x86_64.rpm")) | .name' <<<"${release}")
+    digest=$(jq -er --arg name "${asset}" \
+        '.assets[] | select(.name == $name) | .digest | select(startswith("sha256:")) | ltrimstr("sha256:")' <<<"${release}")
+    url=$(jq -er --arg name "${asset}" '.assets[] | select(.name == $name) | .browser_download_url' <<<"${release}")
     current=$(rpm -q rustdesk --qf '%{VERSION}-%{RELEASE}.%{ARCH}.rpm' 2>/dev/null || true)
-    if [[ "$current" == "${asset#rustdesk-}" ]]; then
+    if [[ "${current}" == "${asset#rustdesk-}" ]]; then
         echo "RustDesk ${current%.x86_64.rpm} is current"
         return
     fi
     download=$(mktemp --suffix=.rpm)
-    if ! curl -fsSL -o "$download" "$url" || ! printf '%s  %s\n' "$digest" "$download" | sha256sum -c -; then
-        rm -f "$download"
+    if ! curl -fsSL -o "${download}" "${url}" || ! printf '%s  %s\n' "${digest}" "${download}" | sha256sum -c -; then
+        rm -f "${download}"
         return 1
     fi
-    if ! sudo dnf install -y "$download"; then
-        rm -f "$download"
+    if ! sudo dnf install -y "${download}"; then
+        rm -f "${download}"
         return 1
     fi
-    rm -f "$download"
-    printf 'Updated RustDesk to %s\n' "$version"
+    rm -f "${download}"
+    printf 'Updated RustDesk to %s\n' "${version}"
 }
 
 update_gamescope_session() {
     local versions repo installed latest compare answer
     local -a updates=()
     versions=/usr/local/share/gamescope-session-local/versions
-    if [[ ! -f "$versions" ]]; then
+    if [[ ! -f "${versions}" ]]; then
         echo 'Steam Big Picture session is not installed'
         return
     fi
     while read -r repo installed; do
-        latest=$(curl -fsSL "https://api.github.com/repos/ChimeraOS/$repo/commits/HEAD" | jq -er '.sha')
-        if [[ "$latest" == "$installed" ]]; then
-            printf '%s is current\n' "$repo"
+        latest=$(curl -fsSL "https://api.github.com/repos/ChimeraOS/${repo}/commits/HEAD" | jq -er '.sha')
+        if [[ "${latest}" == "${installed}" ]]; then
+            printf '%s is current\n' "${repo}"
             continue
         fi
-        compare=$(curl -fsSL "https://api.github.com/repos/ChimeraOS/$repo/compare/$installed...$latest")
-        printf '\n%s %s -> %s\n' "$repo" "${installed:0:7}" "${latest:0:7}"
-        jq -r '.commits[] | "  \(.sha[0:7]) \(.commit.message | split("\n")[0])"' <<<"$compare"
-        jq -r '.files[] | "    \(.status) \(.filename)"' <<<"$compare"
-        updates+=("$repo=$latest")
-    done <"$versions"
-    if (( ${#updates[@]} == 0 )); then
+        compare=$(curl -fsSL "https://api.github.com/repos/ChimeraOS/${repo}/compare/${installed}...${latest}")
+        printf '\n%s %s -> %s\n' "${repo}" "${installed:0:7}" "${latest:0:7}"
+        jq -r '.commits[] | "  \(.sha[0:7]) \(.commit.message | split("\n")[0])"' <<<"${compare}"
+        jq -r '.files[] | "    \(.status) \(.filename)"' <<<"${compare}"
+        updates+=("${repo}=${latest}")
+    done <"${versions}"
+    if ((${#updates[@]} == 0)); then
         return
     fi
     # The session runs at the login screen, so new upstream code needs a human review.
@@ -198,7 +203,7 @@ update_gamescope_session() {
         return
     fi
     read -rp 'Install these session updates? [y/N] ' answer
-    if [[ "$answer" != [yY] ]]; then
+    if [[ "${answer}" != [yY] ]]; then
         echo 'Kept the installed session'
         return
     fi
@@ -212,31 +217,31 @@ STREAMDECK_SWAPPED=()
 streamdeck_cleanup() {
     local result=$? id target restore_failed=false
     trap - EXIT
-    if [[ -n "$STREAMDECK_WORK" && -d "$STREAMDECK_WORK" ]]; then
-        if (( result != 0 )); then
+    if [[ -n "${STREAMDECK_WORK}" && -d "${STREAMDECK_WORK}" ]]; then
+        if ((result != 0)); then
             for id in "${STREAMDECK_SWAPPED[@]}"; do
-                target="$HOME/.var/app/com.core447.StreamController/data/plugins/$id"
-                if ! rm -rf -- "$target"; then
+                target="${HOME}/.var/app/com.core447.StreamController/data/plugins/${id}"
+                if ! rm -rf -- "${target}"; then
                     restore_failed=true
                     result=1
                     continue
                 fi
-                if [[ -e "$STREAMDECK_WORK/$id.previous" ]] && ! mv "$STREAMDECK_WORK/$id.previous" "$target"; then
+                if [[ -e "${STREAMDECK_WORK}/${id}.previous" ]] && ! mv "${STREAMDECK_WORK}/${id}.previous" "${target}"; then
                     restore_failed=true
                     result=1
                 fi
             done
         fi
-        if [[ "$restore_failed" == false ]]; then
-            rm -rf "$STREAMDECK_WORK"
+        if [[ "${restore_failed}" == false ]]; then
+            rm -rf "${STREAMDECK_WORK}"
         else
-            printf 'StreamController staging kept at %s\n' "$STREAMDECK_WORK" >&2
+            printf 'StreamController staging kept at %s\n' "${STREAMDECK_WORK}" >&2
         fi
     fi
-    if [[ "$STREAMDECK_RESTART" == true ]]; then
+    if [[ "${STREAMDECK_RESTART}" == true ]]; then
         flatpak run com.core447.StreamController -b >/dev/null 2>&1 &
         disown
-        for (( wait_count=0; wait_count<30; wait_count++ )); do
+        for ((wait_count = 0; wait_count < 30; wait_count++)); do
             if flatpak ps --columns=application | grep -Fxq com.core447.StreamController; then
                 break
             fi
@@ -247,7 +252,7 @@ streamdeck_cleanup() {
             result=1
         fi
     fi
-    exit "$result"
+    exit "${result}"
 }
 
 update_streamdeck() {
@@ -258,12 +263,12 @@ update_streamdeck() {
     local plugins_dir settings manifest plugin id repository commit target candidate patch
     local settings_changed=false
     local -a updates=()
-    plugins_dir="$HOME/.var/app/com.core447.StreamController/data/plugins"
-    settings="$HOME/.var/app/com.core447.StreamController/data/settings/settings.json"
+    plugins_dir="${HOME}/.var/app/com.core447.StreamController/data/plugins"
+    settings="${HOME}/.var/app/com.core447.StreamController/data/settings/settings.json"
     patch={{ joinPath .chezmoi.sourceDir "scripts/fedora/streamcontroller-unicode.diff" | quote }}
-    mkdir -p "$plugins_dir" "${settings%/*}"
+    mkdir -p "${plugins_dir}" "${settings%/*}"
     manifest=$(curl -fsSL https://raw.githubusercontent.com/StreamController/StreamController-Store/main/Plugins.json)
-    STREAMDECK_WORK=$(mktemp -d "$plugins_dir/.update.XXXXXX")
+    STREAMDECK_WORK=$(mktemp -d "${plugins_dir}/.update.XXXXXX")
     trap streamdeck_cleanup EXIT
     for plugin in \
         'com_core447_OSPlugin https://github.com/StreamController/OSPlugin' \
@@ -271,43 +276,43 @@ update_streamdeck() {
         'com_core447_DeckPlugin https://github.com/StreamController/DeckPlugin' \
         'com_larkum_WorldClocks https://github.com/larkum/StreamController-WorldClocks' \
         'com_jul_AMDGPUTop https://github.com/julaub/StreamController-AMDGPUTop'; do
-        read -r id repository <<<"$plugin"
-        commit=$(jq -er --arg url "$repository" '.[] | select(.url == $url) | .hash | select(test("^[0-9a-f]{40}$"))' <<<"$manifest")
-        target="$plugins_dir/$id"
-        if [[ -f "$target/VERSION" ]] && [[ $(<"$target/VERSION") == "$commit" ]] && \
-            { [[ "$id" != com_core447_OSPlugin ]] || \
-              git -C "$target" apply --reverse --check --unidiff-zero "$patch" 2>/dev/null; }; then
+        read -r id repository <<<"${plugin}"
+        commit=$(jq -er --arg url "${repository}" '.[] | select(.url == $url) | .hash | select(test("^[0-9a-f]{40}$"))' <<<"${manifest}")
+        target="${plugins_dir}/${id}"
+        if [[ -f "${target}/VERSION" ]] && [[ $(<"${target}/VERSION") == "${commit}" ]] &&
+            { [[ "${id}" != com_core447_OSPlugin ]] ||
+                git -C "${target}" apply --reverse --check --unidiff-zero "${patch}" 2>/dev/null; }; then
             continue
         fi
-        candidate="$STREAMDECK_WORK/$id"
-        mkdir -p "$candidate"
-        git clone --quiet --filter=blob:none --no-checkout "$repository" "$STREAMDECK_WORK/repo"
-        git -C "$STREAMDECK_WORK/repo" fetch --quiet --depth 1 origin "$commit"
-        git -C "$STREAMDECK_WORK/repo" archive "$commit" | tar -x -C "$candidate"
-        rm -rf "$STREAMDECK_WORK/repo"
-        jq -e --arg id "$id" '.id == $id' "$candidate/manifest.json" >/dev/null
-        if [[ "$id" == com_core447_OSPlugin ]]; then
-            if ! git -C "$candidate" apply --reverse --check --unidiff-zero "$patch" 2>/dev/null; then
-                git -C "$candidate" apply --unidiff-zero "$patch"
+        candidate="${STREAMDECK_WORK}/${id}"
+        mkdir -p "${candidate}"
+        git clone --quiet --filter=blob:none --no-checkout "${repository}" "${STREAMDECK_WORK}/repo"
+        git -C "${STREAMDECK_WORK}/repo" fetch --quiet --depth 1 origin "${commit}"
+        git -C "${STREAMDECK_WORK}/repo" archive "${commit}" | tar -x -C "${candidate}"
+        rm -rf "${STREAMDECK_WORK}/repo"
+        jq -e --arg id "${id}" '.id == $id' "${candidate}/manifest.json" >/dev/null
+        if [[ "${id}" == com_core447_OSPlugin ]]; then
+            if ! git -C "${candidate}" apply --reverse --check --unidiff-zero "${patch}" 2>/dev/null; then
+                git -C "${candidate}" apply --unidiff-zero "${patch}"
             fi
-            git -C "$candidate" apply --reverse --check --unidiff-zero "$patch"
+            git -C "${candidate}" apply --reverse --check --unidiff-zero "${patch}"
         fi
-        printf '%s\n' "$commit" >"$candidate/VERSION"
-        updates+=("$id")
+        printf '%s\n' "${commit}" >"${candidate}/VERSION"
+        updates+=("${id}")
     done
-    if ! { [[ -f "$settings" ]] && jq -e '.store["auto-update"] == false' "$settings" >/dev/null; }; then
+    if ! { [[ -f "${settings}" ]] && jq -e '.store["auto-update"] == false' "${settings}" >/dev/null; }; then
         settings_changed=true
     fi
-    if (( ${#updates[@]} == 0 )) && [[ "$settings_changed" == false ]]; then
+    if ((${#updates[@]} == 0)) && [[ "${settings_changed}" == false ]]; then
         echo 'StreamController plugins are current'
         return
     fi
-    if (( ${#updates[@]} > 0 )) && flatpak ps --columns=application | grep -Fxq com.core447.StreamController; then
+    if ((${#updates[@]} > 0)) && flatpak ps --columns=application | grep -Fxq com.core447.StreamController; then
         STREAMDECK_RESTART=true
         # --close-running starts a replacement instance before the plugin swap.
         gdbus call --session --dest com.core447.StreamController --object-path /com/core447/StreamController \
             --method org.gtk.Actions.Activate quit '[]' '{}' >/dev/null 2>&1 || true
-        for (( wait_count=0; wait_count<30; wait_count++ )); do
+        for ((wait_count = 0; wait_count < 30; wait_count++)); do
             if ! flatpak ps --columns=application | grep -Fxq com.core447.StreamController; then
                 break
             fi
@@ -319,21 +324,21 @@ update_streamdeck() {
         fi
     fi
     for id in "${updates[@]}"; do
-        target="$plugins_dir/$id"
-        if [[ -e "$target" ]]; then
-            mv "$target" "$STREAMDECK_WORK/$id.previous"
+        target="${plugins_dir}/${id}"
+        if [[ -e "${target}" ]]; then
+            mv "${target}" "${STREAMDECK_WORK}/${id}.previous"
         fi
-        STREAMDECK_SWAPPED+=("$id")
-        mv "$STREAMDECK_WORK/$id" "$target"
-        printf 'Updated %s\n' "$id"
+        STREAMDECK_SWAPPED+=("${id}")
+        mv "${STREAMDECK_WORK}/${id}" "${target}"
+        printf 'Updated %s\n' "${id}"
     done
-    if [[ "$settings_changed" == true ]]; then
-        if [[ -f "$settings" ]]; then
-            jq '.store["auto-update"] = false' "$settings" >"$STREAMDECK_WORK/settings.json"
+    if [[ "${settings_changed}" == true ]]; then
+        if [[ -f "${settings}" ]]; then
+            jq '.store["auto-update"] = false' "${settings}" >"${STREAMDECK_WORK}/settings.json"
         else
-            jq -n '{store: {"auto-update": false}}' >"$STREAMDECK_WORK/settings.json"
+            jq -n '{store: {"auto-update": false}}' >"${STREAMDECK_WORK}/settings.json"
         fi
-        mv "$STREAMDECK_WORK/settings.json" "$settings"
+        mv "${STREAMDECK_WORK}/settings.json" "${settings}"
         echo 'Disabled StreamController store auto-updates to preserve the OSPlugin patch'
     fi
 }
@@ -346,5 +351,8 @@ case "${1:-}" in
     streamdeck) update_streamdeck ;;
     gamescope) update_gamescope_session ;;
     ghostty) update_ghostty ;;
-    *) echo 'Usage: update_fedora_extras {firmware|extensions|bazecor|rustdesk|streamdeck|gamescope|ghostty}' >&2; exit 2 ;;
+    *)
+        echo 'Usage: update_fedora_extras {firmware|extensions|bazecor|rustdesk|streamdeck|gamescope|ghostty}' >&2
+        exit 2
+        ;;
 esac

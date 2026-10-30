@@ -16,7 +16,7 @@ for ((attempt = 0; attempt < 60; attempt++)); do
     fi
     sleep 2
 done
-if [[ "$ready" != true ]]; then
+if [[ "${ready}" != true ]]; then
     echo 'Claude Distrobox did not finish starting' >&2
     exit 1
 fi
@@ -28,7 +28,7 @@ if ! distrobox enter claude-desktop -- dpkg-query -W claude-desktop >/dev/null 2
     fingerprint=$(distrobox enter claude-desktop -- sudo gpg --batch --with-colons --show-keys \
         /usr/share/keyrings/claude-desktop-archive-keyring.asc 2>/dev/null |
         awk -F: '$1 == "fpr" { print $10; exit }')
-    if [[ "$fingerprint" != 31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE ]]; then
+    if [[ "${fingerprint}" != 31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE ]]; then
         echo 'Claude apt signing key has an unexpected fingerprint' >&2
         exit 1
     fi
@@ -41,4 +41,4 @@ if ! distrobox enter claude-desktop -- dpkg-query -W claude-desktop >/dev/null 2
 fi
 
 distrobox enter claude-desktop -- distrobox-export --app claude-desktop
-gtk-update-icon-cache --force --ignore-theme-index "$HOME/.local/share/icons/hicolor"
+gtk-update-icon-cache --force --ignore-theme-index "${HOME}/.local/share/icons/hicolor"

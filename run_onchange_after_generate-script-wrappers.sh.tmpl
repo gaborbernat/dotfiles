@@ -3,26 +3,26 @@
 # Private scripts hash: {{ $privateScripts | join "\n" | sha256sum }}
 set -euo pipefail
 
-src="$HOME/.local/share/chezmoi-private/scripts/src"
-if [[ -d "$src" ]]; then
+src="${HOME}/.local/share/chezmoi-private/scripts/src"
+if [[ -d "${src}" ]]; then
     echo "📦 Generating wrapper scripts for private Python scripts..."
-    for script in "$src"/*.py; do
-        if [[ -f "$script" ]]; then
-            name=$(basename "$script" .py)
-            wrapper="$HOME/.local/bin/$name"
-            cat > "$wrapper" << EOF
+    for script in "${src}"/*.py; do
+        if [[ -f "${script}" ]]; then
+            name=$(basename "${script}" .py)
+            wrapper="${HOME}/.local/bin/${name}"
+            cat >"${wrapper}" <<EOF
 #!/bin/bash
 set -euo pipefail
-uv run -- "\$HOME/.local/share/chezmoi-private/scripts/src/$name.py" "\$@"
+uv run -- "\$HOME/.local/share/chezmoi-private/scripts/src/${name}.py" "\$@"
 EOF
-            chmod +x "$wrapper"
-            echo "  Created wrapper: $name"
+            chmod +x "${wrapper}"
+            echo "  Created wrapper: ${name}"
         fi
     done
-    for wrapper in "$HOME/.local/bin"/*; do
-        if [[ -f "$wrapper" ]] && grep -qF 'chezmoi-private/scripts/src/' "$wrapper"; then
-            name=$(basename "$wrapper")
-            [[ -f "$src/$name.py" ]] || rm "$wrapper"
+    for wrapper in "${HOME}/.local/bin"/*; do
+        if [[ -f "${wrapper}" ]] && grep -qF 'chezmoi-private/scripts/src/' "${wrapper}"; then
+            name=$(basename "${wrapper}")
+            [[ -f "${src}/${name}.py" ]] || rm "${wrapper}"
         fi
     done
     echo "✅ Private script wrappers generated"

@@ -9,6 +9,7 @@ if ! command -v systemctl >/dev/null 2>&1 ||
 fi
 
 sudo systemctl enable --now docker.service
-sudo usermod -aG docker "$(id -un)"
+user=$(id -un)
+sudo usermod -aG docker "${user}"
 echo "Docker service enabled and started"
 {{ end -}}
