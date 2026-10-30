@@ -67,10 +67,8 @@ install-copilot-cli.sh
 .local/share/applications/bazecor.desktop
 .local/bin/bluebubbles-start-hidden
 .config/Code
-configure-fedora-font.sh
+configure-fedora-gnome.sh
 configure-fedora-vicinae.sh
-configure-fedora-workspaces.sh
-configure-fedora-power.sh
 install-appindicator-fix.sh
 {{ end }}
 {{ if eq .chezmoi.os "darwin" }}
@@ -98,6 +96,7 @@ enable-opener-sock-gc-timer.sh
 .local/bin/code
 enable-agent-awake.sh
 .local/bin/rustdesk-pin-primary
+.local/bin/gnome_dbus.py
 enable-rustdesk-pin-primary.sh
 .config/windows-vm
 .local/bin/winvm

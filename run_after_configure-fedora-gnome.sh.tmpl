@@ -1,0 +1,15 @@
+#!/bin/bash
+set -euo pipefail
+# shellcheck source=/dev/null
+source {{ joinPath .chezmoi.sourceDir "scripts/fedora/gnome/lib.sh" | quote }}
+
+if ! gnome_session_ready; then
+    exit 0
+fi
+
+gsettings set org.gnome.desktop.interface monospace-font-name 'JetBrains Mono 11'
+gsettings set org.gnome.desktop.session idle-delay 300
+gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-ac-type 'nothing'
+gsettings set org.gnome.settings-daemon.plugins.power sleep-inactive-battery-type 'nothing'
+gsettings set org.gnome.mutter dynamic-workspaces false
+gsettings set org.gnome.desktop.wm.preferences num-workspaces 1

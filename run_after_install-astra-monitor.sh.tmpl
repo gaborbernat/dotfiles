@@ -1,0 +1,24 @@
+#!/bin/bash
+# Astra Monitor v42 (GNOME Extensions version_tag 73927)
+set -euo pipefail
+# shellcheck source=/dev/null
+source {{ joinPath .chezmoi.sourceDir "scripts/fedora/gnome/lib.sh" | quote }}
+
+if [[ "${SKIP_ASTRA_MONITOR:-}" == "1" ]]; then
+    exit 0
+fi
+if ! command -v gnome-extensions >/dev/null 2>&1; then
+    echo "gnome-extensions unavailable; skipping Astra Monitor"
+    exit 0
+fi
+if ! gnome_session_ready; then
+    echo "GNOME session unavailable; Astra Monitor will install on the next chezmoi apply"
+    exit 0
+fi
+
+uuid=monitor@astraext.github.io
+if [[ ! -d "${HOME}/.local/share/gnome-shell/extensions/${uuid}" ]]; then
+    install_pinned_extension "${uuid}" 73927 673cb04e38dc73f71d1e5c8f9c892a9cbf1fe41ddfc2166d6845f52a0839aa98
+fi
+edit_extension_list enabled-extensions "+${uuid}"
+echo "Astra Monitor installed and enabled (log out and back in if it is not visible yet)"

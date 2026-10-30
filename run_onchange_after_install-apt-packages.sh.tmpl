@@ -8,7 +8,7 @@ if ! command -v apt-get >/dev/null 2>&1; then
     exit 1
 fi
 
-mapfile -t packages < <(grep -vE '^\s*(#|$)' "${HOME}/.apt_packages.txt" || true)
+mapfile -t packages < <({{ template "parse-package-manifest" "${HOME}/.apt_packages.txt" }} || true)
 
 echo "📦 Installing apt packages (sudo required)..."
 sudo apt-get update

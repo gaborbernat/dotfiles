@@ -1,11 +1,12 @@
 #!/bin/bash
 set -euo pipefail
+# shellcheck source=/dev/null
+source {{ joinPath .chezmoi.sourceDir "scripts/fedora/gnome/lib.sh" | quote }}
 
 if [[ "${SKIP_COPYOUS:-}" == 1 ]]; then
     exit 0
 fi
-if [[ "${XDG_CURRENT_DESKTOP:-}" != *GNOME* ]] ||
-    [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" && ! -S "${XDG_RUNTIME_DIR:-}/bus" ]]; then
+if ! gnome_session_ready; then
     echo "GNOME session unavailable; Copyous will install on the next chezmoi apply"
     exit 0
 fi
@@ -28,17 +29,5 @@ if [[ ! -d "${HOME}/.local/share/gnome-shell/extensions/${uuid}" ]]; then
     gnome-extensions install --force "${zip}"
 fi
 
-current=$(gsettings get org.gnome.shell enabled-extensions)
-updated=$(python3 -c '
-import ast
-import sys
-
-options = ast.literal_eval(sys.argv[1].removeprefix("@as "))
-if sys.argv[2] not in options:
-    options.append(sys.argv[2])
-print(repr(options))
-' "${current}" "${uuid}")
-if [[ "${updated}" != "${current}" ]]; then
-    gsettings set org.gnome.shell enabled-extensions "${updated}"
-fi
+edit_extension_list enabled-extensions "+${uuid}"
 echo "Copyous installed and enabled (log out and back in if it is not visible yet)"

@@ -1,15 +1,13 @@
 #!/bin/bash
 set -euo pipefail
+# shellcheck source=/dev/null
+source {{ joinPath .chezmoi.sourceDir "scripts/fedora/gnome/lib.sh" | quote }}
 
 if [[ "${SKIP_FEDORA_PANEL:-}" == "1" ]]; then
     exit 0
 fi
-if [[ "${XDG_CURRENT_DESKTOP:-}" != *GNOME* ]] || ! command -v gsettings >/dev/null 2>&1; then
+if ! gnome_session_ready; then
     echo "GNOME session not available; panel setup will retry on the next chezmoi apply"
-    exit 0
-fi
-if [[ -z "${DBUS_SESSION_BUS_ADDRESS:-}" && ! -S "${XDG_RUNTIME_DIR:-}/bus" ]]; then
-    echo "GNOME session bus not available; panel setup will retry on the next chezmoi apply"
     exit 0
 fi
 if ! gsettings list-schemas | grep -qx 'org.gnome.shell.extensions.dash-to-panel'; then
@@ -55,30 +53,23 @@ else
     fi
     GSETTINGS_SCHEMA_DIR="${override}/schemas" gsettings set "${schema}" clone-main-panel true
 fi
-current=$(gsettings get org.gnome.shell enabled-extensions)
-extensions=(dash-to-panel@jderose9.github.com focused-switcher@bernat.tech magnet-tiling@bernat.tech)
+extensions=(
+    -multi-monitors-bar@frederykabryan
+    -window-list@gnome-shell-extensions.gcampax.github.com
+    -dictation-indicator@bernat.tech
+    +dash-to-panel@jderose9.github.com
+    +focused-switcher@bernat.tech
+    +magnet-tiling@bernat.tech
+)
 if [[ -d /usr/share/gnome-shell/extensions/appindicatorsupport@rgcjonas.gmail.com ]]; then
-    extensions+=(appindicatorsupport@rgcjonas.gmail.com)
+    extensions+=(+appindicatorsupport@rgcjonas.gmail.com)
 fi
 if [[ -d "${HOME}/.local/share/gnome-shell/extensions/monitor@astraext.github.io" ]]; then
-    extensions+=(monitor@astraext.github.io)
+    extensions+=(+monitor@astraext.github.io)
 fi
-updated=$(python3 -c '
-import ast
-import sys
-
-options = ast.literal_eval(sys.argv[1].removeprefix("@as "))
-options = [name for name in options if name not in {
-    "multi-monitors-bar@frederykabryan",
-    "window-list@gnome-shell-extensions.gcampax.github.com",
-    "dictation-indicator@bernat.tech",
-}]
-for name in sys.argv[2:]:
-    if name not in options:
-        options.append(name)
-print(repr(options))
-' "${current}" "${extensions[@]}")
-if [[ "${updated}" != "${current}" ]]; then
-    gsettings set org.gnome.shell enabled-extensions "${updated}"
+before=$(gsettings get org.gnome.shell enabled-extensions)
+edit_extension_list enabled-extensions "${extensions[@]}"
+after=$(gsettings get org.gnome.shell enabled-extensions)
+if [[ "${after}" != "${before}" ]]; then
     echo "Enabled Fedora GNOME extensions (log out and back in if they are not visible yet)"
 fi

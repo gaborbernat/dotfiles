@@ -1,0 +1,23 @@
+#!/bin/bash
+# GNOME Extensions version 59, compatible with GNOME Shell 49 and 50.
+set -euo pipefail
+# shellcheck source=/dev/null
+source {{ joinPath .chezmoi.sourceDir "scripts/fedora/gnome/lib.sh" | quote }}
+
+if [[ "${SKIP_DDC_BRIGHTNESS:-}" == 1 ]]; then
+    exit 0
+fi
+if ! gnome_session_ready; then
+    echo "GNOME session unavailable; DDC brightness will install on the next chezmoi apply"
+    exit 0
+fi
+if ! command -v ddcutil >/dev/null 2>&1; then
+    echo "ddcutil unavailable; DDC brightness will install after DNF setup"
+    exit 0
+fi
+uuid=display-brightness-ddcutil@themightydeity.github.com
+if [[ ! -d "${HOME}/.local/share/gnome-shell/extensions/${uuid}" ]]; then
+    install_pinned_extension "${uuid}" 69941 be457ab7b623d51716618c250fef5c8d99417e9861518f362f3303ae1c75c9ce
+fi
+edit_extension_list enabled-extensions "+${uuid}"
+echo "DDC brightness extension installed and enabled (log out and back in if needed)"
