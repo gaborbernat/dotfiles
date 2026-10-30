@@ -185,7 +185,6 @@ Write concise, factual text in a neutral register:
   the two ratings.
 - Claim only what the reproduction or a cited source shows. Name what is not established instead of implying it. A
   sentence nothing proves comes out.
-- Say each thing once. Cut restatements, preambles, summaries of what a section is about to say, and filler transitions.
 - Prefer short declarative sentences with concrete subjects: the function, the file, the account, the command.
 
 ## Review and green

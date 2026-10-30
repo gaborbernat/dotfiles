@@ -14,14 +14,10 @@ writing patterns before finalizing.
 ## Code Quality Standards
 
 I follow established project conventions and style, always checking files alongside the one I edit for their style
-first. I avoid writing comments because code should be self-documenting; the only comments I write explain why we're
-doing something, not how, and I add a short one when the why is non-obvious. I never use comments as section dividers or
-grouping headers.
+first. When I write or edit code or tests, I apply the simp skill: it holds my rules for comments, naming, definition
+order, variables, error handling, typing, linting and test structure.
 
-I prefer explicit over implicit code. I include error handling in production code, but never a blank except; I am
-explicit about which errors can happen. I never add todos. I only create a variable when its value is reused or naming
-it makes the code more compact, and I define it as late as possible, right before its first use. I don't write defensive
-code for states the types or invariants already rule out.
+I prefer explicit over implicit code. I include error handling in production code. I never add todos.
 
 ## Performance & Efficiency
 
@@ -30,20 +26,7 @@ lookups). I consider memory usage for large datasets.
 
 ## Python code
 
-Before generating code I read the pyproject.toml and use the latest supported features. I use the walrus operator when
-it makes code more compact without hurting readability. I order methods in topological usage order from top to bottom,
-like reading a book, including the main entrypoint.
-
-I type never-reassigned values as `Final`, name module-scope globals `UPPER_CASE` (adding a `_` prefix when they aren't
-imported by other modules), keep single-letter names to comprehension targets only, and list every name other modules
-import in `__all__`. I fix linter and type-checker findings rather than suppressing them; any unavoidable suppression
-names the specific code with an inline reason.
-
-After editing a Python file, I run `linterator check -l info --fix .` when the project has a root `.lintrc.yaml`;
-otherwise I run `ruff format .; ruff check . --fix --unsafe-fixes . --output-format=concise`. I make sure it passes.
-
-I never group tests in classes; I fold what would be the class name into a prefix on each test function's name, and
-prefer multiple test files over large groupings. All code, including tests, is fully type annotated.
+Before generating code I read the pyproject.toml and use the latest supported features.
 
 When there's a tox.toml or tox.ini at the project root, I use tox to run tests and create dev environments, using
 `.tox/dev/bin/python` as the interpreter (creating it via tox run if it doesn't exist).
@@ -54,17 +37,9 @@ If the repo has requirements files (won't run on macOS), I override tox dependen
 
 ## Testing Philosophy
 
-I write tests that verify behavior, not implementation. I test edge cases and error conditions. I prefer integration
-tests over excessive unit-test mocking. I keep 100% coverage on all code, including tests. Each test checks one thing,
-so I prefer multiple separate tests. My assertions verify real behavior: I never write a test that would still pass if
-the code under test did nothing. I parameterize near-duplicate tests with readable ids, extract repeated setup into
-fixtures, and prefer exercising behavior through public APIs without asserting on private names.
-
-I avoid widening visibility solely for tests unless the project has an established mechanism for exposing internal test
-interfaces. I mock only true boundaries (network, clock, filesystem, subprocess) and never hand-roll fakes: I prefer
-pytest-mock's `mocker` (falling back to stdlib `unittest.mock` only when the fixture isn't available), prefer
-`create_autospec` over raw mocks, and build mocks compactly via constructor kwargs (`MagicMock(a=...)`) rather than
-define-then-assign.
+I write tests that verify behavior, not implementation. I test edge cases and error conditions. I keep 100% coverage on
+all code, including tests. I avoid widening visibility solely for tests unless the project has an established mechanism
+for exposing internal test interfaces.
 
 ## Markdown files
 

@@ -47,8 +47,7 @@ detail.
 
 Do not start with a header. A long description separates its main topics (for example impact, architecture, rollout)
 with `###` headings after the opening paragraph. Use 1-3 emoji sparingly throughout to highlight key points. Once the
-title and body are drafted, strip the AI slop out of them before creating or updating the PR. The `no-slop` skill does
-that where it is installed; otherwise work through the **Avoid** list below by hand.
+title and body are drafted, run `/no-slop` on them before creating or updating the PR.
 
 **Structure**:
 
@@ -89,8 +88,7 @@ that where it is installed; otherwise work through the **Avoid** list below by h
 - Bullet-point lists of file changes
 - Hard-wrapping paragraphs with manual mid-paragraph newlines
 - Marketing or hype language, and any claim or assumption not grounded in the diff or a cited reference
-- AI slop: filler phrases, throat-clearing openers, emphasis crutches, adverbs, vague declaratives, em dashes, passive
-  voice, "not X but Y" contrasts, false agency (inanimate objects doing human verbs)
+- Em dashes, and every AI-writing pattern `/no-slop` lists
 
 **Good example**:
 

@@ -1,0 +1,44 @@
+# Commands Claude Code (private_dot_claude/settings.json.tmpl) and Codex (dot_codex/rules/default.rules.tmpl) both run
+# without asking. Each becomes Bash(<command> *) for Claude and prefix_rule(pattern = ["<command>"]) for Codex; rules
+# only one agent has stay in that agent's template.
+[agent_commands]
+shared = [
+  "awk",
+  "brew",
+  "cat",
+  "chezmoi",
+  "chmod",
+  "curl",
+  "docker",
+  "find",
+  "fish_indent",
+  "gh",
+  "git",
+  "grep",
+  "head",
+  "jq",
+  "ls",
+  "mdformat",
+  "mkdir",
+  "mv",
+  "pre-commit",
+  "prek",
+  "rm",
+  "ruff",
+  "sed",
+  "sort",
+  "tail",
+  "tar",
+  "tox",
+  "tree",
+  "uniq",
+  "unzip",
+  "wc",
+  "which",
+  "xargs",
+  "yq",
+]
+
+# Claude allows only these subcommands; Codex allows the whole command.
+[agent_commands.claude_subcommands]
+docker = ["build", "run", "ps", "logs", "exec", "stop", "rm"]

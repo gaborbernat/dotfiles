@@ -57,8 +57,7 @@ unexplained, written in paragraphs wrapped at 80 characters. Focus on:
 - Routine validation reports, test counts, coverage totals, and CI status
 - Lists of unchanged behavior, absent changes, or completed checklist items
 - Conversation history
-- AI slop: filler phrases, throat-clearing openers, emphasis crutches, adverbs, vague declaratives, em dashes, passive
-  voice, "not X but Y" contrasts
+- Em dashes, and every AI-writing pattern `/no-slop` lists: run it on the message before committing
 
 **Good example**:
 
