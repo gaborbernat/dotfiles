@@ -12,11 +12,9 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
         return 2
     end
 
-    set use_https true
     set gh_host ""
     set repo_path ""
     if string match -q 'git@*:*' $repo_input
-        set use_https false
         set gh_host (string replace -r '^git@([^:]+):.*' '$1' $repo_input)
         set repo_path (string replace -r '^git@[^:]+:(.+?)(?:\.git)?$' '$1' $repo_input)
     else if string match -qr '^https?://' $repo_input
@@ -35,11 +33,7 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
         return 2
     end
 
-    if test "$use_https" = true
-        set upstream_url (gh repo view $repo --json url --jq '.url')
-    else
-        set upstream_url (gh repo view $repo --json sshUrl --jq '.sshUrl')
-    end
+    set upstream_url (_wt_pick_url $repo_input (gh repo view $repo --json url,sshUrl --jq '.url, .sshUrl'))
     set default_branch (gh repo view $repo --json defaultBranchRef --jq '.defaultBranchRef.name')
 
     set name (string split / $repo)[2]
@@ -74,11 +68,8 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
         # Fork creation is async, so the fork may not resolve right away.
         set fork_url ""
         for i in 1 2 3 4 5
-            if test "$use_https" = true
-                set fork_url (gh repo view $fork --json url --jq '.url' 2>/dev/null)
-            else
-                set fork_url (gh repo view $fork --json sshUrl --jq '.sshUrl' 2>/dev/null)
-            end
+            set fork_url (_wt_pick_url $repo_input \
+                (gh repo view $fork --json url,sshUrl --jq '.url, .sshUrl' 2>/dev/null))
             test -n "$fork_url"; and break
             echo "Waiting for fork to be available... ($i/5)"
             sleep 2
@@ -125,17 +116,11 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
     echo "Fetching origin"
     git fetch origin 2>/dev/null
 
-    if not test -f CLAUDE.md
-        touch CLAUDE.md
-    end
-
     if not test -d $default_branch_dir
         git worktree add $default_branch_dir $default_branch
     end
 
-    if not test -e $default_branch_dir/CLAUDE.md
-        ln -s ../CLAUDE.md $default_branch_dir/CLAUDE.md
-    end
+    _wt_link_claude_md . $default_branch_dir
 
     # gh repo set-default needs a worktree, not the bare repo.
     cd $default_branch_dir
@@ -161,9 +146,7 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
         echo "Branch worktree already exists: $branch"
     end
 
-    if not test -e $branch_dir/CLAUDE.md
-        ln -s ../CLAUDE.md $branch_dir/CLAUDE.md
-    end
+    _wt_link_claude_md . $branch_dir
 
     cd $branch_dir
 

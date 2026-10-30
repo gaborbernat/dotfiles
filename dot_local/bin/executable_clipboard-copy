@@ -1,0 +1,4 @@
+#!/bin/bash
+set -euo pipefail
+# Tries each platform's tool in turn; the ones this machine lacks would otherwise print "command not found".
+{ pbcopy || wl-copy || xclip -selection clipboard || xsel --clipboard --input; } 2>/dev/null

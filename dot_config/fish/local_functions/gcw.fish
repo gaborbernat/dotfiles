@@ -1,14 +1,7 @@
 function gcw -d "Create or update a worktree from upstream default branch" -a branch
     test -z "$branch" && echo "Usage: gcw <branch-name>" && return 1
 
-    not git rev-parse --git-dir &>/dev/null && echo "Not in a git repository" && return 1
-
-    # git-common-dir is the bare repo both from its root and from any of its worktrees.
-    set --local bare_root (git rev-parse --git-common-dir 2>/dev/null)
-    if not git rev-parse --is-bare-repository 2>/dev/null | string match -q true
-        and test "$bare_root" = .git -o ! -d "$bare_root"
-        echo "Not a bare repository setup" && return 1
-    end
+    set --local bare_root (_wt_bare_root); or return 1
 
     set --local worktree_path "$bare_root/"(path basename (path resolve "$bare_root"))"-$branch"
 
@@ -24,8 +17,7 @@ function gcw -d "Create or update a worktree from upstream default branch" -a br
     # The remote HEAD ref stays unset until set-head asks the remote for it.
     git -C "$bare_root" symbolic-ref "refs/remotes/$base_remote/HEAD" &>/dev/null
     or git -C "$bare_root" remote set-head $base_remote --auto 2>/dev/null
-    set --local default_branch (git -C "$bare_root" symbolic-ref "refs/remotes/$base_remote/HEAD" 2>/dev/null |
-        sed "s|refs/remotes/$base_remote/||")
+    set --local default_branch (_wt_default_branch "$bare_root" $base_remote)
     test -z "$default_branch" && echo "Cannot determine default branch for $base_remote" && return 1
     set --local base_ref "$base_remote/$default_branch"
 
@@ -50,12 +42,7 @@ function gcw -d "Create or update a worktree from upstream default branch" -a br
         git -C "$worktree_path" push -u origin "$branch"
     end
 
-    if not test -f "$bare_root/CLAUDE.md"
-        touch "$bare_root/CLAUDE.md"
-    end
-    if not test -e "$worktree_path/CLAUDE.md"
-        ln -s ../CLAUDE.md "$worktree_path/CLAUDE.md"
-    end
+    _wt_link_claude_md "$bare_root" "$worktree_path"
 
     cd "$worktree_path"
     echo "Now in: $worktree_path"

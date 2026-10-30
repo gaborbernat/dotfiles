@@ -1,11 +1,5 @@
 function wl -d "List worktrees for bare repo (interactive: enter=cd, d=delete)"
-    not git rev-parse --git-dir &>/dev/null && echo "Not in a git repository" && return 1
-
-    set --local bare_root (git rev-parse --git-common-dir 2>/dev/null)
-    if not git rev-parse --is-bare-repository 2>/dev/null | string match -q true
-        and test "$bare_root" = .git -o ! -d "$bare_root"
-        echo "Not a bare repository setup" && return 1
-    end
+    set --local bare_root (_wt_bare_root); or return 1
 
     # A bare clone has no fetch refspecs; set them here without fetching.
     git -C "$bare_root" config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*" 2>/dev/null
@@ -99,12 +93,8 @@ $legend"
         # worktree that sources this file and calls the remover. Args go through $argv rather than interpolation so
         # paths with spaces survive.
         set --local self (status filename)
-        set --local default_branch (git -C "$bare_root" symbolic-ref --short refs/remotes/upstream/HEAD 2>/dev/null)
-        set default_branch (string replace 'upstream/' '' -- "$default_branch")
-        if test -z "$default_branch"
-            set default_branch (git -C "$bare_root" symbolic-ref --short refs/remotes/origin/HEAD 2>/dev/null)
-            set default_branch (string replace 'origin/' '' -- "$default_branch")
-        end
+        set --local default_branch (_wt_default_branch "$bare_root" upstream)
+        test -z "$default_branch"; and set default_branch (_wt_default_branch "$bare_root" origin)
         test -z "$default_branch"; and set default_branch main
         for selection in $selections
             set --local path (string split \t $selection)[2]
@@ -162,11 +152,7 @@ function _wl_open_pr -a bare_root pr_number
 
     if test -z "$remote_name"
         set existing_url (git remote get-url upstream 2>/dev/null; or git remote get-url origin 2>/dev/null)
-        if string match -q 'git@*' "$existing_url"
-            set remote_url $repo_ssh
-        else
-            set remote_url $repo_url
-        end
+        set remote_url (_wt_pick_url "$existing_url" "$repo_url" "$repo_ssh")
 
         for remote in (git remote)
             set url (git remote get-url $remote 2>/dev/null)
@@ -202,12 +188,7 @@ function _wl_open_pr -a bare_root pr_number
     cd $worktree_name
     git branch --set-upstream-to=$remote_name/$branch
 
-    if not test -f ../CLAUDE.md
-        touch ../CLAUDE.md
-    end
-    if not test -e CLAUDE.md
-        ln -s ../CLAUDE.md CLAUDE.md
-    end
+    _wt_link_claude_md .. .
 
     echo "✅ Ready: PR #$pr_number ($branch)"
 end
