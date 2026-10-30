@@ -9,7 +9,7 @@ import * as AltTab from 'resource:///org/gnome/shell/ui/altTab.js';
 import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 const APP_BINDINGS = ['switch-applications', 'switch-applications-backward', 'switch-group', 'switch-group-backward'];
-const TV_PRODUCT = 'LG TV SSCR2';
+const TV_PRODUCT = '{{ .monitors.tv.product }}';
 
 export default class FocusedSwitcherExtension extends Extension {
     enable() {
@@ -119,9 +119,9 @@ export default class FocusedSwitcherExtension extends Extension {
             if (index < 0) continue;
             const product = monitor.get_product();
             const serial = monitor.get_serial();
-            if (monitor.get_vendor() === 'FUE') monitors[index] = 'Dummy';
-            else if (serial === '34R01091019') monitors[index] = 'BenQ Left';
-            else if (serial === 'C6P06071019') monitors[index] = 'BenQ Right';
+            if (monitor.get_vendor() === '{{ .monitors.dummy.vendor }}') monitors[index] = 'Dummy';
+            else if (serial === '{{ .monitors.left_benq.serial }}') monitors[index] = 'BenQ Left';
+            else if (serial === '{{ .monitors.right_benq.serial }}') monitors[index] = 'BenQ Right';
             else if (product === TV_PRODUCT) monitors[index] = 'LG TV';
             else {
                 const model = product?.startsWith('0x') ? monitor.get_vendor() : product;

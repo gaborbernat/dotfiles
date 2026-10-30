@@ -1,0 +1,15 @@
+# Desk displays as GNOME reports them, read by order-monitors, rustdesk-pin-primary and the focused-switcher extension.
+[monitors.dummy]
+# The HDMI dummy plug that gives RustDesk a headless screen
+vendor = "FUE"
+product = "0x2160"
+serial = "0x6f35b130"
+
+[monitors.left_benq]
+serial = "34R01091019"
+
+[monitors.right_benq]
+serial = "C6P06071019"
+
+[monitors.tv]
+product = "LG TV SSCR2"

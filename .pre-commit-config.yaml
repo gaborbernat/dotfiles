@@ -132,9 +132,10 @@ repos:
         types: [python]
         priority: 4
       # The scripts project resolves its tests' imports from src/; the standalone scripts share its typing venv.
+      # ty gives inline-metadata scripts no first-party path, so the flag lets them import their src/ siblings.
       - id: ty-scripts
         name: ty check (scripts project)
-        entry: uv run --quiet --project dot_local/scripts --all-groups ty check --project dot_local/scripts
+        entry: uv run --quiet --directory dot_local/scripts --all-groups ty check --extra-search-path src
         language: system
         types: [python]
         files: ^dot_local/scripts/
@@ -169,7 +170,9 @@ repos:
       - id: check-templates
         name: lint rendered chezmoi templates
         entry: scripts/lint/check-templates
-        language: system
+        # node puts biome on PATH for rendered JavaScript; keep it on the biome-check hook's version
+        language: node
+        additional_dependencies: ["@biomejs/biome@2.6.4"]
         files: \.tmpl$
         # its prompt functions only exist during chezmoi init
         exclude: ^\.chezmoi\.toml\.tmpl$

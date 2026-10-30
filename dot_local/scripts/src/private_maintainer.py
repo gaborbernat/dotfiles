@@ -8,24 +8,23 @@
 # ]
 # ///
 
-import os
-import subprocess
 import webbrowser
 from argparse import ArgumentParser, Namespace
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, Final
 
 from github import Github
-from github.Auth import Token
 from github.GithubException import GithubException
 from rich.console import Console
 from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.table import Table
 from rich.text import Text
 from rich_argparse import RichHelpFormatter
-from truststore import inject_into_ssl
+
+from _github import get_auth
 
 if TYPE_CHECKING:
+    from github.Auth import Token
     from github.CheckRun import CheckRun
     from github.CommitStatus import CommitStatus
     from github.PullRequest import PullRequest
@@ -35,12 +34,11 @@ if TYPE_CHECKING:
 def main() -> None:
     opts: Final = parse_cli()
     console: Final = Console()
-    if not (token := get_token()):
+    if not (auth := get_auth()):
         console.print("[red]No GitHub token found. Set GITHUB_TOKEN or run gh auth login.[/red]")
         raise SystemExit(1)
-    inject_into_ssl()
     try:
-        run(console, token, opts)
+        run(console, auth, opts)
     except KeyboardInterrupt:
         console.print("[red]Interrupted by user (Ctrl+C)[/red]")
     except GithubException as exc:
@@ -63,19 +61,9 @@ class Options(Namespace):
     verbose: bool
 
 
-def get_token() -> str | None:
-    if token := os.environ.get("GITHUB_TOKEN"):
-        return token
-    try:
-        result: Final = subprocess.run(("gh", "auth", "token"), capture_output=True, check=True, text=True)
-    except OSError, subprocess.CalledProcessError:
-        return None
-    return result.stdout.strip() or None
-
-
-def run(console: Console, token: str, opts: Options) -> None:
+def run(console: Console, auth: Token, opts: Options) -> None:
     console.print("[bold cyan]🔍 Scanning repositories for open PRs...[/bold cyan]")
-    mergeable_prs, failed_prs = scan_repositories(console, token)
+    mergeable_prs, failed_prs = scan_repositories(console, auth)
     console.print()
     console.print(f"[bold]Found {len(mergeable_prs)} mergeable PRs and {len(failed_prs)} failed PRs[/bold]")
     console.print()
@@ -91,7 +79,7 @@ def run(console: Console, token: str, opts: Options) -> None:
 
 
 def scan_repositories(
-    console: Console, token: str
+    console: Console, auth: Token
 ) -> tuple[list[tuple[str, PullRequest, str]], list[tuple[str, PullRequest, str, str | None]]]:
     # Mirrors the primary and maintenance projects in bernat-tech/data/projects.yaml (presentations excluded);
     # keep both in sync. toml-fmt covers its monorepo components; pyproject-fmt and tox-toml-fmt are listed
@@ -145,7 +133,7 @@ def scan_repositories(
     ):
         task = progress.add_task("Scanning repositories...", total=len(repositories))
         future_to_repo = {
-            executor.submit(scan_single_repository, token, repo_path): repo_path for repo_path in repositories
+            executor.submit(scan_single_repository, auth, repo_path): repo_path for repo_path in repositories
         }
         for future in as_completed(future_to_repo):
             try:
@@ -166,10 +154,10 @@ def scan_repositories(
 
 
 def scan_single_repository(
-    token: str, repo_path: str
+    auth: Token, repo_path: str
 ) -> tuple[list[tuple[str, PullRequest, str]], list[tuple[str, PullRequest, str, str | None]], list[str], str]:
     # A client per thread, since PyGithub sessions are not safe to share across threads
-    repo: Final = Github(auth=Token(token)).get_repo(repo_path)
+    repo: Final = Github(auth=auth).get_repo(repo_path)
     mergeable_prs: Final[list[tuple[str, PullRequest, str]]] = []
     failed_prs: Final[list[tuple[str, PullRequest, str, str | None]]] = []
     pr_titles: Final[list[str]] = []
@@ -314,4 +302,4 @@ def open_failed_prs(console: Console, failed_prs: list[tuple[str, PullRequest, s
 if __name__ == "__main__":
     main()
 
-__all__ = ["check_pr_status", "display_failed_prs", "display_mergeable_prs", "get_token"]
+__all__ = ["check_pr_status", "display_failed_prs", "display_mergeable_prs"]

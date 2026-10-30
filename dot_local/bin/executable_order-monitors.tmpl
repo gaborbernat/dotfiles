@@ -4,12 +4,8 @@
 import logging
 from typing import Any, Final
 
-import gi
+from gnome_dbus import MUTTER, Gio, GLib, call
 
-gi.require_version("Gio", "2.0")
-from gi.repository import Gio, GLib  # ruff: ignore[module-import-not-at-top-of-file] # require_version must run first
-
-_MUTTER: Final = ("org.gnome.Mutter.DisplayConfig", "/org/gnome/Mutter/DisplayConfig", "org.gnome.Mutter.DisplayConfig")
 _TV_RANK: Final = 3
 
 
@@ -21,10 +17,10 @@ def main() -> None:
         GLib.timeout_add(500, arrange, bus)
 
     bus.signal_subscribe(
-        _MUTTER[0],
-        _MUTTER[2],
+        MUTTER.name,
+        MUTTER.interface,
         "MonitorsChanged",
-        _MUTTER[1],
+        MUTTER.path,
         None,
         Gio.DBusSignalFlags.NONE,
         on_monitors_changed,
@@ -36,7 +32,7 @@ def main() -> None:
 def arrange(bus: Gio.DBusConnection) -> bool:
     log: Final = logging.getLogger("order-monitors")
     try:
-        state: Final = bus.call_sync(*_MUTTER, "GetCurrentState", None, None, Gio.DBusCallFlags.NONE, -1, None).unpack()
+        state: Final = call(bus, MUTTER, "GetCurrentState", None).unpack()
     except GLib.Error:
         log.exception("could not read displays")
         return GLib.SOURCE_REMOVE
@@ -48,14 +44,11 @@ def arrange(bus: Gio.DBusConnection) -> bool:
     }
     try:
         for method in (0, 2):
-            bus.call_sync(
-                *_MUTTER,
+            call(
+                bus,
+                MUTTER,
                 "ApplyMonitorsConfig",
                 GLib.Variant("(uua(iiduba(ssa{sv}))a{sv})", (serial, method, layout, config_properties)),
-                None,
-                Gio.DBusCallFlags.NONE,
-                -1,
-                None,
             )
     except GLib.Error:
         log.exception("could not order displays")
@@ -117,9 +110,9 @@ def desired_layout(monitors: list[Any], logical_monitors: list[Any]) -> list[tup
 
 def rank(spec: tuple[str, str, str, str]) -> int:
     _, vendor, product, monitor_serial = spec
-    if vendor == "FUE":
+    if vendor == "{{ .monitors.dummy.vendor }}":
         return 0
-    return {"34R01091019": 1, "C6P06071019": 2}.get(monitor_serial, _TV_RANK if product == "LG TV SSCR2" else -1)
+    return {"{{ .monitors.left_benq.serial }}": 1, "{{ .monitors.right_benq.serial }}": 2}.get(monitor_serial, _TV_RANK if product == "{{ .monitors.tv.product }}" else -1)
 
 
 if __name__ == "__main__":

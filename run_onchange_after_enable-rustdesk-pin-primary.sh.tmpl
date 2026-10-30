@@ -1,6 +1,7 @@
 #!/bin/bash
 # Service hash: {{ include "dot_config/systemd/private_user/rustdesk-pin-primary.service" | sha256sum }}
-# Script hash: {{ include "dot_local/bin/executable_rustdesk-pin-primary" | sha256sum }}
+# Script hash: {{ includeTemplate "dot_local/bin/executable_rustdesk-pin-primary.tmpl" . | sha256sum }}
+# Module hash: {{ include "dot_local/bin/gnome_dbus.py" | sha256sum }}
 set -euo pipefail
 
 systemctl --user daemon-reload

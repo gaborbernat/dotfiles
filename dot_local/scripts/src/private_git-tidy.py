@@ -24,7 +24,8 @@ from rich.progress import Progress, SpinnerColumn, TextColumn
 from rich.prompt import Confirm
 from rich.table import Table
 from rich_argparse import RichHelpFormatter
-from truststore import inject_into_ssl
+
+from _github import get_auth
 
 if TYPE_CHECKING:
     from github.Repository import Repository
@@ -143,11 +144,10 @@ def get_github_repo(console: Console, opts: Options) -> Repository | None:
                 return None
             github = Github(base_url=f"https://{enterprise_host}/api/v3", auth=Token(token))
         else:
-            if not (token := os.environ.get("GITHUB_TOKEN")):
-                console.print("[yellow]Warning: GITHUB_TOKEN not set, skipping PR merge check[/yellow]")
+            if not (auth := get_auth()):
+                console.print("[yellow]Warning: no GitHub token found, skipping PR merge check[/yellow]")
                 return None
-            inject_into_ssl()
-            github = Github(auth=Token(token))
+            github = Github(auth=auth)
         if opts.verbose:
             console.print(f"[dim]Using GitHub repository: {repo_path}[/dim]")
         return github.get_repo(repo_path)

@@ -1,29 +1,36 @@
 #!/bin/bash
+{{- $publicScripts := glob (joinPath .chezmoi.sourceDir "dot_local/scripts/src/*.py") }}
 {{- $privateScripts := glob (joinPath .chezmoi.homeDir ".local/share/chezmoi-private/scripts/src/*.py") }}
-# Private scripts hash: {{ $privateScripts | join "\n" | sha256sum }}
+# Scripts hash: {{ concat $publicScripts $privateScripts | join "\n" | sha256sum }}
 set -euo pipefail
 
-src="${HOME}/.local/share/chezmoi-private/scripts/src"
-if [[ -d "${src}" ]]; then
-    echo "📦 Generating wrapper scripts for private Python scripts..."
+generate_wrappers() {
+    local relative="$1"
+    local src="${HOME}/${relative}"
+    [[ -d "${src}" ]] || return 0
+    echo "📦 Generating wrapper scripts for ${relative}..."
     for script in "${src}"/*.py; do
-        if [[ -f "${script}" ]]; then
-            name=$(basename "${script}" .py)
+        name=$(basename "${script}" .py)
+        # Underscore modules are imported by the scripts beside them or run by hand, not commands
+        if [[ -f "${script}" && "${name}" != _* ]]; then
             wrapper="${HOME}/.local/bin/${name}"
             cat >"${wrapper}" <<EOF
 #!/bin/bash
 set -euo pipefail
-uv run -- "\$HOME/.local/share/chezmoi-private/scripts/src/${name}.py" "\$@"
+uv run -- "\${HOME}/${relative}/${name}.py" "\$@"
 EOF
             chmod +x "${wrapper}"
             echo "  Created wrapper: ${name}"
         fi
     done
     for wrapper in "${HOME}/.local/bin"/*; do
-        if [[ -f "${wrapper}" ]] && grep -qF 'chezmoi-private/scripts/src/' "${wrapper}"; then
+        if [[ -f "${wrapper}" ]] && grep -qF "/${relative}/" "${wrapper}"; then
             name=$(basename "${wrapper}")
             [[ -f "${src}/${name}.py" ]] || rm "${wrapper}"
         fi
     done
-    echo "✅ Private script wrappers generated"
-fi
+    echo "✅ Wrappers for ${relative} generated"
+}
+
+generate_wrappers .local/scripts/src
+generate_wrappers .local/share/chezmoi-private/scripts/src

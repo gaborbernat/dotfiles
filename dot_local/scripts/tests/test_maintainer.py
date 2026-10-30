@@ -1,15 +1,10 @@
-import subprocess
 from io import StringIO
-from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
 from rich.console import Console
 
-from private_maintainer import check_pr_status, display_failed_prs, display_mergeable_prs, get_token
-
-if TYPE_CHECKING:
-    from pytest_mock import MockerFixture
+from private_maintainer import check_pr_status, display_failed_prs, display_mergeable_prs
 
 
 @pytest.fixture
@@ -31,47 +26,6 @@ def pr() -> MagicMock:
     pr.base.repo.get_commit.return_value.get_combined_status.return_value.statuses = []
     pr.base.repo.get_commit.return_value.get_check_runs.return_value = []
     return pr
-
-
-def test_get_token_prefers_environment(monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture) -> None:
-    monkeypatch.setenv("GITHUB_TOKEN", "environment-token")
-    gh = mocker.patch("private_maintainer.subprocess.run", autospec=True)
-
-    assert get_token() == "environment-token"
-    gh.assert_not_called()
-
-
-@pytest.mark.parametrize(
-    ("stdout", "expected"),
-    [
-        pytest.param("gh-token\n", "gh-token", id="gh token"),
-        pytest.param("\n", None, id="empty gh output"),
-    ],
-)
-def test_get_token_uses_gh_auth(
-    monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture, stdout: str, expected: str | None
-) -> None:
-    monkeypatch.setenv("GITHUB_TOKEN", "")
-    completed = subprocess.CompletedProcess(("gh", "auth", "token"), 0, stdout=stdout)
-    mocker.patch("private_maintainer.subprocess.run", autospec=True, return_value=completed)
-
-    assert get_token() == expected
-
-
-@pytest.mark.parametrize(
-    "error",
-    [
-        pytest.param(FileNotFoundError(), id="gh missing"),
-        pytest.param(subprocess.CalledProcessError(1, ("gh", "auth", "token")), id="gh not authenticated"),
-    ],
-)
-def test_get_token_handles_gh_failure(
-    monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture, error: OSError | subprocess.CalledProcessError
-) -> None:
-    monkeypatch.setenv("GITHUB_TOKEN", "")
-    mocker.patch("private_maintainer.subprocess.run", autospec=True, side_effect=error)
-
-    assert get_token() is None
 
 
 def test_display_mergeable_prs_links_pr(console: Console, pr: MagicMock) -> None:

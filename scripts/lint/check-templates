@@ -6,9 +6,11 @@ import subprocess
 import sys
 import tomllib
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from typing import Final
 
 _SHELL_SHEBANGS: Final = ("#!/bin/bash", "#!/usr/bin/bash", "#!/usr/bin/env bash", "#!/bin/sh", "#!/usr/bin/env sh")
+_PYTHON_SHEBANGS: Final = ("#!/usr/bin/python3", "#!/usr/bin/env python3")
 
 
 def main() -> None:
@@ -36,21 +38,46 @@ def lint(template: Path, rendered: str) -> str:
         return run(["shellcheck", "--enable=all", "-"], rendered) + run(
             ["shfmt", "-i", "4", "-ci", "-d", "--filename", target], rendered
         )
+    if target.endswith(".py") or rendered.startswith(_PYTHON_SHEBANGS):
+        return lint_python(template, rendered)
+    if target.endswith(".js"):
+        biome: Final = ["biome", "check", "--indent-style=space", "--indent-width=4", "--line-width=120"]
+        return run_on_file([*biome, "--javascript-formatter-quote-style=single"], target, rendered)
     if target.endswith(".fish"):
         return run(["fish", "--no-execute"], rendered) + run(["fish_indent", "--check"], rendered)
     if target.endswith((".yaml", ".yml")):
         yamllint_config = "{extends: default, rules: {line-length: {max: 120}}}"
         return run(["yamllint", "--strict", "-d", yamllint_config, "-"], rendered)
-    if target.endswith(".toml"):
-        try:
+    return parse_error(target, rendered)
+
+
+def lint_python(template: Path, rendered: str) -> str:
+    # The target path lets ruff find the same configuration it would use for the rendered file
+    stdin_filename: Final = f"--stdin-filename={template.with_suffix('')}"
+    ty: Final = ["uv", "run", "--quiet", "--project", "dot_local/scripts", "--all-groups", "ty", "check"]
+    # Scripts import modules installed beside them, so resolve imports from the template's directory too
+    ty_options: Final = ["--python", "dot_local/scripts/.venv", "--extra-search-path", str(template.parent)]
+    return (
+        run(["ruff", "format", "--diff", stdin_filename, "-"], rendered)
+        + run(["ruff", "check", "--no-fix", stdin_filename, "-"], rendered)
+        + run_on_file([*ty, *ty_options], template.with_suffix("").name, rendered)
+    )
+
+
+def run_on_file(command: list[str], target: str, rendered: str) -> str:
+    with TemporaryDirectory() as directory:
+        (rendered_file := Path(directory) / target).write_text(rendered, encoding="utf-8")
+        return run([*command, str(rendered_file)], "")
+
+
+def parse_error(target: str, rendered: str) -> str:
+    try:
+        if target.endswith(".toml"):
             tomllib.loads(rendered)
-        except tomllib.TOMLDecodeError as error:
-            return f"{error}\n"
-    if target.endswith(".json"):
-        try:
+        elif target.endswith(".json"):
             json.loads(rendered)
-        except json.JSONDecodeError as error:
-            return f"{error}\n"
+    except (tomllib.TOMLDecodeError, json.JSONDecodeError) as error:
+        return f"{error}\n"
     return ""
 
 
