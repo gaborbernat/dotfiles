@@ -6,10 +6,10 @@ format.docstring-code-format = true
 lint.select = ["ALL"]
 lint.ignore = [
   "missing-trailing-comma",  # conflicts with formatter
-  "CPY",     # no copyright
-  "D",       # no docs
+  "CPY",  # no copyright headers
+  "D",  # no docstrings
   "single-line-implicit-string-concatenation",  # conflicts with formatter
-  "S",       # we trust ourselves
-  "magic-value-comparison", # magic numbers are fine
+  "S",  # we trust ourselves
+  "magic-value-comparison",  # magic numbers are fine
 ]
 lint.preview = true

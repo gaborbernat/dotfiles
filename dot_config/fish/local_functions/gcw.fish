@@ -1,28 +1,19 @@
 function gcw -d "Create or update a worktree from upstream default branch" -a branch
     test -z "$branch" && echo "Usage: gcw <branch-name>" && return 1
 
-    set --local git_dir (git rev-parse --git-dir 2>/dev/null)
-    test -z "$git_dir" && echo "Not in a git repository" && return 1
+    not git rev-parse --git-dir &>/dev/null && echo "Not in a git repository" && return 1
 
-    # For bare repos, git-dir is the repo itself; for worktrees, find the common dir
+    # git-common-dir is the bare repo both from its root and from any of its worktrees.
     set --local bare_root (git rev-parse --git-common-dir 2>/dev/null)
     if not git rev-parse --is-bare-repository 2>/dev/null | string match -q true
-        # Not bare - check if we're in a worktree of a bare repo
-        if test "$bare_root" != ".git" -a -d "$bare_root"
-            # git-common-dir already points to the bare repo
-            set bare_root $bare_root
-        else
-            echo "Not a bare repository setup" && return 1
-        end
+        and test "$bare_root" = .git -o ! -d "$bare_root"
+        echo "Not a bare repository setup" && return 1
     end
 
-    set --local project (path basename (path resolve "$bare_root"))
-    set --local worktree_path "$bare_root/$project-$branch"
+    set --local worktree_path "$bare_root/"(path basename (path resolve "$bare_root"))"-$branch"
 
-    # Clean up stale worktree references
     git -C "$bare_root" worktree prune
 
-    # Determine the base remote and default branch
     set --local base_remote upstream
     if not git -C "$bare_root" remote | string match -q upstream
         set base_remote origin
@@ -30,17 +21,15 @@ function gcw -d "Create or update a worktree from upstream default branch" -a br
     echo "Fetching $base_remote..."
     git -C "$bare_root" fetch $base_remote --quiet
 
-    set --local default_branch (git -C "$bare_root" symbolic-ref "refs/remotes/$base_remote/HEAD" 2>/dev/null | sed "s|refs/remotes/$base_remote/||")
-    if test -z "$default_branch"
-        # Fallback: query remote HEAD
-        git -C "$bare_root" remote set-head $base_remote --auto 2>/dev/null
-        set default_branch (git -C "$bare_root" symbolic-ref "refs/remotes/$base_remote/HEAD" 2>/dev/null | sed "s|refs/remotes/$base_remote/||")
-    end
+    # The remote HEAD ref stays unset until set-head asks the remote for it.
+    git -C "$bare_root" symbolic-ref "refs/remotes/$base_remote/HEAD" &>/dev/null
+    or git -C "$bare_root" remote set-head $base_remote --auto 2>/dev/null
+    set --local default_branch (git -C "$bare_root" symbolic-ref "refs/remotes/$base_remote/HEAD" 2>/dev/null |
+        sed "s|refs/remotes/$base_remote/||")
     test -z "$default_branch" && echo "Cannot determine default branch for $base_remote" && return 1
     set --local base_ref "$base_remote/$default_branch"
 
     if git -C "$bare_root" show-ref --verify --quiet "refs/heads/$branch"
-        # Branch exists - rebase against base ref
         if not test -d "$worktree_path"
             echo "Branch '$branch' exists, recreating worktree..."
             git -C "$bare_root" worktree add "$worktree_path" "$branch"
@@ -52,11 +41,9 @@ function gcw -d "Create or update a worktree from upstream default branch" -a br
                 return 1
             end
         end
-        # Ensure tracking is set to origin
         git -C "$worktree_path" branch --set-upstream-to=origin/"$branch" 2>/dev/null
         or git -C "$worktree_path" push -u origin "$branch"
     else
-        # New branch - create worktree from base ref, track origin
         echo "Creating new worktree '$branch' from $base_ref..."
         git -C "$bare_root" worktree add --no-track -b "$branch" "$worktree_path" $base_ref
         echo "Pushing to origin and setting upstream..."

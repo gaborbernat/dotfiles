@@ -1,9 +1,7 @@
-# Abbreviated path for a given dir: $HOME -> ~, each parent truncated to one
-# char and the basename kept full. Plain text only; shared by the prompt and statusline.
+# Lives in functions/, not local_functions/, because the statusline calls it from non-interactive fish.
 function _bgp_pwd_plain --argument-names dir
     test -z "$dir" && set dir $PWD
-    set --local pwd_display (string replace -- $HOME "~" $dir)
-    set --local parts (string split / $pwd_display)
+    set --local parts (string split / (string replace -- $HOME "~" $dir))
     set --local part_count (count $parts)
     set --local plain_parts
 

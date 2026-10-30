@@ -1,9 +1,8 @@
-# Core
-{{- if eq .chezmoi.os "darwin" }}
+{{ if eq .chezmoi.os "darwin" -}}
 set -gx EDITOR 'code --wait'
 set -gx VISUAL 'code --wait'
 set -gx SHELL /opt/homebrew/bin/fish
-{{- else }}
+{{- else -}}
 if command -q code
     set -gx EDITOR 'code --wait'
     set -gx VISUAL 'code --wait'
@@ -21,7 +20,6 @@ set -q ET_VERSION; and set -gx BROWSER $HOME/.local/libexec/et-open/open
 set -gx DEBUG_PRINT_LIMIT 1000000
 set -gx MANPAGER "sh -c 'col -bx | bat -l man -p'"
 
-# Path
 {{- if eq .chezmoi.os "darwin" }}
 set -gx PATH \
     $HOME/.local/sbin \
@@ -37,9 +35,9 @@ set -gx PATH \
     $HOME/go/bin \
     $PATH
 
-# The GNU tool dirs go through fish_user_paths, not the plain PATH above: `mise activate` (below)
-# rebuilds $PATH system-first on every cd, burying them behind the macOS BSD equivalents, but fish
-# re-applies fish_user_paths on top of whatever mise produces. Keeps rm/sed/awk resolving to GNU.
+# The GNU tool dirs go through fish_user_paths, not the plain PATH above: `mise activate` (below) rebuilds $PATH
+# system-first on every cd, burying them behind the macOS BSD equivalents, but fish re-applies fish_user_paths on top
+# of whatever mise produces. Keeps rm/sed/awk resolving to GNU.
 fish_add_path --prepend --move \
     /opt/homebrew/opt/coreutils/libexec/gnubin \
     /opt/homebrew/opt/gnu-sed/libexec/gnubin \
@@ -48,7 +46,6 @@ fish_add_path --prepend --move \
     /opt/homebrew/opt/findutils/libexec/gnubin \
     /opt/homebrew/opt/make/libexec/gnubin
 
-# bb-homebrew
 set -gx PKG_CONFIG_PATH \
     /opt/homebrew/opt/openssl@1.1/lib/pkgconfig \
     /opt/homebrew/opt/python@3.14/lib/pkgconfig
@@ -56,7 +53,10 @@ set -gx PKG_CONFIG_PATH \
 set -gx MACOSX_DEPLOYMENT_TARGET (sw_vers -productVersion)
 set -gx LDFLAGS "-L/opt/homebrew/opt/ncurses/lib -L/opt/homebrew/opt/sqlite/lib -L/opt/homebrew/opt/librdkafka/lib/"
 set -e CFLAGS
-set -gx CPPFLAGS "-I/opt/homebrew/opt/ncurses/include -I/opt/homebrew/opt/sqlite/include -I/opt/homebrew/opt/librdkafka/include"
+set -gx CPPFLAGS \
+    -I/opt/homebrew/opt/ncurses/include \
+    -I/opt/homebrew/opt/sqlite/include \
+    -I/opt/homebrew/opt/librdkafka/include
 
 set -gx PY_PYTHON 3.14
 set -gx HOMEBREW_NO_ANALYTICS 1
@@ -70,21 +70,17 @@ set -gx PATH \
     /usr/share/vscode-server-linux-x64-web/bin/remote-cli \
     $PATH
 {{- end }}
-# The et-aware `open` wrapper goes through fish_user_paths so `mise activate` can't bury it, kept in its
-# own dir so the rest of ~/.local/bin keeps its place. Outside et sessions it hands straight to the
-# platform opener.
+# The et-aware `open` wrapper goes through fish_user_paths so `mise activate` can't bury it, kept in its own dir so
+# the rest of ~/.local/bin keeps its place. Outside et sessions it hands straight to the platform opener.
 fish_add_path --prepend --move $HOME/.local/libexec/et-open
 
-# GO
 set -gx GOPATH $HOME/go
 
 set -gx DIFF_AGAINST upstream/main
 
 if status --is-interactive
-    # Add local functions directory
     set --global fish_function_path $__fish_config_dir/local_functions $fish_function_path
 
-    # abbreviations
     abbr --add g git
     abbr --add grv "gh repo view -w"
     abbr --add gpv "gh pr view -w"
@@ -117,7 +113,6 @@ if status --is-interactive
     abbr --add pcr 'prek run --all-files'
     bind super-a beginning-of-buffer begin-selection end-of-buffer fish_clipboard_copy
 
-    # load tools
     command -q zoxide && zoxide init fish | source
     command -q atuin && atuin init fish | source
     command -q mise && mise activate fish | source
@@ -125,7 +120,6 @@ if status --is-interactive
     fish_add_path --path --prepend --move $HOME/.local/bin
 {{- end }}
 
-    # fish interactive changes
     set fish_greeting
     function fish_title
         set -l cmd $argv[1]
@@ -153,7 +147,8 @@ if status --is-interactive
 
     function dbu -a val
         docker compose down $val
-        docker compose --progress plain build $val && docker compose up $val --abort-on-container-exit --abort-on-container-failure
+        docker compose --progress plain build $val &&
+            docker compose up $val --abort-on-container-exit --abort-on-container-failure
     end
 
     function dbud -a val
@@ -166,25 +161,21 @@ if status --is-interactive
     end
     command -q direnv && direnv hook fish | source
 
-    # Source work-specific config if exists
     if test -f "$HOME/.local/share/chezmoi-private/fish_work.fish"
         source "$HOME/.local/share/chezmoi-private/fish_work.fish"
     end
 
-    # Source secrets if exists
     if test -f "$HOME/.secrets"
         source "$HOME/.secrets"
     end
 
 end
 
-# bun
 if test -d "$HOME/.bun"
     set --export BUN_INSTALL "$HOME/.bun"
     set --export PATH $BUN_INSTALL/bin $PATH
 end
 
-# Rust build speed: shrink dev target (DWARF debug info is the main size driver) while keeping
-# incremental compilation and panic backtraces (file:line). Delete this line to restore full
-# debug info for lldb variable inspection. Applies to every project/worktree.
+# DWARF debug info dominates the Rust dev target size; line-tables-only keeps incremental builds and file:line panic
+# backtraces and gives up lldb variable inspection.
 set -gx CARGO_PROFILE_DEV_DEBUG line-tables-only

@@ -24,18 +24,13 @@ function p -d "Open PyCharm with worktree-aware project name and auto-config" -a
     end
 
     set --local python_sdk ""
-    set --local sdk_path ""
-    set --local dir_tilde (string replace "$HOME" "~" "$dir")
-    if test -d "$dir/.tox/dev"
-        set sdk_path "$dir_tilde/.tox/dev"
-    else if test -d "$dir/.venv"
-        set sdk_path "$dir_tilde/.venv"
-    end
-    if test -n "$sdk_path"
-        set --local real_path (string replace "~" "$HOME" "$sdk_path")
-        set --local py_ver (string match -r '^version = .+$' <"$real_path/pyvenv.cfg" 2>/dev/null | string replace 'version = ' '')
-        test -z "$py_ver" && set py_ver 3
-        set python_sdk "Python $py_ver $sdk_path"
+    for venv in .tox/dev .venv
+        if test -d "$dir/$venv"
+            set --local py_ver (string replace -rf '^version = (.+)$' '$1' <"$dir/$venv/pyvenv.cfg" 2>/dev/null)
+            test -z "$py_ver" && set py_ver 3
+            set python_sdk "Python $py_ver "(string replace "$HOME" "~" "$dir")"/$venv"
+            break
+        end
     end
 
     set --local py_versions "3.14"
@@ -121,7 +116,8 @@ function p -d "Open PyCharm with worktree-aware project name and auto-config" -a
     set --local version_items ""
     set --local idx 0
     for v in $py_versions
-        set version_items $version_items"            <item index=\"$idx\" class=\"java.lang.String\" itemvalue=\"$v\" />\n"
+        set version_items \
+            $version_items"            <item index=\"$idx\" class=\"java.lang.String\" itemvalue=\"$v\" />\n"
         set idx (math $idx + 1)
     end
 
@@ -137,8 +133,10 @@ function p -d "Open PyCharm with worktree-aware project name and auto-config" -a
         </value>
       </option>
     </inspection_tool>
-    <inspection_tool class="PyMethodParametersInspection" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
-    <inspection_tool class="PyNestedDecoratorsInspection" enabled="false" level="WEAK WARNING" enabled_by_default="false" />
+    <inspection_tool class="PyMethodParametersInspection" enabled="false" level="WEAK WARNING"
+      enabled_by_default="false" />
+    <inspection_tool class="PyNestedDecoratorsInspection" enabled="false" level="WEAK WARNING"
+      enabled_by_default="false" />
     <inspection_tool class="PyTypeHintsInspection" enabled="false" level="WARNING" enabled_by_default="false" />
     <inspection_tool class="Eslint" enabled="true" level="WARNING" enabled_by_default="true" />
   </profile>

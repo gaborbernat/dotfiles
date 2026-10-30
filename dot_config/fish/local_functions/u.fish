@@ -34,8 +34,7 @@ function u -d "Update all development tools (one mprocs tab per tool)"
         test "$s" = casks; and continue
         set --append cmds "fish -lc 'source $stagefile; _u_stage $s'"
     end
-    set -l parallel_stages (string match -v casks -- $stages)
-    $runner --proc-list-title "Upgrade packages" --names (string join , $parallel_stages) $cmds
+    $runner --proc-list-title "Upgrade packages" --names (string join , (string match -v casks -- $stages)) $cmds
     if contains casks $stages
         _u_stage casks
     end

@@ -12,43 +12,23 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
         return 2
     end
 
-    # Detect protocol: use SSH only if explicitly passed SSH URL, otherwise default to HTTPS
     set use_https true
-    if string match -q 'git@*:*' $repo_input
-        set use_https false
-    end
-
-    # Extract hostname from URL if present
-    # Supports SSH (git@host:path) and HTTPS (https://host/path) formats
     set gh_host ""
-    if string match -q 'git@*:*' $repo_input
-        # SSH format: git@hostname:owner/repo.git
-        set gh_host (string replace -r '^git@([^:]+):.*' '$1' $repo_input)
-    else if string match -q 'https://*' $repo_input
-        # HTTPS format: https://hostname/owner/repo.git
-        set gh_host (string replace -r '^https://([^/]+)/.*' '$1' $repo_input)
-    else if string match -q 'http://*' $repo_input
-        # HTTP format: http://hostname/owner/repo.git
-        set gh_host (string replace -r '^http://([^/]+)/.*' '$1' $repo_input)
-    end
-
-    # Set GH_HOST for enterprise GitHub instances
-    test -n "$gh_host"; and set -lx GH_HOST $gh_host
-
-    # Extract owner/repo from URL
     set repo_path ""
     if string match -q 'git@*:*' $repo_input
-        # SSH format: git@hostname:owner/repo.git -> owner/repo
+        set use_https false
+        set gh_host (string replace -r '^git@([^:]+):.*' '$1' $repo_input)
         set repo_path (string replace -r '^git@[^:]+:(.+?)(?:\.git)?$' '$1' $repo_input)
-    else if string match -q 'https://*' $repo_input; or string match -q 'http://*' $repo_input
-        # HTTPS format: https://hostname/owner/repo.git -> owner/repo
+    else if string match -qr '^https?://' $repo_input
+        set gh_host (string replace -r '^https?://([^/]+)/.*' '$1' $repo_input)
         set repo_path (string replace -r '^https?://[^/]+/(.+?)(?:\.git)?$' '$1' $repo_input)
     else
-        # Assume owner/repo format
         set repo_path $repo_input
     end
 
-    # Resolve repo info
+    # GH_HOST points gh at an enterprise GitHub instance.
+    test -n "$gh_host"; and set -lx GH_HOST $gh_host
+
     set repo (gh repo view $repo_path --json nameWithOwner --jq '.nameWithOwner')
     or begin
         echo "error: unable to resolve repo: $repo_input"
@@ -62,14 +42,9 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
     end
     set default_branch (gh repo view $repo --json defaultBranchRef --jq '.defaultBranchRef.name')
 
-    set owner (string split / $repo)[1]
     set name (string split / $repo)[2]
-
-    set target_dir $name
-    set safe_default_branch (string replace -ra '[^A-Za-z0-9._-]' '-' -- $default_branch)
-    set safe_branch (string replace -ra '[^A-Za-z0-9._-]' '-' -- $branch)
-    set default_branch_dir $name-$safe_default_branch
-    set branch_dir $name-$safe_branch
+    set default_branch_dir $name-(string replace -ra '[^A-Za-z0-9._-]' '-' -- $default_branch)
+    set branch_dir $name-(string replace -ra '[^A-Za-z0-9._-]' '-' -- $branch)
 
     echo "Upstream repo : $repo"
     echo "Default branch: $default_branch"
@@ -80,27 +55,23 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
         return 2
     end
 
-    # A user account cannot own both a parent and its fork — when we own the repo,
-    # skip forking and push directly to upstream. Org repos still fork to our account.
-    if test "$owner" = "$me"
+    # A user account cannot own both a parent and its fork, so when we own the repo we push straight to upstream. Org
+    # repos still fork to our account.
+    if test (string split / $repo)[1] = "$me"
         echo "You own $repo; using it directly, no fork"
         set fork $repo
         set fork_url $upstream_url
     else
-        # Ensure fork exists (idempotent)
         echo "Ensuring fork exists..."
         set fork "$me/$name"
 
         set fork_err (gh repo fork $repo --fork-name $name 2>&1)
-        set fork_status $status
-        if test $fork_status -ne 0
-            if not string match -q "*already exists*" $fork_err
-                echo "error: failed to fork $repo: $fork_err"
-                return 2
-            end
+        if test $status -ne 0; and not string match -q "*already exists*" $fork_err
+            echo "error: failed to fork $repo: $fork_err"
+            return 2
         end
 
-        # Determine fork URL — fork creation is async, retry a few times
+        # Fork creation is async, so the fork may not resolve right away.
         set fork_url ""
         for i in 1 2 3 4 5
             if test "$use_https" = true
@@ -118,29 +89,27 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
         end
     end
 
-    # Clone upstream as bare (skip if exists)
-    if not test -d $target_dir
+    if not test -d $name
         echo "Cloning bare repo..."
-        git clone --bare $upstream_url $target_dir; or return $status
+        git clone --bare $upstream_url $name; or return $status
     else
-        if not git -C "$target_dir" rev-parse --is-bare-repository 2>/dev/null | string match -q true
-            echo "error: $target_dir exists but is not the expected bare repository"
+        if not git -C "$name" rev-parse --is-bare-repository 2>/dev/null | string match -q true
+            echo "error: $name exists but is not the expected bare repository"
             return 2
         end
-        set existing_remote (git -C "$target_dir" remote get-url upstream 2>/dev/null)
+        set existing_remote (git -C "$name" remote get-url upstream 2>/dev/null)
         if test -z "$existing_remote"
-            set existing_remote (git -C "$target_dir" remote get-url origin 2>/dev/null)
+            set existing_remote (git -C "$name" remote get-url origin 2>/dev/null)
         end
         if test -z "$existing_remote"; or not string match -q "*$repo*" -- "$existing_remote"
-            echo "error: $target_dir does not point to $repo"
+            echo "error: $name does not point to $repo"
             return 2
         end
         echo "Bare repo already exists, skipping clone"
     end
 
-    cd $target_dir
+    cd $name
 
-    # Wire remotes correctly: upstream is source; origin is your fork (idempotent)
     if not git remote get-url upstream >/dev/null 2>&1
         git remote rename origin upstream 2>/dev/null
     end
@@ -156,27 +125,23 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
     echo "Fetching origin"
     git fetch origin 2>/dev/null
 
-    # Create shared CLAUDE.md in bare repo root if it doesn't exist
     if not test -f CLAUDE.md
         touch CLAUDE.md
     end
 
-    # Create worktree for default branch (skip if exists)
     if not test -d $default_branch_dir
         git worktree add $default_branch_dir $default_branch
     end
 
-    # Symlink CLAUDE.md to default branch worktree
     if not test -e $default_branch_dir/CLAUDE.md
         ln -s ../CLAUDE.md $default_branch_dir/CLAUDE.md
     end
 
-    # Set gh default to upstream (run inside a worktree)
+    # gh repo set-default needs a worktree, not the bare repo.
     cd $default_branch_dir
     gh repo set-default $repo >/dev/null 2>&1
     cd ..
 
-    # Create branch worktree (skip if exists)
     if not test -d $branch_dir
         if git show-ref --verify --quiet refs/remotes/origin/$branch
             echo "Branch exists on origin: $branch"
@@ -196,7 +161,6 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
         echo "Branch worktree already exists: $branch"
     end
 
-    # Symlink CLAUDE.md to branch worktree
     if not test -e $branch_dir/CLAUDE.md
         ln -s ../CLAUDE.md $branch_dir/CLAUDE.md
     end

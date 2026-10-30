@@ -1,5 +1,5 @@
-function _u_stage -a name -d "Run one upgrade stage for u (one mprocs tab)"
-    set -l t0 (date +%s)
+function _u_stage -a name
+    set -l started (date +%s)
     switch $name
         case dnf
             _u_run sudo dnf upgrade --refresh -y
@@ -32,7 +32,8 @@ function _u_stage -a name -d "Run one upgrade stage for u (one mprocs tab)"
         case rust
             _u_run rustup update
         case cargo
-            _u_run cargo install-update (cargo install-update -l 2>/dev/null | string match -rv cargo-nextest | awk "NR>1 && NF {print \$1}")
+            _u_run cargo install-update \
+                (cargo install-update -l 2>/dev/null | string match -rv cargo-nextest | awk "NR>1 && NF {print \$1}")
             and _u_run cargo install --locked cargo-nextest
         case npm
             set -l outdated (npm outdated -g --parseable 2>/dev/null | awk -F: '{print $4}')
@@ -84,13 +85,51 @@ function _u_stage -a name -d "Run one upgrade stage for u (one mprocs tab)"
     end
 
     set -l rc $status
-    set -l dur (_u_fmt_dur (math (date +%s) - $t0))
+    set -l dur (_u_fmt_dur (math (date +%s) - $started))
     printf '⏱  %s finished in %s (exit %d)\n' $name $dur $rc
     if test -n "$_U_STATUS_DIR"
         echo $rc >$_U_STATUS_DIR/$name
         echo $dur >$_U_STATUS_DIR/$name.time
     end
     return $rc
+end
+
+function _u_run
+    set_color --bold cyan
+    echo "▶ $argv"
+    set_color normal
+    $argv
+end
+
+function _u_uv_inventory
+    set -l tool_dir (uv tool dir 2>/dev/null)
+    echo
+    echo "uv tools (newest first · version · last updated):"
+    for line in (uv tool list 2>/dev/null | string match -rv '^([- ]|$)')
+        set -l parts (string split ' ' $line)
+        set -l info (string split '|' (_u_mtime_info "$tool_dir/$parts[1]"))
+        printf '%s\t  %-26s %-10s %s\n' $info[1] $parts[1] (string replace -r '^v' '' $parts[2]) $info[2]
+    end | sort -rn -k1,1 | cut -f2-
+end
+
+function _u_mtime_info -a path
+    if test (uname) = Darwin
+        /usr/bin/stat -f '%m|%Sm' -t '%Y-%m-%d %H:%M' "$path" 2>/dev/null
+    else
+        set -l epoch (stat -c '%Y' "$path" 2>/dev/null)
+        test -n "$epoch"; and echo "$epoch|"(date -d "@$epoch" '+%Y-%m-%d %H:%M')
+    end
+end
+
+function _u_npm_inventory
+    set -l root (npm root -g)
+    echo
+    echo "Global npm packages (newest first · version · last updated):"
+    for spec in (npm ls -g --depth=0 2>/dev/null | string match -r '@?\S+@\S+$')
+        set -l pkg (string replace -r '@[^@]+$' '' $spec)
+        set -l info (string split '|' (_u_mtime_info "$root/$pkg"))
+        printf '%s\t  %-26s %-10s %s\n' $info[1] $pkg (string replace -r '^.*@' '' $spec) $info[2]
+    end | sort -rn -k1,1 | cut -f2-
 end
 
 function _u_docker
@@ -132,48 +171,10 @@ function _u_docker
     return 1
 end
 
-function _u_run -d "Echo a command (▶ prefix), then run it"
-    set_color --bold cyan
-    echo "▶ $argv"
-    set_color normal
-    $argv
-end
-
-function _u_fmt_dur -a secs -d "Humanize a duration in seconds"
+function _u_fmt_dur -a secs
     if test $secs -ge 60
         echo (math --scale=0 $secs / 60)"m"(math $secs % 60)"s"
     else
         echo "$secs"s
     end
-end
-
-function _u_mtime_info -a path -d "Print epoch|YYYY-MM-DD HH:MM for a path's mtime, portable across BSD/GNU stat"
-    if test (uname) = Darwin
-        /usr/bin/stat -f '%m|%Sm' -t '%Y-%m-%d %H:%M' "$path" 2>/dev/null
-    else
-        set -l epoch (stat -c '%Y' "$path" 2>/dev/null)
-        test -n "$epoch"; and echo "$epoch|"(date -d "@$epoch" '+%Y-%m-%d %H:%M')
-    end
-end
-
-function _u_npm_inventory -d "List global npm packages, newest-updated first, with version"
-    set -l root (npm root -g)
-    echo
-    echo "Global npm packages (newest first · version · last updated):"
-    for spec in (npm ls -g --depth=0 2>/dev/null | string match -r '@?\S+@\S+$')
-        set -l pkg (string replace -r '@[^@]+$' '' $spec)
-        set -l info (string split '|' (_u_mtime_info "$root/$pkg"))
-        printf '%s\t  %-26s %-10s %s\n' $info[1] $pkg (string replace -r '^.*@' '' $spec) $info[2]
-    end | sort -rn -k1,1 | cut -f2-
-end
-
-function _u_uv_inventory -d "List uv tools, newest-updated first, with version"
-    set -l tdir (uv tool dir 2>/dev/null)
-    echo
-    echo "uv tools (newest first · version · last updated):"
-    for line in (uv tool list 2>/dev/null | string match -rv '^([- ]|$)')
-        set -l parts (string split ' ' $line)
-        set -l info (string split '|' (_u_mtime_info "$tdir/$parts[1]"))
-        printf '%s\t  %-26s %-10s %s\n' $info[1] $parts[1] (string replace -r '^v' '' $parts[2]) $info[2]
-    end | sort -rn -k1,1 | cut -f2-
 end

@@ -1,11 +1,9 @@
 function fish_right_prompt
-    # Don't show right prompt in transient mode
     set --query _bgp_transient_pending && return
 
     set --local parts
 
-    # Context-aware versions with icons (async result)
-    # Format: "node:22.0.0 python:3.12.0 rust:1.75.0"
+    # bgprompt's async job writes space-separated type:version pairs, e.g. "node:22.0.0 python:3.12.0".
     if test -n "$$_bgp_context"
         for ctx in (string split ' ' $$_bgp_context)
             set --local ctx_type (string split ':' $ctx)[1]

@@ -59,7 +59,7 @@ selection-word-chars = \t\n{}[]()\"'`,;:@
 macos-applescript = false
 {{- end }}
 
-# near-opaque: dark background barely see-through; also powers the super+shift+o toggle
+# Below 1 so the super+shift+o toggle_background_opacity binding has something to toggle.
 background-opacity = 0.98
 {{- if eq .chezmoi.os "darwin" }}
 macos-window-shadow = false

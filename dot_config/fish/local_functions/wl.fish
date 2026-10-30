@@ -1,23 +1,19 @@
-function wl -d "List worktrees for bare repo (interactive: enter=cd, ctrl-d=delete)"
-    set --local git_dir (git rev-parse --git-dir 2>/dev/null)
-    test -z "$git_dir" && echo "Not in a git repository" && return 1
+function wl -d "List worktrees for bare repo (interactive: enter=cd, d=delete)"
+    not git rev-parse --git-dir &>/dev/null && echo "Not in a git repository" && return 1
 
     set --local bare_root (git rev-parse --git-common-dir 2>/dev/null)
     if not git rev-parse --is-bare-repository 2>/dev/null | string match -q true
-        if test "$bare_root" != ".git" -a -d "$bare_root"
-            set bare_root $bare_root
-        else
-            echo "Not a bare repository setup" && return 1
-        end
+        and test "$bare_root" = .git -o ! -d "$bare_root"
+        echo "Not a bare repository setup" && return 1
     end
 
-    # Ensure fetch refspecs are set (one-time fix, no fetch)
+    # A bare clone has no fetch refspecs; set them here without fetching.
     git -C "$bare_root" config remote.origin.fetch "+refs/heads/*:refs/remotes/origin/*" 2>/dev/null
     git -C "$bare_root" config remote.upstream.fetch "+refs/heads/*:refs/remotes/upstream/*" 2>/dev/null
 
-    # Build the list from porcelain: paths with spaces stay intact and the branch (empty for a
-    # detached worktree) comes straight from git. Emit each entry when the next 'worktree' header
-    # — or the trailing sentinel — arrives, skipping the bare entry.
+    # Build the list from porcelain: paths with spaces stay intact and the branch (empty for a detached worktree) comes
+    # straight from git. Emit each entry when the next 'worktree' header, or the trailing sentinel, arrives, skipping
+    # the bare entry.
     set --local entries
     set --local wt_path ""
     set --local branch ""
@@ -26,26 +22,23 @@ function wl -d "List worktrees for bare repo (interactive: enter=cd, ctrl-d=dele
         switch $line
             case 'worktree *'
                 if test -n "$wt_path"; and test "$is_bare" = 0
-                    set --local wt_name (basename "$wt_path")
                     set --local last_commit (git -C "$wt_path" log -1 --format="%cr" 2>/dev/null)
                     set --local last_ts (git -C "$wt_path" log -1 --format="%ct" 2>/dev/null)
                     test -z "$last_ts"; and set last_ts 0
                     set --local changes (git -C "$wt_path" status --porcelain --untracked-files=all 2>/dev/null)
                     set --local status_code $status
-                    set --local untracked
                     set --local state clean
                     if test $status_code -ne 0
                         set state unavailable
                     else if set -q changes[1]
-                        set untracked (string match -r '^\?\?' -- $changes)
-                        set state (math (count $changes) - (count $untracked))" modified, "(count $untracked)" untracked"
+                        set --local untracked_count (count (string match -r '^\?\?' -- $changes))
+                        set state (math (count $changes) - $untracked_count)" modified, $untracked_count untracked"
                     end
 
                     set --local upstream_info local
                     if test -n "$branch"; and git -C "$bare_root" rev-parse "origin/$branch" &>/dev/null
-                        set --local counts (git -C "$wt_path" rev-list --count --left-right "origin/$branch"...HEAD 2>/dev/null)
-                        set --local behind (echo $counts | awk '{print $1}')
-                        set --local ahead (echo $counts | awk '{print $2}')
+                        git -C "$wt_path" rev-list --count --left-right "origin/$branch"...HEAD 2>/dev/null |
+                            read --local behind ahead
                         test -z "$behind"; and set behind 0
                         test -z "$ahead"; and set ahead 0
                         if test "$behind" -gt 0 -a "$ahead" -gt 0
@@ -59,7 +52,8 @@ function wl -d "List worktrees for bare repo (interactive: enter=cd, ctrl-d=dele
                         end
                     end
 
-                    set --append entries (printf "%s\t%-24s %-15s %-22s %s\t%s\t%s" "$last_ts" "$wt_name" "$last_commit" "$state" "$upstream_info" "$wt_path" "$branch")
+                    set --append entries (printf "%s\t%-24s %-15s %-22s %s\t%s\t%s" "$last_ts" (basename "$wt_path") \
+                        "$last_commit" "$state" "$upstream_info" "$wt_path" "$branch")
                 end
                 set wt_path (string replace 'worktree ' '' -- $line)
                 set branch ""
@@ -71,22 +65,21 @@ function wl -d "List worktrees for bare repo (interactive: enter=cd, ctrl-d=dele
         end
     end
 
-    # Sort by last commit (most recent first), then drop the sort-key column
     if test (count $entries) -gt 0
         set entries (printf '%s\n' $entries | sort -t (printf '\t') -k1,1 -rn | cut -f2-)
     end
 
     set --local legend (printf "%-24s %-15s %-22s %s" "WORKTREE" "LAST COMMIT" "STATE" "ORIGIN")
-    set --local header (basename "$bare_root")" (bare) | enter=cd, c=create, o=open PR, d=delete (multi), r=refresh, q=quit
+    set --local header (basename "$bare_root")" (bare) | enter=cd, c=create, o=open PR, d=delete (multi), "\
+"r=refresh, q=quit
 $legend"
-    set --local result (printf '%s\n' $entries | fzf --height=~50% --header="$header" --expect=c,o,d,r --bind=q:abort --delimiter='\t' --with-nth=1 --multi)
+    set --local result (printf '%s\n' $entries |
+        fzf --height=~50% --header="$header" --expect=c,o,d,r --bind=q:abort --delimiter='\t' --with-nth=1 --multi)
 
     test (count $result) -eq 0 && return 0
 
     set --local key $result[1]
     set --local selections $result[2..-1]
-    set --local wt_path (string split \t $selections[1])[2]
-    set --local wt_name (string split ' ' $selections[1])[1]
 
     if test "$key" = c
         read -P "Branch name: " branch_name
@@ -102,9 +95,9 @@ $legend"
         git -C "$bare_root" fetch upstream --quiet 2>/dev/null
         wl
     else if test "$key" = d
-        # fish only runs external processes in parallel, not backgrounded functions, so fan out
-        # one subshell per worktree that sources this file and calls the remover. Args go through
-        # $argv (never interpolated) so paths with spaces survive.
+        # fish only runs external processes in parallel, not backgrounded functions, so fan out one subshell per
+        # worktree that sources this file and calls the remover. Args go through $argv rather than interpolation so
+        # paths with spaces survive.
         set --local self (status filename)
         set --local default_branch (git -C "$bare_root" symbolic-ref --short refs/remotes/upstream/HEAD 2>/dev/null)
         set default_branch (string replace 'upstream/' '' -- "$default_branch")
@@ -123,82 +116,15 @@ $legend"
         wait
         wl
     else
-        cd "$wt_path"
+        cd (string split \t $selections[1])[2]
     end
-end
-
-function _wl_remove_worktree -a bare_root wt_path wt_name branch default_branch
-    set --local start_time (command -q gdate; and gdate +%s.%N; or date +%s)
-    echo "Removing worktree '$wt_name'..."
-
-    # Only reap a lock we can prove is stale: a live-pid agent lock means the tree is in use, and a
-    # lock without a pid that isn't a claude agent is a deliberate hold. Warn and skip both.
-    set --local lock_reason (_wl_lock_reason "$bare_root" "$wt_path")
-    if test -n "$lock_reason"
-        set --local lock_pid (string replace -rf '.*pid ([0-9]+).*' '$1' -- "$lock_reason")
-        if test -n "$lock_pid"; and kill -0 $lock_pid 2>/dev/null
-            printf "⚠ Skipping %s: locked by live agent (pid %s)\n" "$wt_name" "$lock_pid"
-            return 1
-        end
-        if test -z "$lock_pid"; and not string match -q '*claude agent*' -- "$lock_reason"
-            printf "⚠ Skipping %s: locked (%s)\n" "$wt_name" "$lock_reason"
-            return 1
-        end
-        git -C "$bare_root" worktree unlock "$wt_path" 2>/dev/null
-    end
-
-    # --force is what a selection means here: git refuses a plain remove both for uncommitted or
-    # untracked files and for any tree containing submodules, and neither is a reason to keep it.
-    if not begin
-            git -C "$bare_root" worktree remove --force "$wt_path" 2>/dev/null
-            or _wl_force_remove "$bare_root" "$wt_path"
-        end
-        printf "Failed to remove %s (%.2fs)\n" "$wt_name" (math (command -q gdate; and gdate +%s.%N; or date +%s) - "$start_time")
-        return 1
-    end
-
-    if test -n "$branch"
-        set --local merged (git -C "$bare_root" merge-base --is-ancestor "$branch" "$default_branch" 2>/dev/null; and echo 1)
-        set --local local_sha (git -C "$bare_root" rev-parse --verify "$branch" 2>/dev/null)
-        set --local remote_line (git -C "$bare_root" ls-remote --heads origin "refs/heads/$branch" 2>/dev/null)
-        set --local remote_status $status
-        set --local remote_sha (string split -f1 \t -- "$remote_line")
-        git -C "$bare_root" branch -D "$branch" 2>/dev/null; and echo "Deleted local branch $branch"
-        if test $remote_status -ne 0
-            echo "⚠ Could not verify remote origin/$branch; kept it"
-        else if test -n "$remote_sha"
-            if test -z "$merged"
-                echo "⚠ Kept remote origin/$branch (not merged into $default_branch)"
-            else if test "$remote_sha" != "$local_sha"
-                echo "⚠ Kept remote origin/$branch (tip differs from local branch)"
-            else if git -C "$bare_root" push --force-with-lease="refs/heads/$branch:$remote_sha" origin --delete "$branch" 2>/dev/null
-                echo "Deleted remote branch origin/$branch"
-            else
-                echo "⚠ Could not delete remote origin/$branch"
-            end
-        end
-    end
-    printf "Removed %s (%.2fs)\n" "$wt_name" (math (command -q gdate; and gdate +%s.%N; or date +%s) - "$start_time")
-end
-
-function _wl_lock_reason -a bare_root wt_path
-    git -C "$bare_root" worktree list --porcelain 2>/dev/null | awk -v p="$wt_path" '
-        /^worktree /{ cur = substr($0, 10) }
-        /^locked/{ if (cur == p) { line = $0; sub(/^locked ?/, "", line); print line } }
-    '
-end
-
-function _wl_force_remove -a bare_root wt_path
-    test -n "$wt_path"; or return 1
-    rm -rf "$wt_path"
-    git -C "$bare_root" worktree prune 2>/dev/null
-    not git -C "$bare_root" worktree list --porcelain 2>/dev/null | string match -q -- "worktree $wt_path"
 end
 
 function _wl_open_pr -a bare_root pr_number
     cd "$bare_root"
 
-    set pr_info (gh pr view $pr_number --json headRefName,headRepository --jq '[.headRefName, .headRepository.url, .headRepository.sshUrl, .headRepository.owner.login] | @tsv')
+    set pr_info (gh pr view $pr_number --json headRefName,headRepository \
+        --jq '[.headRefName, .headRepository.url, .headRepository.sshUrl, .headRepository.owner.login] | @tsv')
     or begin
         echo "error: could not fetch PR #$pr_number"
         return 2
@@ -284,4 +210,75 @@ function _wl_open_pr -a bare_root pr_number
     end
 
     echo "✅ Ready: PR #$pr_number ($branch)"
+end
+
+function _wl_remove_worktree -a bare_root wt_path wt_name branch default_branch
+    set --local start_time (command -q gdate; and gdate +%s.%N; or date +%s)
+    echo "Removing worktree '$wt_name'..."
+
+    # Only reap a lock we can prove is stale: a live-pid agent lock means the tree is in use, and a lock without a pid
+    # that isn't a claude agent is a deliberate hold. Warn and skip both.
+    set --local lock_reason (_wl_lock_reason "$bare_root" "$wt_path")
+    if test -n "$lock_reason"
+        set --local lock_pid (string replace -rf '.*pid ([0-9]+).*' '$1' -- "$lock_reason")
+        if test -n "$lock_pid"; and kill -0 $lock_pid 2>/dev/null
+            printf "⚠ Skipping %s: locked by live agent (pid %s)\n" "$wt_name" "$lock_pid"
+            return 1
+        end
+        if test -z "$lock_pid"; and not string match -q '*claude agent*' -- "$lock_reason"
+            printf "⚠ Skipping %s: locked (%s)\n" "$wt_name" "$lock_reason"
+            return 1
+        end
+        git -C "$bare_root" worktree unlock "$wt_path" 2>/dev/null
+    end
+
+    # --force is what a selection means here: git refuses a plain remove both for uncommitted or untracked files and
+    # for any tree containing submodules, and neither is a reason to keep it.
+    if not begin
+            git -C "$bare_root" worktree remove --force "$wt_path" 2>/dev/null
+            or _wl_force_remove "$bare_root" "$wt_path"
+        end
+        printf "Failed to remove %s (%.2fs)\n" "$wt_name" \
+            (math (command -q gdate; and gdate +%s.%N; or date +%s) - "$start_time")
+        return 1
+    end
+
+    if test -n "$branch"
+        set --local merged \
+            (git -C "$bare_root" merge-base --is-ancestor "$branch" "$default_branch" 2>/dev/null; and echo 1)
+        set --local local_sha (git -C "$bare_root" rev-parse --verify "$branch" 2>/dev/null)
+        set --local remote_line (git -C "$bare_root" ls-remote --heads origin "refs/heads/$branch" 2>/dev/null)
+        set --local remote_status $status
+        set --local remote_sha (string split -f1 \t -- "$remote_line")
+        git -C "$bare_root" branch -D "$branch" 2>/dev/null; and echo "Deleted local branch $branch"
+        if test $remote_status -ne 0
+            echo "⚠ Could not verify remote origin/$branch; kept it"
+        else if test -n "$remote_sha"
+            set --local lease "refs/heads/$branch:$remote_sha"
+            if test -z "$merged"
+                echo "⚠ Kept remote origin/$branch (not merged into $default_branch)"
+            else if test "$remote_sha" != "$local_sha"
+                echo "⚠ Kept remote origin/$branch (tip differs from local branch)"
+            else if git -C "$bare_root" push --force-with-lease="$lease" origin --delete "$branch" 2>/dev/null
+                echo "Deleted remote branch origin/$branch"
+            else
+                echo "⚠ Could not delete remote origin/$branch"
+            end
+        end
+    end
+    printf "Removed %s (%.2fs)\n" "$wt_name" (math (command -q gdate; and gdate +%s.%N; or date +%s) - "$start_time")
+end
+
+function _wl_lock_reason -a bare_root wt_path
+    git -C "$bare_root" worktree list --porcelain 2>/dev/null | awk -v p="$wt_path" '
+        /^worktree /{ cur = substr($0, 10) }
+        /^locked/{ if (cur == p) { line = $0; sub(/^locked ?/, "", line); print line } }
+    '
+end
+
+function _wl_force_remove -a bare_root wt_path
+    test -n "$wt_path"; or return 1
+    rm -rf "$wt_path"
+    git -C "$bare_root" worktree prune 2>/dev/null
+    not git -C "$bare_root" worktree list --porcelain 2>/dev/null | string match -q -- "worktree $wt_path"
 end

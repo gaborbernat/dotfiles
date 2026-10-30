@@ -1,26 +1,24 @@
 status is-interactive || exit
 
-# Unique variable names per fish process
+# The async jobs report back through universal variables, so key the names by pid to keep shells apart.
 set --global _bgp_git _bgp_git_$fish_pid
 set --global _bgp_context _bgp_context_$fish_pid
 
-# Repaint on async git update
 function $_bgp_git --on-variable $_bgp_git
     commandline --function repaint
 end
 
-# Repaint on async context update
 function $_bgp_context --on-variable $_bgp_context
     commandline --function repaint
 end
 
-# PWD formatting - pure string work only (no git calls), so `cd` never blocks on the filesystem.
-# Whether we are in a repo is decided by the async git block below, which resolves to empty if not.
+# Pure string work with no git calls, so `cd` never blocks on the filesystem; the async git job below
+# decides whether we are in a repo.
 function _bgp_pwd --on-variable PWD
     set --local plain_result (_bgp_pwd_plain $PWD)
 
-    # Bold the components kept full (git root, basename); they are the only
-    # multi-char segments since parents are truncated to one char.
+    # Bold the components kept full (git root, basename); they are the only multi-char segments since parents are
+    # truncated to one char.
     set --local colored_parts
     for part in (string split / $plain_result)
         if test (string length -- "$part") -gt 1 -a "$part" != "~"
@@ -30,28 +28,21 @@ function _bgp_pwd --on-variable PWD
         end
     end
     set --local colored_result (string join "/" $colored_parts)
-    # Dim the slashes for prompt
-    set --global _bgp_pwd (string replace --regex --all -- '/' (set_color brblack)"/"(set_color normal; set_color $bgp_color_pwd) $colored_result)
+    set --global _bgp_pwd (string replace --regex --all -- '/' \
+        (set_color brblack)"/"(set_color normal; set_color $bgp_color_pwd) $colored_result)
 end
 
-# Post-exec: capture status and duration
 function _bgp_postexec --on-event fish_postexec
     set --local last_status $pipestatus
     set --global _bgp_status "$_bgp_color_prompt$bgp_symbol_prompt"
 
     for code in $last_status
         if test $code -ne 0
-            set --global _bgp_status "$_bgp_color_error| "(string join " " $last_status)" $_bgp_color_prompt$_bgp_color_error$bgp_symbol_prompt"
+            set --local codes (string join " " $last_status)
+            set --global _bgp_status "$_bgp_color_error| $codes $_bgp_color_prompt$_bgp_color_error$bgp_symbol_prompt"
             break
         end
     end
-
-    # Command duration formatting
-    # < 100ms: don't show
-    # 100-999ms: show as XXXms
-    # >= 1s: show as X.XXs (strip trailing zeros)
-    # >= 60s: Xm Xs
-    # >= 1h: Xh Xm
 
     if test "$CMD_DURATION" -lt 100
         set --global _bgp_cmd_duration ""
@@ -61,22 +52,17 @@ function _bgp_postexec --on-event fish_postexec
     set --local out ""
 
     if test "$CMD_DURATION" -lt 1000
-        # Show as milliseconds
         set out "$CMD_DURATION"ms
     else if test "$CMD_DURATION" -lt 60000
-        # Show as seconds with 2 decimal precision, strip trailing zeros
         set --local secs (math --scale=2 $CMD_DURATION / 1000)
-        # Strip trailing zeros after decimal
         set secs (string replace --regex -- '\.?0+$' '' $secs)
         set out "$secs"s
     else if test "$CMD_DURATION" -lt 3600000
-        # Show as Xm Xs
         set --local mins (math --scale=0 $CMD_DURATION / 60000)
         set --local secs (math --scale=0 $CMD_DURATION / 1000 % 60)
         set out "$mins"m
         test $secs -gt 0 && set out "$out $secs"s
     else
-        # Show as Xh Xm
         set --local hours (math --scale=0 $CMD_DURATION / 3600000)
         set --local mins (math --scale=0 $CMD_DURATION / 60000 % 60)
         set out "$hours"h
@@ -86,19 +72,16 @@ function _bgp_postexec --on-event fish_postexec
     set --global _bgp_cmd_duration "$out"
 end
 
-# Prompt event: trigger async git and context detection
 function _bgp_prompt --on-event fish_prompt
     set --query _bgp_status || set --global _bgp_status "$_bgp_color_prompt$bgp_symbol_prompt"
     set --query _bgp_pwd || _bgp_pwd
 
-    # Kill previous async processes
     command kill $_bgp_last_git_pid 2>/dev/null
     command kill $_bgp_last_context_pid 2>/dev/null
 
-    # Always clear context before re-detecting (handles nvm use, pyenv, etc.)
+    # Clear before re-detecting so the prompt picks up a version switched by nvm use, pyenv and the like.
     set --erase $_bgp_context
 
-    # Async git info (self-detects whether we are in a repo; sets empty when not)
     fish --private --command "
             set branch (
                 command git symbolic-ref --short HEAD 2>/dev/null ||
@@ -107,11 +90,10 @@ function _bgp_prompt --on-event fish_prompt
                     string replace --regex -- '(.+)' '@\$1'
             )
 
-            # Check if in a bare repo worktree where dirname matches branch
+            # A bare-repo worktree named after its branch already shows the branch in the path.
             set --local hide_branch false
             set --local git_common (command git rev-parse --git-common-dir 2>/dev/null)
             if test \"\$git_common\" != \".git\" -a \"\$git_common\" != \".\" -a -d \"\$git_common\"
-                # In a worktree - check if git_common is the bare repo
                 if command git -C \"\$git_common\" rev-parse --is-bare-repository 2>/dev/null | string match -q true
                     if test (basename \$PWD) = \"\$branch\"
                         set hide_branch true
@@ -131,8 +113,8 @@ function _bgp_prompt --on-event fish_prompt
             if test \$dirty_status -eq 1
                 set info \"$bgp_symbol_git_dirty\"
             else
-                # Check for untracked files
-                count (command git ls-files --others --exclude-standard 2>/dev/null) >/dev/null && set info \"$bgp_symbol_git_dirty\"
+                count (command git ls-files --others --exclude-standard 2>/dev/null) >/dev/null &&
+                    set info \"$bgp_symbol_git_dirty\"
             end
 
             command git rev-list --count --left-right @{upstream}...@ 2>/dev/null | read behind ahead
@@ -156,8 +138,7 @@ function _bgp_prompt --on-event fish_prompt
         " &
     set --global _bgp_last_git_pid $last_pid
 
-    # Async context detection (node/python/go/rust versions - supports multiple)
-    # Explicitly pass PATH to preserve nvm/pyenv/etc changes
+    # Pass PATH explicitly to keep the nvm/pyenv changes made in this shell.
     set --local async_path (string escape -- $PATH)
     fish -c "
         set -gx PATH $async_path
@@ -169,7 +150,6 @@ function _bgp_prompt --on-event fish_prompt
         set --local found_rust false
         set --local found_java false
 
-        # Search up for project markers (find all ecosystems)
         while test \"\$search_dir\" != \"/\"
             if test \"\$found_node\" = false -a -f \"\$search_dir/package.json\"
                 set --local node_bin (command -v node 2>/dev/null)
@@ -179,7 +159,8 @@ function _bgp_prompt --on-event fish_prompt
                 end
                 set found_node true
             end
-            if test \"\$found_python\" = false -a \\( -f \"\$search_dir/pyproject.toml\" -o -f \"\$search_dir/setup.py\" -o -f \"\$search_dir/requirements.txt\" \\)
+            if test \"\$found_python\" = false -a \\( -f \"\$search_dir/pyproject.toml\" \\
+                -o -f \"\$search_dir/setup.py\" -o -f \"\$search_dir/requirements.txt\" \\)
                 set --local python_bin (command -v python3 2>/dev/null)
                 if test -n \"\$python_bin\"
                     set --local ver (\$python_bin --version 2>/dev/null | string replace 'Python ' '')
@@ -198,15 +179,18 @@ function _bgp_prompt --on-event fish_prompt
             if test \"\$found_rust\" = false -a -f \"\$search_dir/Cargo.toml\"
                 set --local rustc_bin (command -v rustc 2>/dev/null)
                 if test -n \"\$rustc_bin\"
-                    set --local ver (\$rustc_bin --version 2>/dev/null | string match --regex 'rustc ([0-9.]+)' | tail -1)
+                    set --local ver (\$rustc_bin --version 2>/dev/null | string match --regex 'rustc ([0-9.]+)' |
+                        tail -1)
                     test -n \"\$ver\" && set --append contexts \"rust:\$ver\"
                 end
                 set found_rust true
             end
-            if test \"\$found_java\" = false -a \\( -f \"\$search_dir/build.gradle\" -o -f \"\$search_dir/build.gradle.kts\" -o -f \"\$search_dir/pom.xml\" \\)
+            if test \"\$found_java\" = false -a \\( -f \"\$search_dir/build.gradle\" \\
+                -o -f \"\$search_dir/build.gradle.kts\" -o -f \"\$search_dir/pom.xml\" \\)
                 set --local java_bin (command -v java 2>/dev/null)
                 if test -n \"\$java_bin\"
-                    set --local ver (\$java_bin --version 2>/dev/null | head -1 | string match --regex '([0-9.]+)' | tail -1)
+                    set --local ver (\$java_bin --version 2>/dev/null | head -1 | string match --regex '([0-9.]+)' |
+                        tail -1)
                     test -n \"\$ver\" && set --append contexts \"java:\$ver\"
                 end
                 set found_java true
@@ -214,9 +198,10 @@ function _bgp_prompt --on-event fish_prompt
             set search_dir (dirname \"\$search_dir\")
         end
 
-        # Docker compose - check for running containers in current project
-        if test -f \"\$PWD/docker-compose.yml\" -o -f \"\$PWD/docker-compose.yaml\" -o -f \"\$PWD/compose.yml\" -o -f \"\$PWD/compose.yaml\"
-            set --local running (docker compose ps --status running --format '{{.Service}}' 2>/dev/null | string join ',')
+        if test -f \"\$PWD/docker-compose.yml\" -o -f \"\$PWD/docker-compose.yaml\" \\
+            -o -f \"\$PWD/compose.yml\" -o -f \"\$PWD/compose.yaml\"
+            set --local running (docker compose ps --status running --format '{{.Service}}' 2>/dev/null |
+                string join ',')
             test -n \"\$running\" && set --append contexts \"docker:\$running\"
         end
 
@@ -225,13 +210,11 @@ function _bgp_prompt --on-event fish_prompt
     set --global _bgp_last_context_pid $last_pid
 end
 
-# Cleanup on exit
 function _bgp_fish_exit --on-event fish_exit
     set --erase $_bgp_git
     set --erase $_bgp_context
 end
 
-# Transient prompt
 function _bgp_transient
     if test -n "$_bgp_transient_pending"
         set --erase _bgp_transient_pending
@@ -252,13 +235,11 @@ function _bgp_transient_prompt
     return 1
 end
 
-# Bind Enter for transient prompt
 bind \r _bgp_transient
 bind \n _bgp_transient
 bind -M insert \r _bgp_transient
 bind -M insert \n _bgp_transient
 
-# Initialize colors
 set --global bgp_color_normal (set_color normal)
 
 for color in bgp_color_{pwd,git,error,prompt,duration,context}
@@ -267,7 +248,6 @@ for color in bgp_color_{pwd,git,error,prompt,duration,context}
     end && $color
 end
 
-# Default values
 set --query bgp_color_error || set --global bgp_color_error $fish_color_error
 set --query bgp_color_pwd || set --global bgp_color_pwd green
 set --query bgp_color_git || set --global bgp_color_git yellow

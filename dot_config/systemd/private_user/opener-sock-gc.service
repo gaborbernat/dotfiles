@@ -1,6 +1,6 @@
-# A dropped opener tunnel leaves ~/.opener.sock behind, and sshd refuses to rebind over it
-# (StreamLocalBindUnlink no). Remove it once nothing listens on it so the laptop's tunnel can
-# reconnect. ss avoids connecting, which would reach opener on the laptop when the tunnel is up.
+# A dropped opener tunnel leaves ~/.opener.sock behind, and sshd refuses to rebind over it (StreamLocalBindUnlink no).
+# Remove it once nothing listens on it so the laptop's tunnel can reconnect. ss avoids connecting, which would reach
+# opener on the laptop when the tunnel is up.
 [Unit]
 Description=Remove a stale opener tunnel socket
 

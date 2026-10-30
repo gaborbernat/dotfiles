@@ -34,7 +34,8 @@ function i -d "Open IntelliJ IDEA with worktree-aware project name" -a path
     end
 
     set --local excludes ""
-    for folder in .tox .venv node_modules .lintrunner .cache .ruff_cache .mypy_cache .pytest_cache __pycache__ build target
+    for folder in .tox .venv node_modules .lintrunner .cache .ruff_cache .mypy_cache .pytest_cache __pycache__ \
+        build target
         if test -d "$dir/$folder"
             set excludes $excludes"      <excludeFolder url=\"file://\$MODULE_DIR\$/$folder\" />\n"
         end

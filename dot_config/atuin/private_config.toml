@@ -1,22 +1,11 @@
-# Taller inline UI (default is 40)
 inline_height = 30
-
-# Do not record trivial noise
 history_filter = [
   "^cd$",
   "^pwd$",
   "^exit$",
   "^clear$"
 ]
-
-# Prevent accidental mass deletion
 delete_confirm = true
-
-# Run the selected history entry immediately on Enter
 enter_accept = true
-
-# Up arrow = this session's history; Ctrl-R stays global
 filter_mode_shell_up_key_binding = "session"
-
-# Scope history to the current git project
 workspaces = true

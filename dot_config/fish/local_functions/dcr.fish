@@ -44,8 +44,8 @@ function dcr -d "Run a docker compose service then tear down"
     if set -q _flag_b
         set -a flags --build
     else if test -f Dockerfile
-        # Auto-rebuild if Dockerfile changed since image was built
-        set -l image_name (docker compose config --format json 2>/dev/null | jq -r ".services[\"$argv[1]\"].image // empty")
+        set -l image_name (docker compose config --format json 2>/dev/null |
+            jq -r ".services[\"$service\"].image // empty")
         if test -n "$image_name"
             set -l image_created (docker inspect --format='{{.Created}}' "$image_name" 2>/dev/null)
             if test -n "$image_created"

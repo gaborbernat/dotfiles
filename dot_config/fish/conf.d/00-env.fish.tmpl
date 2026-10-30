@@ -1,7 +1,6 @@
-# Environment variables that must be set before other conf.d files load
-# (conf.d files load alphabetically, before config.fish)
+# fish loads conf.d files alphabetically and before config.fish, so the 00- name puts these ahead of the plugins.
 {{- if eq .chezmoi.os "darwin" }}
 
-# SDKMAN (homebrew install location) - must be set before sdk.fish plugin
+# The sdk.fish plugin needs the Homebrew SDKMAN location when it loads.
 set -gx SDKMAN_DIR /opt/homebrew/opt/sdkman-cli/libexec
 {{- end }}
