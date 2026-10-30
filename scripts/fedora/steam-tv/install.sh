@@ -1,5 +1,5 @@
 #!/usr/bin/bash
-# Opens Steam Big Picture whenever an Xbox controller connects; see steam-tv-trigger.
+# Installs the trigger that opens Steam Big Picture when an Xbox controller connects.
 set -euo pipefail
 
 (( EUID == 0 )) || { echo 'Run with sudo.' >&2; exit 1; }

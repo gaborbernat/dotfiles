@@ -3,8 +3,6 @@ set -euo pipefail
 
 config=$1
 desktop_user=$2
-source_dir=$(dirname "$config")
-desktop_uid=$(id -u "$desktop_user")
 socket_group="xremap-$desktop_user"
 
 if ! getent group "$socket_group" >/dev/null; then
@@ -19,7 +17,7 @@ fi
 usermod --append --groups "$socket_group" "$desktop_user"
 printf 'uinput\n' > /etc/modules-load.d/xremap.conf
 modprobe uinput
-install -m 0644 "$source_dir/99-xremap-uinput.rules" \
+install -m 0644 "$(dirname "$config")/99-xremap-uinput.rules" \
     /etc/udev/rules.d/99-xremap-uinput.rules
 udevadm control --reload-rules
 udevadm trigger --subsystem-match=misc --sysname-match=uinput
@@ -47,7 +45,7 @@ RuntimeDirectoryPreserve=yes
 ExecStartPre=+/usr/bin/modprobe uinput
 ExecStartPre=+/usr/bin/udevadm settle
 ExecStartPre=+/usr/bin/setfacl -m g:input:rw /dev/uinput
-ExecStartPre=+/usr/bin/install -d -m 2770 -o xremap -g $socket_group /run/xremap/$desktop_uid
+ExecStartPre=+/usr/bin/install -d -m 2770 -o xremap -g $socket_group /run/xremap/$(id -u "$desktop_user")
 ExecStart=/usr/bin/xremap --desktop=socket --no-window-logging --allow-launch=false --watch=device /etc/xremap/config.yml
 Restart=on-failure
 RestartSec=3s

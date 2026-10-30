@@ -8,78 +8,36 @@ import ssl
 import sys
 import time
 from pathlib import Path
-from typing import Any, Final
+from typing import TYPE_CHECKING, Final, TypedDict, TypeIs
 
 from websockets.exceptions import WebSocketException
 from websockets.sync.client import ClientConnection, connect
 
-_HOST: Final = "LGwebOSTV.local"
-_MAC: Final = bytes.fromhex("60756c9ff496")
-_INPUT: Final = "HDMI_1"
-_BOOT_SECONDS: Final = 30
-_PROMPT_SECONDS: Final = 60
-_LOG: Final = logging.getLogger("lgtv-hdmi")
-# webOS grants switchInput only to clients asking for the full set the LG remote apps request
-_PERMISSIONS: Final = (
-    "APP_TO_APP",
-    "CLOSE",
-    "CONTROL_AUDIO",
-    "CONTROL_DISPLAY",
-    "CONTROL_INPUT_JOYSTICK",
-    "CONTROL_INPUT_MEDIA_PLAYBACK",
-    "CONTROL_INPUT_MEDIA_RECORDING",
-    "CONTROL_INPUT_TEXT",
-    "CONTROL_INPUT_TV",
-    "CONTROL_MOUSE_AND_KEYBOARD",
-    "CONTROL_POWER",
-    "CONTROL_TV_SCREEN",
-    "LAUNCH",
-    "LAUNCH_WEBAPP",
-    "READ_APP_STATUS",
-    "READ_COUNTRY_INFO",
-    "READ_CURRENT_CHANNEL",
-    "READ_INPUT_DEVICE_LIST",
-    "READ_INSTALLED_APPS",
-    "READ_LGE_SDX",
-    "READ_LGE_TV_INPUT_EVENTS",
-    "READ_NETWORK_STATE",
-    "READ_NOTIFICATIONS",
-    "READ_POWER_STATE",
-    "READ_RUNNING_APPS",
-    "READ_SETTINGS",
-    "READ_TV_CHANNEL_LIST",
-    "READ_TV_CURRENT_TIME",
-    "READ_UPDATE_INFO",
-    "SEARCH",
-    "TEST_OPEN",
-    "TEST_PROTECTED",
-    "TEST_SECURE",
-    "UPDATE_FROM_REMOTE_APP",
-    "WRITE_NOTIFICATION_ALERT",
-    "WRITE_NOTIFICATION_TOAST",
-    "WRITE_SETTINGS",
-)
+if TYPE_CHECKING:
+    from websockets.sync.connection import Connection
+
+_BOOT_SECONDS: Final[int] = 30
+_LOG: Final[logging.Logger] = logging.getLogger("lgtv-hdmi")
 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
-    key_file = Path(sys.argv[1])
     wake()
+    hdmi_input = "HDMI_1"
     try:
         with open_tv() as tv:
-            register(tv, key_file)
+            register(tv, Path(sys.argv[1]))
             ensure_screen_on(tv)
-            request(tv, "ssap://tv/switchInput", {"inputId": _INPUT})
+            request(tv, "ssap://tv/switchInput", {"inputId": hdmi_input})
     except (OSError, WebSocketException, RuntimeError) as error:
         sys.exit(f"lgtv-hdmi: {error}")
-    _LOG.info("TV on, input %s", _INPUT)
+    _LOG.info("TV on, input %s", hdmi_input)
 
 
 def wake() -> None:
-    packet = b"\xff" * 6 + _MAC * 16
     with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-        sock.sendto(packet, ("255.255.255.255", 9))
+        sock.sendto(b"\xff" * 6 + bytes.fromhex("60756c9ff496") * 16, ("255.255.255.255", 9))
 
 
 def open_tv() -> ClientConnection:
@@ -90,24 +48,67 @@ def open_tv() -> ClientConnection:
     deadline = time.monotonic() + _BOOT_SECONDS
     while True:
         try:
-            return connect(f"wss://{_HOST}:3001", ssl=context, open_timeout=3)
+            return connect("wss://LGwebOSTV.local:3001", ssl=context, open_timeout=3)
         except OSError, WebSocketException:
             if time.monotonic() > deadline:
                 raise
             time.sleep(1)
 
 
-def register(tv: ClientConnection, key_file: Path) -> None:
-    payload: dict[str, Any] = {
+def register(tv: Connection, key_file: Path) -> None:
+    payload = {
         "forcePairing": False,
         "pairingType": "PROMPT",
-        "manifest": {"manifestVersion": 1, "appVersion": "1.1", "permissions": list(_PERMISSIONS)},
+        "manifest": {
+            "manifestVersion": 1,
+            "appVersion": "1.1",
+            # webOS grants switchInput only to clients asking for the full set the LG remote apps request
+            "permissions": [
+                "APP_TO_APP",
+                "CLOSE",
+                "CONTROL_AUDIO",
+                "CONTROL_DISPLAY",
+                "CONTROL_INPUT_JOYSTICK",
+                "CONTROL_INPUT_MEDIA_PLAYBACK",
+                "CONTROL_INPUT_MEDIA_RECORDING",
+                "CONTROL_INPUT_TEXT",
+                "CONTROL_INPUT_TV",
+                "CONTROL_MOUSE_AND_KEYBOARD",
+                "CONTROL_POWER",
+                "CONTROL_TV_SCREEN",
+                "LAUNCH",
+                "LAUNCH_WEBAPP",
+                "READ_APP_STATUS",
+                "READ_COUNTRY_INFO",
+                "READ_CURRENT_CHANNEL",
+                "READ_INPUT_DEVICE_LIST",
+                "READ_INSTALLED_APPS",
+                "READ_LGE_SDX",
+                "READ_LGE_TV_INPUT_EVENTS",
+                "READ_NETWORK_STATE",
+                "READ_NOTIFICATIONS",
+                "READ_POWER_STATE",
+                "READ_RUNNING_APPS",
+                "READ_SETTINGS",
+                "READ_TV_CHANNEL_LIST",
+                "READ_TV_CURRENT_TIME",
+                "READ_UPDATE_INFO",
+                "SEARCH",
+                "TEST_OPEN",
+                "TEST_PROTECTED",
+                "TEST_SECURE",
+                "UPDATE_FROM_REMOTE_APP",
+                "WRITE_NOTIFICATION_ALERT",
+                "WRITE_NOTIFICATION_TOAST",
+                "WRITE_SETTINGS",
+            ],
+        },
     }
     if key_file.exists():
         payload["client-key"] = key_file.read_text(encoding="utf-8").strip()
     tv.send(json.dumps({"type": "register", "id": "register", "payload": payload}))
     while True:
-        message = json.loads(tv.recv(timeout=_PROMPT_SECONDS))
+        message = receive(tv, 60)
         if message.get("type") == "registered":
             key_file.write_text(message["payload"]["client-key"], encoding="utf-8")
             return
@@ -118,7 +119,30 @@ def register(tv: ClientConnection, key_file: Path) -> None:
             _LOG.info("Accept the connection prompt on the TV with its remote")
 
 
-def ensure_screen_on(tv: ClientConnection) -> None:
+def receive(tv: Connection, timeout: float) -> _Message:
+    if is_message(message := json.loads(tv.recv(timeout=timeout))):
+        return message
+    msg = f"unexpected TV message {message!r}"
+    raise RuntimeError(msg)
+
+
+def is_message(value: object) -> TypeIs[_Message]:
+    return isinstance(value, dict)
+
+
+class _Message(TypedDict, total=False):
+    type: str
+    id: str
+    error: str
+    payload: _Payload
+
+
+_Payload = TypedDict(
+    "_Payload", {"client-key": str, "pairingType": str, "returnValue": bool, "state": str}, total=False
+)
+
+
+def ensure_screen_on(tv: Connection) -> None:
     deadline = time.monotonic() + _BOOT_SECONDS
     while (state := request(tv, "ssap://com.webos.service.tvpower/power/getPowerState").get("state")) != "Active":
         if state == "Screen Off":
@@ -129,9 +153,9 @@ def ensure_screen_on(tv: ClientConnection) -> None:
         time.sleep(1)
 
 
-def request(tv: ClientConnection, uri: str, payload: dict[str, Any] | None = None) -> dict[str, Any]:
+def request(tv: Connection, uri: str, payload: dict[str, str] | None = None) -> _Payload:
     tv.send(json.dumps({"type": "request", "id": uri, "uri": uri, "payload": payload or {}}))
-    while (message := json.loads(tv.recv(timeout=10))).get("id") != uri:
+    while (message := receive(tv, 10)).get("id") != uri:
         pass
     if message.get("type") == "error" or not message["payload"].get("returnValue", True):
         msg = f"{uri} failed: {message.get('error') or message['payload']}"

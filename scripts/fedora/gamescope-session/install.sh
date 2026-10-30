@@ -1,47 +1,17 @@
 #!/usr/bin/bash
-# Installs the SteamOS-style "Steam Big Picture" login session for a dedicated "gaming"
-# user, so Gamescope drives the LG TV directly with HDR while the desktop stays logged in.
-# Usage: sudo install.sh [gamescope-session=<commit>] [gamescope-session-steam=<commit>]
-# Without arguments it keeps the installed versions, or installs the pinned ones.
+# Installs the SteamOS-style Big Picture login session, in which Gamescope drives the LG TV directly with HDR.
 set -euo pipefail
 
-readonly GAMING_USER=gaming
-readonly GITHUB_LOGIN=gaborbernat
-readonly LIBRARY=/home/games/steam
 readonly STATE=/usr/local/share/gamescope-session-local
 readonly MANIFEST="$STATE/installed-files"
 readonly VERSIONS="$STATE/versions"
-
-# Checksums only cover the pinned commits; `u` installs newer ones after showing the diff.
 declare -A PINNED=(
     [gamescope-session]=73d2da84ace7f41006a0f85bd2fdb19ef593a464
     [gamescope-session-steam]=1a3fdb7fa15a4bba7204bef69702b7a10a297828
 )
-declare -A PINNED_SHA256=(
-    [gamescope-session]=aa6d86c082db00ae2501c5198be3c5d38b06d9252ad4fb04cb287ab31e1ec320
-    [gamescope-session-steam]=1729029426c3de44f83fa674dce6bda8bd9a2b292df10d67b7acf74f1b0f8d62
-)
-# The upstream scripts hardcode /usr paths, so the files go there and the manifest records
-# them for removal. Distro-specific extras (polkit policy, http loader, the duplicate
-# session entry) are skipped.
-readonly FILES=(
-    usr/bin/export-gpu
-    usr/bin/gamescope-session-plus
-    usr/lib/systemd/user/gamescope-session-plus@.service
-    usr/share/gamescope-session-plus/device-quirks
-    usr/share/gamescope-session-plus/gamescope-session-plus
-    usr/share/gamescope/scripts/50-custom/50-disable-explicit-sync.lua
-    usr/bin/steamos-session-select
-    usr/bin/steamos-update
-    usr/bin/steamos-select-branch
-    usr/bin/jupiter-biosupdate
-    usr/share/gamescope-session-plus/sessions.d/steam
-    usr/share/wayland-sessions/gamescope-session-steam.desktop
-)
 
 (( EUID == 0 )) || { echo 'Run with sudo.' >&2; exit 1; }
 main_user=${SUDO_USER:?Run through sudo from the desktop user}
-main_home=$(getent passwd "$main_user" | cut -d: -f6)
 
 declare -A commits=()
 for repo in "${!PINNED[@]}"; do
@@ -50,7 +20,10 @@ for repo in "${!PINNED[@]}"; do
 done
 for arg in "$@"; do
     repo=${arg%%=*}
-    [[ -v "PINNED[$repo]" && "${arg#*=}" =~ ^[0-9a-f]{40}$ ]] || { echo "Bad argument: $arg" >&2; exit 2; }
+    [[ -v "PINNED[$repo]" && "${arg#*=}" =~ ^[0-9a-f]{40}$ ]] || {
+        echo "Bad argument: $arg, expected <repo>=<40-hex commit> for repo in: ${!PINNED[*]}" >&2
+        exit 2
+    }
     commits[$repo]=${arg#*=}
 done
 
@@ -85,6 +58,11 @@ cleanup() {
 }
 trap cleanup EXIT
 
+# Checksums only cover the pinned commits; update_fedora_extras shows the diff of newer ones before installing them.
+declare -A PINNED_SHA256=(
+    [gamescope-session]=aa6d86c082db00ae2501c5198be3c5d38b06d9252ad4fb04cb287ab31e1ec320
+    [gamescope-session-steam]=1729029426c3de44f83fa674dce6bda8bd9a2b292df10d67b7acf74f1b0f8d62
+)
 for repo in "${!commits[@]}"; do
     archive="$workdir/$repo.tar.gz"
     curl -fsSL -o "$archive" "https://github.com/ChimeraOS/$repo/archive/${commits[$repo]}.tar.gz"
@@ -94,13 +72,30 @@ for repo in "${!commits[@]}"; do
     tar xzf "$archive" -C "$workdir" --strip-components=1
 done
 
+# The upstream scripts hardcode /usr paths, so the files go there and the manifest records them for removal. The list
+# leaves out distro-specific extras (polkit policy, http loader, the duplicate session entry).
+readonly FILES=(
+    usr/bin/export-gpu
+    usr/bin/gamescope-session-plus
+    usr/lib/systemd/user/gamescope-session-plus@.service
+    usr/share/gamescope-session-plus/device-quirks
+    usr/share/gamescope-session-plus/gamescope-session-plus
+    usr/share/gamescope/scripts/50-custom/50-disable-explicit-sync.lua
+    usr/bin/steamos-session-select
+    usr/bin/steamos-update
+    usr/bin/steamos-select-branch
+    usr/bin/jupiter-biosupdate
+    usr/share/gamescope-session-plus/sessions.d/steam
+    usr/share/wayland-sessions/gamescope-session-steam.desktop
+)
 new_manifest="$workdir/new-manifest"
 for file in "${FILES[@]}"; do
     [[ -f "$workdir/$file" ]] || { echo "Missing session file: $file" >&2; exit 1; }
     printf '/%s\n' "$file" >> "$new_manifest"
 done
 readonly HELPERS=/usr/bin/steamos-polkit-helpers
-for tool in steamos-update jupiter-biosupdate steamos-select-branch jupiter-dock-updater; do
+readonly HELPER_TOOLS=(steamos-update jupiter-biosupdate steamos-select-branch)
+for tool in "${HELPER_TOOLS[@]}" jupiter-dock-updater; do
     printf '%s/%s\n' "$HELPERS" "$tool" >> "$new_manifest"
 done
 
@@ -121,12 +116,11 @@ for file in "${FILES[@]}"; do
     install -D --mode="$mode" "$workdir/$file" "/$file"
 done
 
-# In SteamOS mode the Steam client runs its OS, BIOS and dock updaters through these
-# helper paths and reports "unable to download updates" when they are missing. Upstream
-# elevates through pkexec with a policy allowing anyone to run them as root; the scripts
-# behind them only report "nothing to update" here, so they run unprivileged instead.
+# In SteamOS mode the Steam client runs its OS, BIOS and dock updaters through these helper paths and reports "unable to
+# download updates" when they are missing. Upstream elevates through pkexec with a policy allowing anyone to run them as
+# root; the scripts behind them only report "nothing to update" here, so they run unprivileged instead.
 install -d "$HELPERS"
-for tool in steamos-update jupiter-biosupdate steamos-select-branch; do
+for tool in "${HELPER_TOOLS[@]}"; do
     printf '#!/usr/bin/bash\nexec /usr/bin/%s "$@"\n' "$tool" >"$workdir/helper"
     install --mode=0755 "$workdir/helper" "$HELPERS/$tool"
 done
@@ -147,19 +141,25 @@ install --mode=0644 "$workdir/new-versions" "$STATE/.versions.new"
 mv -f "$STATE/.installed-files.new" "$MANIFEST"
 mv -f "$STATE/.versions.new" "$VERSIONS"
 
+# A separate user lets the TV session run while the desktop stays logged in.
+readonly GAMING_USER=gaming
 if ! id "$GAMING_USER" &>/dev/null; then
     useradd --create-home --comment 'Steam TV' --groups games "$GAMING_USER"
     echo "Created user '$GAMING_USER'. Set its password with: sudo passwd $GAMING_USER"
 fi
 usermod --append --groups games "$main_user"
 
-# The default ACL makes every file Steam creates group-writable regardless of umask,
-# so either user can update or verify games installed by the other.
+readonly LIBRARY=/home/games/steam
+# The default ACL makes every file Steam creates group-writable regardless of umask, so either user can update or verify
+# games installed by the other.
 install -d --owner=root --group=games --mode=2775 "$LIBRARY"
 setfacl --recursive --modify g:games:rwX "$LIBRARY"
 setfacl --recursive --default --modify g:games:rwX "$LIBRARY"
 
-gaming_home=$(getent passwd "$GAMING_USER" | cut -d: -f6)
+home_dir() {
+    getent passwd "$1" | cut -d: -f6
+}
+gaming_home=$(home_dir "$GAMING_USER")
 install -d --owner="$GAMING_USER" --group="$GAMING_USER" \
     "$gaming_home/.config" "$gaming_home/.config/environment.d"
 install --owner="$GAMING_USER" --group="$GAMING_USER" --mode=0644 /dev/stdin \
@@ -172,12 +172,11 @@ ENABLE_GAMESCOPE_WSI=1
 ENABLE_GAMESCOPE_HDR=1
 EOF
 
-# Each Steam account keeps its own library list, so the shared library stays invisible
-# (and its games show as not installed) until it is registered for that user. Steam
-# rewrites the list from memory on exit, so edit it only while that user's Steam is closed;
-# Steam fills in the remaining fields from the library's own libraryfolder.vdf.
+# Each Steam account keeps its own library list, so the shared library stays invisible (and its games show as not
+# installed) until that user's list names it. Steam rewrites the list from memory on exit, so edit it only while that
+# user's Steam is closed; Steam fills in the remaining fields from the library's own libraryfolder.vdf.
 for user in "$main_user" "$GAMING_USER"; do
-    folders="$(getent passwd "$user" | cut -d: -f6)/.local/share/Steam/steamapps/libraryfolders.vdf"
+    folders="$(home_dir "$user")/.local/share/Steam/steamapps/libraryfolders.vdf"
     if [[ ! -f "$folders" ]]; then
         echo "Start Steam once as '$user', quit it, then rerun to add the shared library."
     elif grep -Fq "\"$LIBRARY\"" "$folders"; then
@@ -202,10 +201,10 @@ for user in "$main_user" "$GAMING_USER"; do
     fi
 done
 
-# Steam cannot drop its built-in library, so make it unwritable: an install aimed there
-# fails with a disk write error instead of landing where the other user cannot see it.
+# Steam cannot drop its built-in library, so make it unwritable: an install aimed there fails with a disk write error
+# instead of landing where the other user cannot see it.
 for user in "$main_user" "$GAMING_USER"; do
-    steamapps="$(getent passwd "$user" | cut -d: -f6)/.local/share/Steam/steamapps"
+    steamapps="$(home_dir "$user")/.local/share/Steam/steamapps"
     for dir in "$steamapps/common" "$steamapps/downloading"; do
         [[ ! -d "$dir" ]] || chmod a-w "$dir"
     done
@@ -233,7 +232,7 @@ if [[ -f "$shader_config" ]] && ! grep -Fq '"EnableShaderBackgroundProcessing"' 
     fi
 fi
 
-layout="$main_home/.config/monitors.xml"
+layout="$(home_dir "$main_user")/.config/monitors.xml"
 if [[ -f "$layout" ]]; then
     install --mode=0644 "$layout" /etc/xdg/monitors.xml
     greeter_config=/var/lib/gdm/seat0/config
@@ -248,7 +247,7 @@ accounts_user() {
     busctl call org.freedesktop.Accounts "/org/freedesktop/Accounts/User$(id -u "$1")" \
         org.freedesktop.Accounts.User "$2" s "$3"
 }
-curl -fsSL -o "$workdir/avatar" "https://github.com/$GITHUB_LOGIN.png?size=512"
+curl -fsSL -o "$workdir/avatar" "https://github.com/gaborbernat.png?size=512"
 accounts_user "$main_user" SetIconFile "$workdir/avatar"
 accounts_user "$GAMING_USER" SetIconFile /usr/share/icons/hicolor/256x256/apps/steam.png
 accounts_user "$GAMING_USER" SetSession gamescope-session-steam

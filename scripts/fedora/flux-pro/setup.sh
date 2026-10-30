@@ -1,9 +1,6 @@
 #!/bin/bash
 set -euo pipefail
 
-source_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-revision=3dce4aecae9b4df967e6594fab556cb1ddd1b274
-
 if ! grep -qx 'ID=fedora' /etc/os-release; then
     echo "This installer targets Fedora" >&2
     exit 1
@@ -25,10 +22,10 @@ sudo dnf install -y rust cargo gcc make lm_sensors-devel libusb1-devel pkgconf-p
 build_dir=$(mktemp -d)
 trap 'rm -rf "$build_dir"' EXIT
 git clone --depth 1 --branch v1.2 https://github.com/Reikooters/antec-flux-pro-display.git "$build_dir/source"
-if [[ $(git -C "$build_dir/source" rev-parse HEAD) != "$revision" ]]; then
+if [[ $(git -C "$build_dir/source" rev-parse HEAD) != 3dce4aecae9b4df967e6594fab556cb1ddd1b274 ]]; then
     echo "Upstream tag moved; refusing to build an unreviewed revision" >&2
     exit 1
 fi
 cargo build --release --locked --manifest-path "$build_dir/source/Cargo.toml"
-sudo bash "$source_dir/install-system.sh" "$build_dir/source/target/release/antec-flux-pro-display"
+sudo bash "$(dirname "${BASH_SOURCE[0]}")/install-system.sh" "$build_dir/source/target/release/antec-flux-pro-display"
 systemctl --no-pager --full status antec-flux-pro-display.service

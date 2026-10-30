@@ -1,15 +1,12 @@
 #!/usr/bin/bash
-# Runs as root when an Xbox controller connects: turns the TV on at HDMI 1, then opens Steam
-# Big Picture for whoever owns the seat, or logs in the gaming user, whose gamescope session
-# is Big Picture on the TV.
+# Turns the TV on and opens Steam Big Picture for the seat0 user when an Xbox controller connects.
 set -euo pipefail
-
-readonly GAMING_USER=gaming
 
 seat_user() {
     /usr/bin/loginctl list-sessions --json=short \
         | /usr/bin/jq -r --arg id "${1:-}" \
-            '.[] | select(.seat == "seat0" and .class == "user" and ($id == "" or .session == $id)) | "\(.session) \(.user)"' \
+            '.[] | select(.seat == "seat0" and .class == "user" and ($id == "" or .session == $id))
+                | "\(.session) \(.user)"' \
         | /usr/bin/head -n1
 }
 
@@ -21,9 +18,10 @@ read -r session user <<< "$(seat_user "$active")" || true
 if [[ -z "${user:-}" ]]; then
     read -r session user <<< "$(seat_user)" || true
     if [[ -z "${user:-}" ]]; then
-        # GDM only autologins when it starts, and the runtime config resets at boot.
+        # The gaming user's Gamescope session is Big Picture on the TV. GDM only autologins when it starts, and the
+        # runtime config resets at boot.
         /usr/libexec/gdm-runtime-config set daemon AutomaticLoginEnable true
-        /usr/libexec/gdm-runtime-config set daemon AutomaticLogin "$GAMING_USER"
+        /usr/libexec/gdm-runtime-config set daemon AutomaticLogin gaming
         /usr/bin/systemctl restart gdm.service
         for _ in {1..60}; do
             [[ -n "$(seat_user)" ]] && break

@@ -1,3 +1,4 @@
-# Any Xbox controller (Microsoft vendor id) opens Steam Big Picture on the TV. Match the joystick
-# node: over Bluetooth the controller advertises enough keys that udev tags it a keyboard, not a joystick.
-ACTION=="add", SUBSYSTEM=="input", KERNEL=="js*", ATTRS{id/vendor}=="045e", TAG+="systemd", ENV{SYSTEMD_WANTS}+="steam-tv.service"
+# 045e is Microsoft, so any Xbox controller matches. Match the js node because over Bluetooth the
+# controller advertises enough keys that udev tags it a keyboard, not a joystick.
+ACTION=="add", SUBSYSTEM=="input", KERNEL=="js*", ATTRS{id/vendor}=="045e", \
+    TAG+="systemd", ENV{SYSTEMD_WANTS}+="steam-tv.service"
