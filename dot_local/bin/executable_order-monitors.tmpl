@@ -7,6 +7,8 @@ from typing import Any, Final
 from gnome_dbus import MUTTER, Gio, GLib, call
 
 _TV_RANK: Final = 3
+# ApplyMonitorsConfig takes these as D-Bus variants, while GetCurrentState().unpack() hands back plain values
+_PROPERTY_TYPES: Final = {"layout-mode": "u", "monitors-for-lease": "a(ssss)", "color-mode": "u", "rgb-range": "u"}
 
 
 def main() -> None:
@@ -39,17 +41,16 @@ def arrange(bus: Gio.DBusConnection) -> bool:
     serial, monitors, logical_monitors, properties = state
     if (layout := desired_layout(monitors, logical_monitors)) is None:
         return GLib.SOURCE_REMOVE
-    config_properties: Final = {
-        key: properties[key] for key in ("layout-mode", "monitors-for-lease") if key in properties
-    }
+    config_properties: Final = variants(properties, ("layout-mode", "monitors-for-lease"))
     try:
-        for method in (0, 2):
-            call(
-                bus,
-                MUTTER,
-                "ApplyMonitorsConfig",
-                GLib.Variant("(uua(iiduba(ssa{sv}))a{sv})", (serial, method, layout, config_properties)),
-            )
+        # Method 1 applies without saving: a persistent change makes GNOME ask to keep it and revert after 20s, and
+        # this service reapplies the layout on every display change anyway
+        call(
+            bus,
+            MUTTER,
+            "ApplyMonitorsConfig",
+            GLib.Variant("(uua(iiduba(ssa{sv}))a{sv})", (serial, 1, layout, config_properties)),
+        )
     except GLib.Error:
         log.exception("could not order displays")
         return GLib.SOURCE_REMOVE
@@ -99,7 +100,7 @@ def desired_layout(monitors: list[Any], logical_monitors: list[Any]) -> list[tup
                 (
                     connector,
                     mode[0],
-                    {key: monitor_properties[key] for key in ("color-mode", "rgb-range") if key in monitor_properties},
+                    variants(monitor_properties, ("color-mode", "rgb-range")),
                 )
             ],
         ))
@@ -108,10 +109,15 @@ def desired_layout(monitors: list[Any], logical_monitors: list[Any]) -> list[tup
     return layout
 
 
+def variants(properties: dict[str, Any], keys: tuple[str, ...]) -> dict[str, GLib.Variant]:
+    return {key: GLib.Variant(_PROPERTY_TYPES[key], properties[key]) for key in keys if key in properties}
+
+
 def rank(spec: tuple[str, str, str, str]) -> int:
     _, vendor, product, monitor_serial = spec
+    # The dummy plug has no physical screen, so it goes last: Proton fullscreens a game only on a display at x=0
     if vendor == "{{ .monitors.dummy.vendor }}":
-        return 0
+        return _TV_RANK + 1
     return {"{{ .monitors.left_benq.serial }}": 1, "{{ .monitors.right_benq.serial }}": 2}.get(monitor_serial, _TV_RANK if product == "{{ .monitors.tv.product }}" else -1)
 
 
