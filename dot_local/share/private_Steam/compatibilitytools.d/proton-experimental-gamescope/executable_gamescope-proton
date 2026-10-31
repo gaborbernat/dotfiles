@@ -1,0 +1,32 @@
+#!/usr/bin/bash
+# Steam Play tool that runs Proton Experimental inside a fullscreen gamescope window. Inside gamescope the game never
+# loses focus, so it neither minimizes nor drops the controller when another desktop window takes focus.
+set -euo pipefail
+
+app_dir() {
+    local library libraries manifest installdir
+    libraries=$(sed -n 's/^\t\t"path"\t\t"\(.*\)"$/\1/p' \
+        "${STEAM_COMPAT_CLIENT_INSTALL_PATH:?set by Steam}/steamapps/libraryfolders.vdf")
+    while read -r library; do
+        manifest="${library}/steamapps/appmanifest_$1.acf"
+        if [[ -f ${manifest} ]]; then
+            installdir=$(sed -n 's/^\t"installdir"\t\t"\(.*\)"$/\1/p' "${manifest}")
+            printf '%s/steamapps/common/%s\n' "${library}" "${installdir}"
+            return
+        fi
+    done <<<"${libraries}"
+    echo "gamescope-proton: Steam app $1 is not installed" >&2
+    exit 1
+}
+
+proton=$(app_dir 1493710)
+runtime_appid=$(sed -n 's/^ *"require_tool_appid" "\([0-9]*\)"$/\1/p' "${proton}/toolmanifest.vdf")
+runtime=$(app_dir "${runtime_appid}")
+# pressure-vessel mounts only the tools listed here into the container
+export STEAM_COMPAT_TOOL_PATHS="${proton}:${runtime}"
+container=("${runtime}/_v2-entry-point" "--verb=$1" -- "${proton}/proton" "$@")
+case $1 in
+    run | waitforexitandrun) exec gamescope -W 3840 -H 2160 -f -- "${container[@]}" ;;
+    # Path lookups and other helper verbs have no window
+    *) exec "${container[@]}" ;;
+esac

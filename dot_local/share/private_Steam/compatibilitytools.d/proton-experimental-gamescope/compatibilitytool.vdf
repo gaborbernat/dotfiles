@@ -1,0 +1,13 @@
+"compatibilitytools"
+{
+  "compat_tools"
+  {
+    "proton_experimental_gamescope"
+    {
+      "install_path" "."
+      "display_name" "Proton Experimental (gamescope)"
+      "from_oslist" "windows"
+      "to_oslist" "linux"
+    }
+  }
+}
