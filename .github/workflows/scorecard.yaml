@@ -24,4 +24,4 @@ jobs:
       pull-requests: read
       security-events: write
       statuses: read
-    uses: tox-dev/github-workflows/.github/workflows/scorecard.yaml@e0ddedd1f8d78ed93d5eb8290f37675f6092bddf
+    uses: tox-dev/github-workflows/.github/workflows/scorecard.yaml@cfb6d637a10b70da576575790eb3c806f57cd0b5
