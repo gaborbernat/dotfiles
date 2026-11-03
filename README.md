@@ -1,5 +1,7 @@
 # Dotfiles
 
+[![OpenSSF Scorecard](https://api.scorecard.dev/projects/github.com/gaborbernat/dotfiles/badge)](https://scorecard.dev/viewer/?uri=github.com/gaborbernat/dotfiles)
+
 Personal dotfiles for macOS and Fedora Workstation, managed with [chezmoi](https://www.chezmoi.io/). Other Linux systems
 get a smaller [apt](https://wiki.debian.org/Apt)-based CLI setup.
 
