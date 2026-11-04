@@ -23,6 +23,10 @@ export default class FocusedSwitcherExtension extends Extension {
                 <method name="BringToCurrentMonitor">
                     <arg type="u" direction="in"/>
                 </method>
+                <method name="ShowOnTv">
+                    <arg type="s" direction="in"/>
+                    <arg type="b" direction="out"/>
+                </method>
             </interface>
         </node>`,
             this,
@@ -150,6 +154,22 @@ export default class FocusedSwitcherExtension extends Extension {
         if (!window) throw new Error('Window not found');
         window.move_to_monitor(global.display.get_current_monitor());
         Main.activateWindow(window);
+    }
+
+    ShowOnTv(title) {
+        const window = global
+            .get_window_actors()
+            .map((actor) => actor.meta_window)
+            .find(
+                (candidate) =>
+                    candidate?.get_title() === title && candidate.get_window_type() === Meta.WindowType.NORMAL,
+            );
+        if (!window) return false;
+        const tvMonitor = this._tvMonitor();
+        if (tvMonitor >= 0 && window.get_monitor() !== tvMonitor) window.move_to_monitor(tvMonitor);
+        // Activating from the shell skips the focus-stealing prevention that holds back windows from background units
+        Main.activateWindow(window);
+        return true;
     }
 
     disable() {

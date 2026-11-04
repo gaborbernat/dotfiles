@@ -17,6 +17,18 @@ if /usr/bin/pgrep --uid "${UID}" --full 'reaper SteamLaunch' >/dev/null; then
     exit 0
 fi
 if /usr/bin/pgrep --uid "${UID}" --exact steam >/dev/null; then
-    exec /usr/bin/steam steam://open/bigpicture
+    /usr/bin/steam steam://open/bigpicture
+else
+    /usr/bin/systemd-run --user --collect --unit=steam-big-picture /usr/bin/steam steam://open/bigpicture
 fi
-exec /usr/bin/systemd-run --user --collect --unit=steam-big-picture /usr/bin/steam steam://open/bigpicture
+
+# Steam opens Big Picture on the primary display, the desk BenQ while it is on, and GNOME leaves windows from
+# background units unfocused, so the focused-switcher extension moves it to the TV and focuses it.
+for _ in {1..60}; do
+    shown=$(/usr/bin/gdbus call --session --dest org.gnome.Shell \
+        --object-path /org/gnome/Shell/Extensions/FocusedSwitcher \
+        --method org.bernat.FocusedSwitcher.ShowOnTv 'Steam Big Picture Mode' 2>/dev/null) || true
+    [[ "${shown}" == '(true,)' ]] && exit 0
+    sleep 1
+done
+echo 'Big Picture window did not appear; left it where Steam placed it.' >&2
