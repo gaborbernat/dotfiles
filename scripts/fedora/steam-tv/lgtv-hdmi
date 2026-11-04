@@ -24,13 +24,21 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
     wake()
     hdmi_input = "HDMI_1"
-    try:
-        with open_tv() as tv:
-            register(tv, Path(sys.argv[1]))
-            ensure_screen_on(tv)
-            request(tv, "ssap://tv/switchInput", {"inputId": hdmi_input})
-    except (OSError, WebSocketException, RuntimeError) as error:
-        sys.exit(f"lgtv-hdmi: {error}")
+    deadline = time.monotonic() + _BOOT_SECONDS
+    while True:
+        try:
+            with open_tv() as tv:
+                register(tv, Path(sys.argv[1]))
+                ensure_screen_on(tv)
+                request(tv, "ssap://tv/switchInput", {"inputId": hdmi_input})
+            break
+        # A booting TV refuses connections, or accepts one and closes it with 1008 Try Again Later
+        except (OSError, WebSocketException) as error:
+            if time.monotonic() > deadline:
+                sys.exit(f"lgtv-hdmi: {error}")
+            time.sleep(1)
+        except RuntimeError as error:
+            sys.exit(f"lgtv-hdmi: {error}")
     _LOG.info("TV on, input %s", hdmi_input)
 
 
@@ -45,14 +53,7 @@ def open_tv() -> ClientConnection:
     context = ssl.create_default_context()
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
-    deadline = time.monotonic() + _BOOT_SECONDS
-    while True:
-        try:
-            return connect("wss://LGwebOSTV.local:3001", ssl=context, open_timeout=3)
-        except OSError, WebSocketException:
-            if time.monotonic() > deadline:
-                raise
-            time.sleep(1)
+    return connect("wss://LGwebOSTV.local:3001", ssl=context, open_timeout=3)
 
 
 def register(tv: Connection, key_file: Path) -> None:
@@ -144,7 +145,11 @@ _Payload = TypedDict(
 
 def ensure_screen_on(tv: Connection) -> None:
     deadline = time.monotonic() + _BOOT_SECONDS
-    while (state := request(tv, "ssap://com.webos.service.tvpower/power/getPowerState").get("state")) != "Active":
+    # The screensaver means the current input has no signal; switching to the PC's input dismisses it
+    while (state := request(tv, "ssap://com.webos.service.tvpower/power/getPowerState").get("state")) not in {
+        "Active",
+        "Screen Saver",
+    }:
         if state == "Screen Off":
             request(tv, "ssap://com.webos.service.tvpower/power/turnOnScreen")
         elif time.monotonic() > deadline:
