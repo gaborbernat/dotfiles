@@ -17,9 +17,10 @@ export default class MagnetTilingExtension extends Extension {
         for (const [name, action] of Object.entries(BINDINGS)) {
             Main.wm.setCustomKeybindingHandler(name, Shell.ActionMode.NORMAL, (_display, window) => {
                 const target = window ?? global.display.focus_window;
+                // Mutter reports maximized and fullscreen windows as not resizable, though restoring them makes them so.
                 if (
                     target?.get_window_type() === Meta.WindowType.NORMAL &&
-                    (target.is_fullscreen() || target.allows_resize())
+                    (target.is_fullscreen() || target.is_maximized() || target.allows_resize())
                 )
                     action(target);
             });
