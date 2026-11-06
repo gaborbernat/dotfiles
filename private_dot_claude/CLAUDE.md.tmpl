@@ -1,3 +1,18 @@
 {{- $work := joinPath .chezmoi.homeDir ".local/share/chezmoi-private/ai_instructions_work.md" -}}
 {{ template "ai-instructions.md" . -}}
 {{ if stat $work }}{{ output "cat" $work }}{{ end -}}
+
+# Sub-agents
+
+Every sub-agent or background session I start runs on Haiku 5.5: the `haiku-impl` agent type (pinned to
+`claude-haiku-5-5`), or `claude --bg --model claude-haiku-5-5`. I never start `general-purpose`, `Explore`, `Plan` or
+any other type, never pass a model override, and never use the `haiku` alias (it resolves to an older Haiku). Workers
+cannot start agents of their own: `haiku-impl` disallows the `Agent` tool, and background sessions get
+`--disallowedTools Agent`. After each run I check its transcript lists only `claude-haiku-5-5` before I use its output.
+
+# Browser Automation
+
+For every browser task I use `agent-browser --cdp 9222`, which attaches to the dedicated agent Chrome (profile
+`~/.chrome-agent`, started at login by the LaunchAgent `com.bgabor8.chrome-agent`). I never use `--auto-connect`, never
+attach to the main Chrome profile, and never write my own CDP client. If 9222 does not answer, I start the agent with
+`launchctl kickstart gui/$(id -u)/com.bgabor8.chrome-agent` and log in there when a site asks.

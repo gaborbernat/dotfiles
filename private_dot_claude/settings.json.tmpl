@@ -134,6 +134,9 @@
   "modelSettings": {
     "claude-fable-5-1": {
       "effortLevel": "medium"
+    },
+    "claude-haiku-5-5": {
+      "effortLevel": "high"
     }
   },
   "tui": "fullscreen",
@@ -143,5 +146,6 @@
   "enabledPlugins": {
     "pyright-lsp@claude-plugins-official": true,
     "rust-analyzer-lsp@claude-plugins-official": true
-  }
+  }{{- $auto := joinPath .chezmoi.homeDir ".local/share/chezmoi-private/claude_auto_mode.json" }}{{ if stat $auto }},
+  "autoMode": {{ output "cat" $auto }}{{ end }}
 }
