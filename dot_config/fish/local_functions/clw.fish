@@ -123,13 +123,13 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
     test -n "$checked_out"; and set default_branch_dir $checked_out
 
     if not test -d $default_branch_dir
-        git worktree add $default_branch_dir $default_branch
+        git worktree add $default_branch_dir $default_branch; or return $status
     end
 
     _wt_link_claude_md . $default_branch_dir
 
     # gh repo set-default needs a worktree, not the bare repo.
-    cd $default_branch_dir
+    cd $default_branch_dir; or return $status
     gh repo set-default $repo >/dev/null 2>&1
     cd ..
 
@@ -140,9 +140,9 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
         if git show-ref --verify --quiet refs/remotes/origin/$branch
             echo "Branch exists on origin: $branch"
             if git show-ref --verify --quiet refs/heads/$branch
-                git worktree add $branch_dir $branch
+                git worktree add $branch_dir $branch; or return $status
             else
-                git worktree add --track -b $branch $branch_dir origin/$branch
+                git worktree add --track -b $branch $branch_dir origin/$branch; or return $status
             end
             # A branch left on the fork by earlier work would check out stale code; with no commits of its own it is
             # safe to move to the current upstream default.
@@ -157,8 +157,8 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
             end
         else
             echo "Creating new branch from upstream/$default_branch: $branch"
-            git worktree add -b $branch $branch_dir upstream/$default_branch
-            cd $branch_dir
+            git worktree add -b $branch $branch_dir upstream/$default_branch; or return $status
+            cd $branch_dir; or return $status
             git push -u origin $branch
             cd ..
         end
@@ -168,7 +168,7 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
 
     _wt_link_claude_md . $branch_dir
 
-    cd $branch_dir
+    cd $branch_dir; or return $status
 
     echo ""
     echo "✅ Ready:"
