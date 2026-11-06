@@ -20,6 +20,9 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
     else if string match -qr '^https?://' $repo_input
         set gh_host (string replace -r '^https?://([^/]+)/.*' '$1' $repo_input)
         set repo_path (string replace -r '^https?://[^/]+/(.+?)(?:\.git)?$' '$1' $repo_input)
+    else if string match -qr '^[^/]+/[^/]+/[^/]+$' $repo_input
+        set gh_host (string replace -r '^([^/]+)/.*' '$1' $repo_input)
+        set repo_path (string replace -r '^[^/]+/(.+)$' '$1' $repo_input)
     else
         set repo_path $repo_input
     end
