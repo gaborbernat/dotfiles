@@ -355,5 +355,5 @@ with:
 
 ```bash
 cd dot_local/scripts
-uv run --all-groups pytest
+uv run --group test pytest
 ```

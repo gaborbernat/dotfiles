@@ -1,5 +1,12 @@
 [dependency-groups]
-test = ["pytest>=9.2", "pytest-mock>=3.17"]
+test = [
+  "pygithub>=2.10.0",
+  "pytest>=9.2",
+  "pytest-mock>=3.17",
+  "rich>=15.0.0",
+  "rich-argparse>=1.8.0",
+  "truststore>=0.10.4",
+]
 typing = [
   "packaging>=26.3",
   "pygobject-stubs>=2.13",
