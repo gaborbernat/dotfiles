@@ -44,9 +44,12 @@ before it is posted.
     A style point from `/simp` or `/no-slop` is a one- or two-sentence comment prefixed with `nit:`, phrased as a
     suggestion ("perhaps let's…", "Can we…?") with the reason, and a short code example when prose alone is ambiguous.
 
-06. Write the review body: one to three sentences on where the PR stands and what is left before it can ship, plus any
-    whole-PR points. Pick the event: `REQUEST_CHANGES` when any finding is a correctness bug or must be fixed before
-    merge, `COMMENT` when everything is optional, `APPROVE` when there are no findings.
+06. Write the review body for the author: open by thanking them for the work on the PR, professionally and without
+    flattery, in one short clause that adds nothing about the review history or how they handled earlier feedback,
+    then say in one or two sentences what is left before it can ship, plus any whole-PR points. Never report what the
+    review validated, which tests passed, or what works; a review implies the rest was checked. Pick the event:
+    `REQUEST_CHANGES` when any finding is a correctness bug or must be fixed before merge, `COMMENT` when everything is
+    optional, `APPROVE` when there are no findings.
 
 07. Validate every anchor against the PR's diff at the reviewed head (`gh api repos/{owner}/{repo}/pulls/{n}/files`): a
     comment's `line`, and `start_line` for a range, must fall inside one hunk of that file, on side `RIGHT` for added or
