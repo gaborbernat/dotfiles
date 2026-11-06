@@ -347,3 +347,13 @@ Optional machine-local files live in `~/.local/share/chezmoi-private`. Public sc
 | `dot_local/`                                       | CLI wrappers and their source      |
 | `scripts/fedora/`                                  | Fedora system and hardware setup   |
 | `run_once_*`, `run_onchange_*`, `run_after_*`      | Setup scripts                      |
+
+## Tests
+
+The Python scripts under `dot_local/scripts` have a pytest suite, which CI runs on every pull request. Run it locally
+with:
+
+```bash
+cd dot_local/scripts
+uv run --group test pytest
+```
