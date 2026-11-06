@@ -133,7 +133,9 @@ def installed_versions() -> set[str]:
         "python",
         "list",
         "--only-installed",
-        "--managed-python",
+        # UV_PYTHON_PREFERENCE=system makes uv reject --managed-python; an explicit preference overrides the env var
+        "--python-preference",
+        "only-managed",
         "--output-format",
         "json",
     ])
