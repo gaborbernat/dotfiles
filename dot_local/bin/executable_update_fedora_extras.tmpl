@@ -12,34 +12,33 @@ update_firmware() {
 }
 
 update_ghostty() {
-    local release digest archive patch patch_id build_id source version zig_version merge_status
+    local commit patch patch_id build_id source zig_version merge_status
     patch={{ joinPath .chezmoi.sourceDir "scripts/fedora/ghostty-undo.diff" | quote }}
-    release=$(curl -fsSL https://api.github.com/repos/ghostty-org/ghostty/releases/tags/tip)
-    digest=$(jq -er '.assets[] | select(.name == "ghostty-source.tar.gz") | .digest | select(test("^sha256:[0-9a-f]{64}$")) | ltrimstr("sha256:")' <<<"${release}")
+    commit=$(git ls-remote https://github.com/ghostty-org/ghostty.git refs/heads/main | cut -f1)
+    if [[ ! "${commit}" =~ ^[0-9a-f]{40}$ ]]; then
+        echo 'Cannot resolve Ghostty main' >&2
+        return 1
+    fi
     merge_status=$(curl -fsSL https://api.github.com/repos/ghostty-org/ghostty/pulls/14653 | jq -er '.merged_at // "open"')
     if [[ "${merge_status}" == open ]]; then
         patch_id=$(sha256sum "${patch}" | cut -d' ' -f1)
     else
         patch_id=merged
     fi
-    # The tip workflow moves target_commitish before it replaces the tarball, so the asset digest is the build identity
-    build_id="${digest}:${patch_id}"
+    build_id="${commit}:${patch_id}"
     if [[ -x "${HOME}/.local/bin/ghostty" && -f "${HOME}/.local/share/ghostty/build-id" ]] &&
         [[ $(<"${HOME}/.local/share/ghostty/build-id") == "${build_id}" ]]; then
-        echo 'Ghostty tip is current'
+        printf 'Ghostty %s is current\n' "${commit:0:7}"
         return
     fi
 
     GHOSTTY_BUILD_DIR=$(mktemp -d)
     trap 'rm -rf "$GHOSTTY_BUILD_DIR"' EXIT
-    archive="${GHOSTTY_BUILD_DIR}/ghostty-source.tar.gz"
     source="${GHOSTTY_BUILD_DIR}/source"
-    curl -fsSL --retry 3 -o "${archive}" \
-        https://github.com/ghostty-org/ghostty/releases/download/tip/ghostty-source.tar.gz
-    printf '%s  %s\n' "${digest}" "${archive}" | sha256sum -c -
-    mkdir "${source}"
-    tar -xzf "${archive}" -C "${source}" --strip-components=1
-    version=$(<"${source}/VERSION")
+    # Fetch the resolved commit rather than the branch, so a push mid-update cannot mismatch the build-id
+    git init -q "${source}"
+    git -C "${source}" fetch -q --depth 1 https://github.com/ghostty-org/ghostty.git "${commit}"
+    git -C "${source}" checkout -q -B main FETCH_HEAD
     if [[ "${patch_id}" != merged ]]; then
         git -C "${source}" apply --check "${patch}"
         git -C "${source}" apply "${patch}"
@@ -50,7 +49,7 @@ update_ghostty() {
         return 1
     fi
     mise install "zig@${zig_version}"
-    (cd "${source}" && mise exec "zig@${zig_version}" -- zig build -p "${HOME}/.local" -Doptimize=ReleaseFast "-Dversion-string=${version}" \
+    (cd "${source}" && mise exec "zig@${zig_version}" -- zig build -p "${HOME}/.local" -Doptimize=ReleaseFast \
         "-Dinstalled-exe-path=${HOME}/.local/bin/ghostty")
     "${HOME}/.local/bin/ghostty" --version | head -1
     install -D -m 0644 /dev/stdin "${HOME}/.local/share/ghostty/build-id" <<<"${build_id}"
