@@ -135,6 +135,17 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
             else
                 git worktree add --track -b $branch $branch_dir origin/$branch
             end
+            # A branch left on the fork by earlier work would check out stale code; with no commits of its own it is
+            # safe to move to the current upstream default.
+            if git merge-base --is-ancestor upstream/$default_branch $branch
+                echo "Branch is up to date with upstream/$default_branch"
+            else if git merge-base --is-ancestor $branch upstream/$default_branch
+                echo "Fast-forwarding $branch to upstream/$default_branch"
+                git -C $branch_dir merge --ff-only upstream/$default_branch
+                and git -C $branch_dir push origin $branch
+            else
+                echo "warning: $branch has commits of its own and is behind upstream/$default_branch; left as is"
+            end
         else
             echo "Creating new branch from upstream/$default_branch: $branch"
             git worktree add -b $branch $branch_dir upstream/$default_branch
