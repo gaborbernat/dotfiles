@@ -4,6 +4,16 @@ set --local symbol_dirty $argv[2]
 set --local symbol_ahead $argv[3]
 set --local symbol_behind $argv[4]
 
+# The prompt kills this job once a newer one starts; dying mid-save of fish_variables strands its temp file, so trap
+# TERM and skip the remaining writes instead.
+function _bgp_cancel --on-signal TERM
+    set --global _bgp_cancelled
+end
+
+function _bgp_publish --inherit-variable var
+    set --query _bgp_cancelled || set --universal $var $argv
+end
+
 set branch (
     command git symbolic-ref --short HEAD 2>/dev/null ||
     command git describe --tags --exact-match HEAD 2>/dev/null ||
@@ -23,9 +33,9 @@ if test "$git_common" != ".git" -a "$git_common" != "." -a -d "$git_common"
 end
 
 if test "$hide_branch" = true
-    test -z "$$var" && set --universal $var ""
+    test -z "$$var" && _bgp_publish ""
 else
-    test -z "$$var" && set --universal $var "$branch"
+    test -z "$$var" && _bgp_publish "$branch"
 end
 
 command git diff-index --quiet HEAD 2>/dev/null
@@ -52,7 +62,7 @@ switch "$behind $ahead"
 end
 
 if test "$hide_branch" = true
-    set --universal $var "$info$upstream"
+    _bgp_publish "$info$upstream"
 else
-    set --universal $var "$branch$info$upstream"
+    _bgp_publish "$branch$info$upstream"
 end

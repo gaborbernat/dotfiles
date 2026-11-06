@@ -1,5 +1,12 @@
 # Usage: fish context.fish <universal-var> <PATH entries...>
 set -gx PATH $argv[2..]
+
+# The prompt kills this job once a newer one starts; dying mid-save of fish_variables strands its temp file, so trap
+# TERM and skip the write instead.
+function _bgp_cancel --on-signal TERM
+    set --global _bgp_cancelled
+end
+
 set --local contexts
 set --local search_dir $PWD
 set --local found_node false
@@ -60,4 +67,4 @@ if test -f "$PWD/docker-compose.yml" -o -f "$PWD/docker-compose.yaml" \
     test -n "$running" && set --append contexts "docker:$running"
 end
 
-set --universal $argv[1] (string join ' ' $contexts)
+set --query _bgp_cancelled || set --universal $argv[1] (string join ' ' $contexts)
