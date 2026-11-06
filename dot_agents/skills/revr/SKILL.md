@@ -14,9 +14,10 @@ before it is posted.
 
 02. Inspect the PR's description, base and head commits, full diff, surrounding code, existing review threads, and
     relevant checks. Use an isolated worktree at the PR's exact head commit so other branches and uncommitted work stay
-    intact. Review adversarially for correctness, performance, and maintainability; investigate plausible failures and
-    keep only findings supported by evidence (the code path, the dependency's source, a reproducing test run in the
-    worktree). Skip a point an existing thread already raises.
+    intact. Review adversarially for correctness, performance, security, maintainability, and readability; investigate
+    plausible failures and keep only findings supported by evidence (the code path, the dependency's source, a
+    reproducing test run in the worktree). Where one problem recurs across the diff, propose the refactor that removes
+    the class of problem rather than patching each instance. Skip a point an existing thread already raises.
 
 03. Search the project's documentation for the behavior, API, command, or setting changed by the PR. Note every page and
     example that the diff makes inaccurate or incomplete, and missing tests for each behavioral change.
@@ -30,7 +31,8 @@ before it is posted.
     or line, in this repository or another, is a markdown link to its full URL, never a bare `#123`, `repo#123` or
     commit SHA.
 
-    A correctness, behavior, build, documentation or maintainability finding uses three bold headings:
+    A correctness, behavior, performance, security, build, documentation or maintainability finding uses three bold
+    headings:
 
     - **Problem**: the observable failure or cost in one or two sentences, stated first. Link the other places in the PR
       with the same issue.
@@ -41,8 +43,9 @@ before it is posted.
       it works: what you ran with the fix applied in the worktree and the result. Name the condition under which an
       alternative is better. Discard the trial edit afterwards; never commit it.
 
-    A style point from `/simp` or `/no-slop` is a one- or two-sentence comment prefixed with `nit:`, phrased as a
-    suggestion ("perhaps let's…", "Can we…?") with the reason, and a short code example when prose alone is ambiguous.
+    A style point from `/simp` or `/no-slop`, or a readability point that is a matter of taste, is a one- or two-sentence
+    comment prefixed with `nit:`, phrased as a suggestion ("perhaps let's…", "Can we…?") with the reason, and a short
+    code example when prose alone is ambiguous.
 
 06. Write the review body for the author: open by thanking them for the work on the PR, professionally and without
     flattery, in one short clause that adds nothing about the review history or how they handled earlier feedback,
