@@ -119,9 +119,6 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
     echo "Fetching origin"
     git fetch origin 2>/dev/null
 
-    set --local checked_out (_wt_checked_out_path $default_branch)
-    test -n "$checked_out"; and set default_branch_dir $checked_out
-
     if not test -d $default_branch_dir
         git worktree add $default_branch_dir $default_branch; or return $status
     end
@@ -132,9 +129,6 @@ function clw --description "Clone upstream as bare + worktrees, ensure fork, che
     cd $default_branch_dir; or return $status
     gh repo set-default $repo >/dev/null 2>&1
     cd ..
-
-    set --local checked_out (_wt_checked_out_path $branch)
-    test -n "$checked_out"; and set branch_dir $checked_out
 
     if not test -d $branch_dir
         if git show-ref --verify --quiet refs/remotes/origin/$branch
