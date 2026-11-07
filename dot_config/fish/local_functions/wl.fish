@@ -141,48 +141,48 @@ function _wl_open_pr -a bare_root pr_number
     echo "Fetching remotes..."
     git fetch --all --quiet
 
+    # Match the remote by the PR's head repository, never by branch name: a fork PR from its own main would otherwise
+    # check out our main.
     set remote_name ""
+    set existing_url (git remote get-url upstream 2>/dev/null; or git remote get-url origin 2>/dev/null)
+    set remote_url (_wt_pick_url "$existing_url" "$repo_url" "$repo_ssh")
+
     for remote in (git remote)
-        if git show-ref --verify --quiet refs/remotes/$remote/$branch
+        set url (git remote get-url $remote 2>/dev/null)
+        if test "$url" = "$remote_url" -o "$url" = "$repo_ssh" -o "$url" = "$repo_url"
             set remote_name $remote
-            echo "Found branch on remote: $remote_name"
             break
         end
     end
 
     if test -z "$remote_name"
-        set existing_url (git remote get-url upstream 2>/dev/null; or git remote get-url origin 2>/dev/null)
-        set remote_url (_wt_pick_url "$existing_url" "$repo_url" "$repo_ssh")
+        set remote_name $owner
+        echo "Adding remote: $remote_name ($remote_url)"
+        git remote add $remote_name $remote_url
+        git config remote.$remote_name.fetch "+refs/heads/*:refs/remotes/$remote_name/*"
+    end
 
-        for remote in (git remote)
-            set url (git remote get-url $remote 2>/dev/null)
-            if test "$url" = "$remote_url" -o "$url" = "$repo_ssh" -o "$url" = "$repo_url"
-                set remote_name $remote
-                break
-            end
-        end
+    echo "Fetching $remote_name..."
+    git fetch $remote_name
 
-        if test -z "$remote_name"
-            set remote_name $owner
-            echo "Adding remote: $remote_name ($remote_url)"
-            git remote add $remote_name $remote_url
-            git config remote.$remote_name.fetch "+refs/heads/*:refs/remotes/$remote_name/*"
-        end
+    if not git show-ref --verify --quiet refs/remotes/$remote_name/$branch
+        echo "error: branch $branch not found on remote $remote_name"
+        return 2
+    end
 
-        echo "Fetching $remote_name..."
-        git fetch $remote_name
-
-        if not git show-ref --verify --quiet refs/remotes/$remote_name/$branch
-            echo "error: branch $branch not found on remote $remote_name"
-            return 2
-        end
+    # A local branch of the same name that tracks another remote belongs to someone else's work
+    set local_branch $branch
+    set tracking (git -C "$bare_root" rev-parse --abbrev-ref "$branch@{upstream}" 2>/dev/null)
+    if git -C "$bare_root" show-ref --verify --quiet "refs/heads/$branch"
+        and test "$tracking" != "$remote_name/$branch"
+        set local_branch pr-$pr_number
     end
 
     echo "Creating worktree: $worktree_name"
-    if git -C "$bare_root" show-ref --verify --quiet "refs/heads/$branch"
-        git worktree add $worktree_name $branch
+    if git -C "$bare_root" show-ref --verify --quiet "refs/heads/$local_branch"
+        git worktree add $worktree_name $local_branch
     else
-        git worktree add -b $branch $worktree_name $remote_name/$branch
+        git worktree add -b $local_branch $worktree_name $remote_name/$branch
     end
 
     cd $worktree_name
