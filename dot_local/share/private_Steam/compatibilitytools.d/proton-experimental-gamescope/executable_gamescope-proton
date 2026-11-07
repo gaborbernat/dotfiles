@@ -26,7 +26,12 @@ runtime=$(app_dir "${runtime_appid}")
 export STEAM_COMPAT_TOOL_PATHS="${proton}:${runtime}"
 container=("${runtime}/_v2-entry-point" "--verb=$1" -- "${proton}/proton" "$@")
 case $1 in
-    run | waitforexitandrun) exec gamescope -W 3840 -H 2160 -f -- "${container[@]}" ;;
+    # Steam injects its overlay through LD_PRELOAD, and Steam Input routes the controller to whichever process loads
+    # it; left on gamescope, Steam never sees the game and keeps the desktop layout
+    # (https://github.com/ValveSoftware/gamescope/issues/835)
+    run | waitforexitandrun)
+        exec env -u LD_PRELOAD gamescope -W 3840 -H 2160 -f -- env LD_PRELOAD="${LD_PRELOAD:-}" "${container[@]}"
+        ;;
     # Path lookups and other helper verbs have no window
     *) exec "${container[@]}" ;;
 esac
