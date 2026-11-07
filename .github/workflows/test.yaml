@@ -65,8 +65,10 @@ jobs:
       - name: Install system linters
         run: |
           sudo add-apt-repository --yes ppa:fish-shell/release-4
-          sudo apt-get install --yes fish
+          sudo apt-get install --yes fish libcairo2-dev pkg-config
           uv tool install ruff==0.17.4
+          # Local runs read the ruff config this repo deploys to ~/.config/ruff
+          install -D --mode=0644 dot_config/ruff/ruff.toml ~/.config/ruff/ruff.toml
       # check-templates renders through chezmoi with this host's data, and systemd-analyze verify needs the units'
       # programs installed, so both run only locally.
       - name: Run prek
