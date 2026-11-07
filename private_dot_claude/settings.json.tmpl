@@ -6,13 +6,6 @@
   },
   "permissions": {
     "allow": [
-{{- range $command := .agent_commands.shared }}
-{{-   range $subcommand := get $.agent_commands.claude_subcommands $command | default (list "") }}
-      "Bash({{ $command }}{{ if $subcommand }} {{ $subcommand }}{{ end }} *)",
-{{-   end }}
-{{- end }}
-      "Bash(.tox/*/bin/python -m pytest *)",
-      "Bash(.tox/*/bin/python -m pytest)",
       "Bash(command -v *)",
       "Bash(dig:*)",
       "Bash(scutil --get *)",
@@ -25,6 +18,14 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Skill(claude-in-chrome)",
       "WebSearch"
+    ],
+    "ask": [
+      "Bash(gh pr comment *)",
+      "Bash(gh pr review *)",
+      "Bash(gh issue comment *)",
+      "Bash(gh api repos/*/comments*)",
+      "Bash(gh api repos/*/reviews*)",
+      "Bash(gh api repos/*/replies*)"
     ],
     "defaultMode": "auto"
   },

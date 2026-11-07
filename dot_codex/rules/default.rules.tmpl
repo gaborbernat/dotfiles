@@ -1,11 +1,3 @@
-# Mirrors Claude Code's permissions.allow Bash(...) rules. Listed commands auto-run under
-# approval_policy = "on-request"; everything else prompts. prefix_rule matches an ordered argv prefix, not a glob, so
-# pattern=["git"] is Bash(git *). execpolicy is a Codex preview feature, and an "allow" decision also bypasses the
-# sandbox.
-
-{{ range $command := concat .agent_commands.shared (list "codex" "npm") | sortAlpha -}}
-prefix_rule(pattern = [{{ $command | quote }}], decision = "allow")
-{{ end -}}
-prefix_rule(pattern = ["python", "-m", "pytest"], decision = "allow")
-prefix_rule(pattern = ["uv", "pip", "install"], decision = "allow")
-{{ output "sh" "-c" `kept=$(grep '^prefix_rule(pattern=\[' "$HOME/.codex/rules/default.rules" 2>/dev/null); test -n "$kept" && printf '%s\n' "$kept" || true` -}}
+# Codex runs in its sandbox with approval_policy = "on-request" (its Auto preset), matching Claude Code's auto mode: an
+# "allow" prefix_rule would also bypass the sandbox, so none is listed, and rules approved in a session are not copied
+# back here.
