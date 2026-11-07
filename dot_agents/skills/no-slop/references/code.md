@@ -1,4 +1,4 @@
-# Code Artifacts
+# Code artifacts
 
 This covers the AI-tell layer of code prose. For comments, structure, and other house style run `/simp`; for commit
 messages follow `/commit`.

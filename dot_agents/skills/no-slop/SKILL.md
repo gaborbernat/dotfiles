@@ -1,6 +1,6 @@
 ---
 name: no-slop
-description: Edit formulaic prose in PRs, commits, comments, docs, and other writing. Use to cut stock phrasing and empty claims while preserving facts, intent, and the author's voice.
+description: Edit formulaic prose in PRs, commits, comments, docs, and other writing. Use to cut stock phrasing and empty claims and keep facts, intent, and the author's voice.
 ---
 
 # no-slop

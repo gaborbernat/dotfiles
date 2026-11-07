@@ -1,6 +1,6 @@
-# Phrases to Review
+# Phrases to review
 
-## Throat-Clearing Openers
+## Throat-clearing openers
 
 Cut announcement phrases that delay the point. Keep a transition when it leads into a concrete example or marks a useful
 step in a longer explanation.
@@ -24,7 +24,7 @@ step in a longer explanation.
 "Here's a simple example" can help a reader move from a rule to its application. A standalone "here's what changed" in a
 short PR description usually adds nothing.
 
-## Emphasis Crutches
+## Emphasis crutches
 
 These add no meaning. Delete them.
 
@@ -34,7 +34,7 @@ These add no meaning. Delete them.
 - "Make no mistake"
 - "Here's why that matters"
 
-## Business Jargon
+## Business jargon
 
 Replace with plain language.
 
@@ -85,7 +85,7 @@ Also cut these filler phrases:
 - "In a world where"
 - "The reality is"
 
-## Meta-Commentary
+## Meta-commentary
 
 Cut asides that only advertise what the essay will do. Keep a brief roadmap when readers need it to navigate a long
 technical explanation, as in the author's three-part packaging series.
@@ -103,7 +103,7 @@ technical explanation, as in the author's three-part packaging series.
 - "As we'll see..."
 - "I want to explore..."
 
-## Performative Emphasis
+## Performative emphasis
 
 False intimacy or manufactured sincerity:
 
@@ -117,7 +117,7 @@ False intimacy or manufactured sincerity:
 
 See Therapist Voice in [structures.md](structures.md) for the full register.
 
-## Telling Instead of Showing
+## Telling instead of showing
 
 Announcing difficulty or significance rather than demonstrating it:
 
@@ -126,7 +126,7 @@ Announcing difficulty or significance rather than demonstrating it:
 - "This is what X actually looks like"
 - "actually matters"
 
-## Vague Declaratives
+## Vague declaratives
 
 Sentences that announce importance without naming the specific thing need evidence or a more specific claim.
 

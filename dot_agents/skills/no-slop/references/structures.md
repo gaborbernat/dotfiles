@@ -1,6 +1,6 @@
-# Structures to Avoid
+# Structures to avoid
 
-## Binary Contrasts
+## Binary contrasts
 
 These can create false drama when the first half is a disposable setup. Keep a contrast when both sides are needed to
 prevent a misunderstanding.
@@ -22,7 +22,7 @@ prevent a misunderstanding.
 
 **Instead:** If X adds nothing, state Y directly. "The problem is Y." "Y matters here."
 
-## Negative Listing
+## Negative listing
 
 Listing what something is _not_ before revealing what it _is_. A rhetorical striptease.
 
@@ -37,7 +37,7 @@ Chain length is the tell. Two "no" items reads as emphasis, four reads as genera
 
 **Instead:** State Z. The reader doesn't need the runway.
 
-## Dramatic Fragmentation
+## Dramatic fragmentation
 
 Sentence fragments for emphasis read as manufactured profundity.
 
@@ -49,7 +49,7 @@ Sentence fragments for emphasis read as manufactured profundity.
 
 **Instead:** Complete sentences. Trust content over presentation.
 
-## Rhetorical Setups
+## Rhetorical setups
 
 These can announce insight rather than deliver it. A real question is useful when the answer requires an example or
 reasoning; the author's posts often use one to set up a technical problem.
@@ -63,7 +63,7 @@ reasoning; the author's posts often use one to set up a technical problem.
 
 **Instead:** Answer a useful question with the mechanism or an example. Cut it if the next sentence merely restates it.
 
-## Therapist Voice
+## Therapist voice
 
 Consoling the reader instead of informing them. The register borrows its authority from therapy: it validates a feeling,
 then offers the validation as if it were a finding. Binary contrast fakes drama and significance inflation fakes stakes.
@@ -82,14 +82,14 @@ This one fakes intimacy, and it is the register models fall into hardest when a 
 **Instead:** Say the thing. "Rewriting the parser cost three weeks" beats "the frustration is real, and it's worth
 naming." If a feeling belongs in the text, name what caused it.
 
-## Formulaic Constructions
+## Formulaic constructions
 
 | Pattern                   | Problem                     |
 | ------------------------- | --------------------------- |
 | "By the time X, I was Y." | Narrative template          |
 | "X that isn't Y"          | Indirect. Say "X is broken" |
 
-## False Agency
+## False agency
 
 Some abstract subjects hide who acted. A tool can build, install, or report an error; those verbs describe its behavior.
 When an abstract noun appears to make a decision, check whether naming the person or process would clarify the claim.
@@ -107,7 +107,7 @@ When an abstract noun appears to make a decision, check whether naming the perso
 **Instead:** Name the human. "The team fixed it that week" beats "the complaint becomes a fix." If no specific person
 fits, use "you" to put the reader in the seat.
 
-## Narrator-from-a-Distance
+## Narrator-from-a-distance
 
 Floating above the scene instead of putting the reader in it.
 
@@ -121,7 +121,7 @@ Floating above the scene instead of putting the reader in it.
 **Instead:** Name the concrete cause. "Pip used the host interpreter, so a missing Cython import stopped the build"
 tells the reader more than either a vague "this happens because" or a forced second-person scene.
 
-## Passive Voice
+## Passive voice
 
 Passive voice is not an AI tell: models use agentless passive at about half the human rate
 ([arXiv 2410.16107](https://arxiv.org/html/2410.16107v2)). Review it only for clarity. Passive voice can hide an actor.
@@ -137,7 +137,7 @@ thing belongs at the front of the sentence.
 
 **Instead:** When the actor matters, put them at the front of the sentence.
 
-## Participle Tails
+## Participle tails
 
 A present-participle clause appended to a finished sentence ("..., ensuring X") comments on that sentence instead of
 adding a fact. Prompted to match a human sample's style, GPT-4o still used participial clauses 5.3 times as often as the
@@ -151,14 +151,14 @@ human writers ([arXiv 2410.16107](https://arxiv.org/html/2410.16107v2)).
 
 **Instead:** If the consequence is real, state it as its own sentence with the evidence. Otherwise cut the tail.
 
-## Nominalization Stacking
+## Nominalization stacking
 
 Verbs turned into nouns and chained with "of": "the implementation of the validation of user input". In the same study,
 GPT-4o used nominalizations 2.1 times as often as the human writers. Each stacked noun hides who acts and what they do.
 
 **Instead:** Restore the verb and its subject. "The handler validates user input."
 
-## Repeated Sentence Starters
+## Repeated sentence starters
 
 | Pattern                                          | Fix                                         |
 | ------------------------------------------------ | ------------------------------------------- |
@@ -169,7 +169,7 @@ GPT-4o used nominalizations 2.1 times as often as the human writers. Each stacke
 Questions are part of the author's voice. Review repetition, not the first word. "What makes this hard?" earns its place
 when the next passage explains a specific constraint.
 
-## Rhythm Patterns
+## Rhythm patterns
 
 | Pattern                               | Fix                                                |
 | ------------------------------------- | -------------------------------------------------- |
@@ -180,7 +180,7 @@ when the next passage explains a specific constraint.
 | Staccato fragmentation                | Don't stack short punchy sentences                 |
 | "Not always. Not perfectly."          | Hedging disguised as reassurance                   |
 
-## Word Patterns
+## Word patterns
 
 | Pattern                                                                  | Problem                                                    |
 | ------------------------------------------------------------------------ | ---------------------------------------------------------- |

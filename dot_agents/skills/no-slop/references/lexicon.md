@@ -1,4 +1,4 @@
-# Stock Word Lexicon
+# Stock word lexicon
 
 **Review in context** (often decorative in technical writing): delve/delves/delving, showcasing, underscore/underscores,
 foster/fostering, intricate, multifaceted, nuanced, meticulous(ly), commendable, noteworthy, remarkable, tapestry ("rich

@@ -1,4 +1,4 @@
-# Before/After Examples
+# Before/after examples
 
 ## Stock framing
 
