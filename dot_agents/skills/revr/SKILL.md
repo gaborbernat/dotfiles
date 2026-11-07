@@ -17,19 +17,27 @@ before it is posted.
     intact. Review adversarially for correctness, performance, security, maintainability, and readability; investigate
     plausible failures and keep only findings supported by evidence (the code path, the dependency's source, a
     reproducing test run in the worktree). Where one problem recurs across the diff, propose the refactor that removes
-    the class of problem rather than patching each instance. Skip a point an existing thread already raises.
+    the class of problem rather than patching each instance. Skip a point an existing thread already raises, code the PR
+    does not change, anything a linter or type checker catches, and speculation that depends on inputs nothing in the
+    code produces.
 
 03. Search the project's documentation for the behavior, API, command, or setting changed by the PR. Note every page and
     example that the diff makes inaccurate or incomplete, and missing tests for each behavioral change.
 
     Check the PR description with a reader who has no context. Give a subagent only the PR title and description, never
-    the diff, and ask it to paraphrase in two to five sentences what changes, for whom, and how the parts fit. Compare
-    that paraphrase with the diff. A claim the diff does not implement, a behavior change neither mentions, or a point
-    the paraphrase gets wrong is a finding for the review body. A subagent that returns nothing did not check: retry it
-    once, then tell the user the check did not run.
+    the diff, and ask it to paraphrase in two to five sentences what changes, for whom, and how the parts fit, and to
+    say what feedback the author wants from reviewers. Compare that paraphrase with the diff. A claim the diff does not
+    implement, a behavior change neither mentions, or a point the paraphrase gets wrong is a finding for the review
+    body; so is a description that leaves the reader unable to say what feedback is wanted. A subagent that returns
+    nothing did not check: retry it once, then tell the user the check did not run.
 
 04. Read both `/simp` and `/no-slop` in full, including their referenced rules, and audit the **entire PR diff** against
-    its merge base, including tests and prose, with `/style`. Each violation is a finding.
+    its merge base, including tests and prose, with `/style`. Each violation on a line the PR changes is a nit that
+    quotes the rule it applies. Fold more than five nits into one note in the review body.
+
+    Before drafting, give each finding that is not a nit alone to a new validator subagent with the worktree and no
+    other context. It returns confirmed or refuted, quoting the line that decides it. Drop what it does not confirm. A
+    validator that fails did not check: retry it once, then show the finding to the user marked unverified.
 
 05. Turn each finding into one inline comment anchored to the diff line or line range it concerns. A point about the
     whole PR (layout, scope, an approach to rethink) goes in the review body instead. Write as a colleague, using "we"
