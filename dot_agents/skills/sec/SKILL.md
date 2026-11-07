@@ -1,6 +1,7 @@
 ---
 name: sec
 description: Triage a security report the user provides, validate each finding, open a private GitHub security advisory for every confirmed vulnerability and a public issue for every confirmed bug, then fix each through a PR driven to green after an adversarial review. Use when handed a scanner or researcher report to act on.
+disable-model-invocation: true
 ---
 
 # sec
@@ -17,8 +18,9 @@ Work in the repository the report concerns, or the current repository when none 
    and do not open it again.
 3. Validate each finding against the code, never against the report's own narrative. Read the code path at the reported
    commit and at the default branch head, then reproduce the behavior in an isolated worktree: run the reporter's
-   reproducer when one exists, otherwise write the smallest one that shows the claimed effect. Use a disposable
-   container for reproducers that change user IDs, write outside the worktree, or need root. Use `winvm` for anything
+   reproducer when one exists, otherwise write the smallest one that shows the claimed effect. Read a reporter's
+   reproducer before running it, and run it in a disposable container by default; run it directly only when you have
+   read it and it touches nothing outside the worktree, needs no root, and reaches no network. Use `winvm` for anything
    that only happens on Windows. Record the commands and their output; they become the evidence below.
 4. Classify each finding:
    - **Invalid**: the reproducer does not show the claimed effect, the code path is unreachable, or the behavior is
@@ -173,11 +175,11 @@ flowchart LR
 ## Prose
 
 Apply every `/no-slop` rule to every advisory summary and body, issue title and body, PR title and body, commit message,
-and the report to the user. Read `/no-slop` in full once per session, with each reference it points to (phrases,
-lexicon, structures, voice, code, examples), and check every sentence against each instruction and listed pattern by
-hand. Run its scorer too, but a passing `GATE` does not end the pass: work through each `ADVISORY` and `VOICE` finding
-and the patterns the scorer cannot check. After an edit, recheck the changed sentences against every instruction and
-pattern, and rerun the scorer.
+and the report to the user. Read `/no-slop` in full once per session and again after a compaction, with each reference
+it points to (phrases, lexicon, structures, voice, code, examples), and check every sentence against each instruction
+and listed pattern by hand. Run its scorer too, but a passing `GATE` does not end the pass: work through each `ADVISORY`
+and `VOICE` finding and the patterns the scorer cannot check. After an edit, recheck the changed sentences against every
+instruction and pattern, and rerun the scorer.
 
 Write concise, factual text in a neutral register:
 
@@ -190,8 +192,9 @@ Write concise, factual text in a neutral register:
 
 ## Review and green
 
-1. Review each PR adversarially with `/rev`, by number. It puts its fixes in one commit on top of the head, runs
-   `/style` over the final diff, and updates the PR metadata; re-check that the body still follows **PR** afterwards.
+1. Review each PR adversarially with `/rev`, by number. It puts its fixes in one commit on top of the head and runs
+   `/style` over the final diff. Skip its last step, the `/pr` metadata update: this PR's body follows **PR** above, not
+   `/pr`'s product-owner format. Re-check the title and body against **PR** afterwards.
 2. Drive each PR to green: watch its checks with `gh pr checks <n> --watch`, read the logs of every failure
    (`gh run view <id> --log-failed`), reproduce it locally or on `winvm`, fix the cause in a new commit, and push. Do
    not skip, disable or mark a check optional to make it pass. Retry a job only when its log shows an infrastructure
