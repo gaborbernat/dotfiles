@@ -28,7 +28,7 @@
     ],
     "defaultMode": "auto"
   },
-  "model": {{ output "sh" "-c" `jq -r '.model // "opus[1m]"' "$HOME/.claude/settings.json" 2>/dev/null || echo 'opus[1m]'` | trim | quote }},
+  "model": {{ output "sh" "-c" `jq -r '.model // "opus"' "$HOME/.claude/settings.json" 2>/dev/null || echo 'opus'` | trim | quote }},
   "hooks": {
     "SessionStart": [
       {
@@ -132,6 +132,9 @@
     "command": "ccstatusline"
   },
   "modelSettings": {
+    "claude-opus-5-5": {
+      "autoCompactWindow": 400000
+    },
     "claude-fable-5-1": {
       "effortLevel": "medium"
     },
@@ -139,6 +142,7 @@
       "effortLevel": "high"
     }
   },
+  "idleCompaction": false,
   "tui": "fullscreen",
   "skipDangerousModePermissionPrompt": true,
   "skipWorkflowUsageWarning": true,
