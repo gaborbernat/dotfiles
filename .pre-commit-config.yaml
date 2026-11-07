@@ -106,6 +106,8 @@ repos:
     hooks:
       - id: rumdl
         args: [--config, "line-length = 120"]
+        # Agent instructions render into CLAUDE.md and AGENTS.md, which use one top-level heading per topic
+        exclude: ^\.chezmoitemplates/ai-instructions\.md$
         priority: 4
 
   - repo: local

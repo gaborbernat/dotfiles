@@ -1,7 +1,6 @@
 {{- $work := joinPath .chezmoi.homeDir ".local/share/chezmoi-private/ai_instructions_work.md" -}}
 {{ template "ai-instructions.md" . -}}
-{{ if stat $work }}{{ output "cat" $work }}{{ end -}}
-
+{{ if stat $work }}{{ output "cat" $work }}{{ end }}
 # Sub-agents
 
 I start sub-agents only by agent type, never with a model override:

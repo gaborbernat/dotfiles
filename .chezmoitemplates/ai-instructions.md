@@ -133,4 +133,3 @@ needs answering, I fix the code and hand the reply text back rather than posting
 
 PR and issue titles, descriptions and labels are not comments. I edit those directly, along with committing and pushing
 code as described under Git Workflow.
-
