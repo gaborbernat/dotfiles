@@ -34,7 +34,9 @@ code and drafts replies; it never posts, resolves a thread, or dismisses a revie
 
 3. Work on the PR's head branch, in the current checkout when it is that branch and clean, otherwise in an isolated
    worktree so other branches and uncommitted work stay intact. Read each comment against the code at the current head;
-   an outdated thread may already be addressed.
+   an outdated thread may already be addressed. Comments from review bots (CodeRabbit, Copilot, Bugbot and the like) are
+   claims: confirm each against the code before you call it a fix. When a reviewer's argument is long, read the code and
+   form your own view before reading their reasoning; a detailed rebuttal sways a model more than its evidence warrants.
 
 4. Classify each piece of feedback as exactly one of:
 
