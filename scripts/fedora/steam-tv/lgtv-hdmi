@@ -4,6 +4,7 @@
 Usage: lgtv-hdmi KEY_FILE [on|off]
 """
 
+import hashlib
 import json
 import logging
 import socket
@@ -74,7 +75,7 @@ def wake() -> None:
 
 
 def open_tv() -> ClientConnection:
-    # webOS serves a self-signed certificate, so there is nothing to verify against
+    # webOS serves a self-signed certificate, so there is no chain to verify; register pins it on first use instead
     context = ssl.create_default_context()
     context.check_hostname = False
     context.verify_mode = ssl.CERT_NONE
@@ -82,6 +83,7 @@ def open_tv() -> ClientConnection:
 
 
 def register(tv: Connection, key_file: Path) -> None:
+    pin_check(tv, key_file.with_name("lgtv-cert-sha256"))
     payload = {
         "forcePairing": False,
         "pairingType": "PROMPT",
@@ -143,6 +145,20 @@ def register(tv: Connection, key_file: Path) -> None:
             raise RuntimeError(msg)
         if message.get("payload", {}).get("pairingType") == "PROMPT":
             _LOG.info("Accept the connection prompt on the TV with its remote")
+
+
+def pin_check(tv: Connection, pin_file: Path) -> None:
+    # Any LAN host can answer for LGwebOSTV.local, and the pairing key grants full control of the TV, so it goes only to
+    # the certificate seen on the first connection
+    if not isinstance(sock := tv.socket, ssl.SSLSocket) or (der := sock.getpeercert(binary_form=True)) is None:
+        msg = "TV presented no certificate"
+        raise RuntimeError(msg)
+    seen = hashlib.sha256(der).hexdigest()
+    if not pin_file.exists():
+        pin_file.write_text(seen, encoding="utf-8")
+    elif (pinned := pin_file.read_text(encoding="utf-8").strip()) != seen:
+        msg = f"TV certificate {seen} differs from pinned {pinned}; after a TV reset or update, delete {pin_file}"
+        raise RuntimeError(msg)
 
 
 def receive(tv: Connection, timeout: float) -> _Message:

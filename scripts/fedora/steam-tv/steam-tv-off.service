@@ -7,3 +7,11 @@ StateDirectory=steam-tv
 StateDirectoryMode=0700
 ExecStart=/usr/local/bin/steam-tv-off
 TimeoutStartSec=180
+# Runs as root and talks to the TV over the LAN, so drop what the triggers never need
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectKernelModules=yes
+ProtectKernelTunables=yes
+ProtectClock=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
