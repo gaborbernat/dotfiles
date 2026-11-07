@@ -162,11 +162,15 @@ setfacl --recursive --default --modify g:games:rwX "${LIBRARY}"
 home_dir() {
     getent passwd "$1" | cut -d: -f6
 }
+# Each user controls their own home, including symlinks in it, so read and write there as that user: root following a
+# link the user planted (~/.config -> /etc) would hand them a system file. Writes go through tee, which reads the
+# descriptor root opened instead of reopening a path in root's private workdir.
+as_user() {
+    runuser --user "$1" -- "${@:2}"
+}
 gaming_home=$(home_dir "${GAMING_USER}")
-install -d --owner="${GAMING_USER}" --group="${GAMING_USER}" \
-    "${gaming_home}/.config" "${gaming_home}/.config/environment.d"
-install --owner="${GAMING_USER}" --group="${GAMING_USER}" --mode=0644 /dev/stdin \
-    "${gaming_home}/.config/environment.d/gamescope-session-plus.conf" <<'EOF'
+as_user "${GAMING_USER}" install -d "${gaming_home}/.config" "${gaming_home}/.config/environment.d"
+as_user "${GAMING_USER}" tee "${gaming_home}/.config/environment.d/gamescope-session-plus.conf" >/dev/null <<'EOF'
 OUTPUT_CONNECTOR=HDMI-A-1
 SCREEN_WIDTH=3840
 SCREEN_HEIGHT=2160
@@ -182,24 +186,25 @@ for user in "${main_user}" "${GAMING_USER}"; do
     folders="$(home_dir "${user}")/.local/share/Steam/steamapps/libraryfolders.vdf"
     if [[ ! -f "${folders}" ]]; then
         echo "Start Steam once as '${user}', quit it, then rerun to add the shared library."
-    elif grep -Fq "\"${LIBRARY}\"" "${folders}"; then
+    elif runuser --user "${user}" -- grep -Fq "\"${LIBRARY}\"" "${folders}"; then
         continue
     elif pgrep --uid "${user}" --exact steam >/dev/null; then
         echo "Quit Steam for '${user}', then rerun to add the shared library."
     else
+        as_user "${user}" cat "${folders}" >"${workdir}/libraryfolders.in"
         index=$(awk '
             /^\t"[0-9]+"$/ {
                 gsub(/"/, "", $1)
                 if ($1 >= candidate) candidate = $1 + 1
             }
             END { print candidate + 0 }
-        ' "${folders}")
+        ' "${workdir}/libraryfolders.in")
         {
-            sed '$d' "${folders}"
+            sed '$d' "${workdir}/libraryfolders.in"
             printf '\t"%s"\n\t{\n\t\t"path"\t\t"%s"\n\t\t"label"\t\t""\n\t\t"apps"\n\t\t{\n\t\t}\n\t}\n}\n' \
                 "${index}" "${LIBRARY}"
         } >"${workdir}/libraryfolders.vdf"
-        install --owner="${user}" --group="${user}" --mode=0644 "${workdir}/libraryfolders.vdf" "${folders}"
+        as_user "${user}" tee "${folders}" >/dev/null <"${workdir}/libraryfolders.vdf"
         echo "Added ${LIBRARY} to the Steam libraries of '${user}'."
     fi
 done
@@ -209,12 +214,15 @@ done
 for user in "${main_user}" "${GAMING_USER}"; do
     steamapps="$(home_dir "${user}")/.local/share/Steam/steamapps"
     for dir in "${steamapps}/common" "${steamapps}/downloading"; do
-        [[ ! -d "${dir}" ]] || chmod a-w "${dir}"
+        [[ ! -d "${dir}" ]] || as_user "${user}" chmod a-w "${dir}"
     done
 done
 
 shader_config="${gaming_home}/.local/share/Steam/config/config.vdf"
-if [[ -f "${shader_config}" ]] && ! grep -Fq '"EnableShaderBackgroundProcessing"' "${shader_config}"; then
+if [[ -f "${shader_config}" ]]; then
+    as_user "${GAMING_USER}" cat "${shader_config}" >"${workdir}/config.in"
+fi
+if [[ -f "${workdir}/config.in" ]] && ! grep -Fq '"EnableShaderBackgroundProcessing"' "${workdir}/config.in"; then
     if pgrep --uid "${GAMING_USER}" --exact steam >/dev/null; then
         echo "Quit Steam for '${GAMING_USER}', then rerun to enable background shader processing."
     else
@@ -228,24 +236,23 @@ if [[ -f "${shader_config}" ]] && ! grep -Fq '"EnableShaderBackgroundProcessing"
             }
             { print }
             END { if (!inserted) exit 1 }
-        ' "${shader_config}" >"${workdir}/config.vdf"
-        install --owner="${GAMING_USER}" --group="${GAMING_USER}" --mode=0644 \
-            "${workdir}/config.vdf" "${shader_config}"
+        ' "${workdir}/config.in" >"${workdir}/config.vdf"
+        as_user "${GAMING_USER}" tee "${shader_config}" >/dev/null <"${workdir}/config.vdf"
         echo "Enabled background shader processing for '${GAMING_USER}'."
     fi
 fi
 
 layout="$(home_dir "${main_user}")/.config/monitors.xml"
 if [[ -f "${layout}" ]]; then
-    install --mode=0644 "${layout}" /etc/xdg/monitors.xml
+    as_user "${main_user}" cat "${layout}" >"${workdir}/monitors.xml"
+    install --mode=0644 "${workdir}/monitors.xml" /etc/xdg/monitors.xml
     greeter_config=/var/lib/gdm/seat0/config
     if [[ -d "${greeter_config}" ]]; then
         greeter_owner=$(stat -c %u "${greeter_config}")
         install --mode=0644 --owner="${greeter_owner}" \
             "$(dirname "$0")/greeter-monitors.xml" "${greeter_config}/monitors.xml"
     fi
-    install --mode=0644 --owner="${GAMING_USER}" --group="${GAMING_USER}" \
-        "${layout}" "${gaming_home}/.config/monitors.xml"
+    as_user "${GAMING_USER}" tee "${gaming_home}/.config/monitors.xml" >/dev/null <"${workdir}/monitors.xml"
 fi
 
 accounts_user() {
