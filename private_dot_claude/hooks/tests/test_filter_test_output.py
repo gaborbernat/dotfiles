@@ -52,6 +52,8 @@ def test_rewrite_pipes_test_command(command: str) -> None:
     hook_output = {
         "hookSpecificOutput": {
             "hookEventName": "PreToolUse",
+            "permissionDecision": "allow",
+            "permissionDecisionReason": "test run, output filtered to failures",
             "updatedInput": {"command": expected, "description": "Run tests"},
         }
     }
@@ -68,6 +70,7 @@ def test_rewrite_pipes_test_command(command: str) -> None:
         pytest.param(_event("pytest; echo done"), id="sequenced"),
         pytest.param(_event("pytest $(git diff --name-only)"), id="substitution"),
         pytest.param(_event("pytest\necho done"), id="multiline"),
+        pytest.param(_event("pytest tests # slow ones"), id="comment"),
         pytest.param(_event("pytesting"), id="prefix-only"),
         pytest.param(_event(None), id="command-not-string"),
         pytest.param({"tool_name": "Bash"}, id="no-tool-input"),
@@ -77,9 +80,9 @@ def test_rewrite_leaves_other_commands(event: dict[str, object]) -> None:
     assert ftp.rewrite(event) is None
 
 
-def test_condense_keeps_short_output_whole(tmp_path: Path) -> None:
+def test_condense_keeps_short_output_whole() -> None:
     text = "===== 3 passed in 0.10s =====\n"
-    assert ftp.condense(text, tmp_path / "x.log") == text
+    assert ftp.condense(text) == text
 
 
 @pytest.mark.parametrize(
@@ -95,17 +98,18 @@ def test_condense_keeps_short_output_whole(tmp_path: Path) -> None:
         pytest.param(["---------- coverage: platform linux, python 3.14.0 ----------"], id="pytest-cov-5"),
     ],
 )
-def test_condense_keeps_failures_coverage_and_summary(coverage_header: list[str], tmp_path: Path) -> None:
+def test_condense_keeps_failures_coverage_and_summary(coverage_header: list[str]) -> None:
     session = "============================= test session starts =============================="
     failures = [
         "=================================== FAILURES ===================================",
         "__________________________________ test_bad ___________________________________",
         "E       assert 1 == 2",
     ]
-    covered = "src/a.py           10      0   100%"
+    covered = ["src/a.py           10      0   100%", "src/c.py           10      0 100.00%"]
     coverage_gaps = [
         "Name            Stmts   Miss  Cover   Missing",
         "src/b.py           10      2    80%   3-4",
+        "src/d.py           10      1  90.00%   7",
         "TOTAL              20      2    90%",
         "FAIL Required test coverage of 100% not reached. Total coverage: 90.00%",
     ]
@@ -117,18 +121,24 @@ def test_condense_keeps_failures_coverage_and_summary(coverage_header: list[str]
         "  evaluation failed :( (2.10 seconds)",
     ]
     passing = [f"tests/test_a.py::test_{index} PASSED" for index in range(100)]
-    lines = [session, *passing, *failures, *coverage_header, covered, *coverage_gaps, *summary]
+    lines = [session, *passing, *failures, *coverage_header, *covered, *coverage_gaps, *summary]
     kept = [session, *failures, coverage_header[0], *coverage_gaps, *summary]
-    log = tmp_path / "x.log"
-    expected = f"[test output filtered: {len(kept)} of {len(lines)} lines kept; full output in {log}]\n"
-    assert ftp.condense("\n".join(lines), log) == expected + "\n".join(kept) + "\n"
+    expected = f"[test output filtered: {len(kept)} of {len(lines)} lines kept]\n"
+    assert ftp.condense("\n".join(lines)) == expected + "\n".join(kept) + "\n"
 
 
-def test_condense_falls_back_to_tail(tmp_path: Path) -> None:
-    lines = [f"line {index}" for index in range(100)]
-    log = tmp_path / "x.log"
-    expected = f"[test output filtered: 80 of 100 lines kept; full output in {log}]\n" + "\n".join(lines[20:]) + "\n"
-    assert ftp.condense("\n".join(lines), log) == expected
+@pytest.mark.parametrize(
+    ("total", "first_kept"),
+    [
+        pytest.param(100, 20, id="long"),
+        pytest.param(70, 0, id="shorter-than-tail"),
+    ],
+)
+def test_condense_falls_back_to_tail(total: int, first_kept: int) -> None:
+    lines = [f"line {index}" for index in range(total)]
+    kept = lines[first_kept:]
+    expected = f"[test output filtered: {len(kept)} of {total} lines kept]\n" + "\n".join(kept) + "\n"
+    assert ftp.condense("\n".join(lines)) == expected
 
 
 def test_main_rewrite_prints_hook_output(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
@@ -156,12 +166,14 @@ def test_main_filter_logs_and_prunes(
     day_ago = time.time() - 2 * 24 * 3600
     os.utime(stale, (day_ago, day_ago))
     monkeypatch.setattr(ftp, "_LOG_DIR", log_dir)
-    monkeypatch.setattr(sys, "stdin", io.StringIO("1 passed\n"))
+    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(b"1 passed \xff\n"), encoding="utf-8"))
     assert ftp.main(["filter"]) == 0
-    assert capsys.readouterr().out == "1 passed\n"
-    new_logs = set(log_dir.glob("*.log")) - {fresh}
-    assert [path.read_text() for path in new_logs] == ["1 passed\n"]
-    assert not stale.exists()
+    (log,) = set(log_dir.glob("*.log")) - {fresh}
+    assert (capsys.readouterr().out, log.read_bytes(), stale.exists()) == (
+        f"[full test output: {log}]\n1 passed \ufffd\n",
+        b"1 passed \xff\n",
+        False,
+    )
 
 
 def test_main_usage(monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]) -> None:
@@ -181,4 +193,5 @@ def test_rewritten_command_keeps_exit_code(shell: str, tmp_path: Path) -> None:
     piped = ftp.rewrite(_event("pytest"))["hookSpecificOutput"]["updatedInput"]["command"]
     env = {**os.environ, "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}", "HOME": str(tmp_path)}
     result = subprocess.run([shell, "-c", piped], capture_output=True, text=True, env=env, check=False)
-    assert (result.returncode, result.stdout) == (3, "FAILED tests/test_a.py::test_bad\n")
+    (log,) = (tmp_path / ".cache" / "claude" / "test-output").glob("*.log")
+    assert (result.returncode, result.stdout) == (3, f"[full test output: {log}]\nFAILED tests/test_a.py::test_bad\n")

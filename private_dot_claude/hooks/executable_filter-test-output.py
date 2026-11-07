@@ -4,13 +4,14 @@
 # ///
 """Shrink pytest and tox output to what an agent acts on.
 
-As a PreToolUse hook on Bash, ``rewrite`` pipes a plain pytest or tox command through ``filter``, which keeps failures,
-errors, coverage gaps and summaries, and saves the full output to a log the agent can read when the excerpt is not
-enough.
+As a PreToolUse hook on Bash, ``rewrite`` pipes a plain pytest or tox command through ``filter``, which names a log of
+the full output first, so a run killed by a timeout still leaves it, then prints the failures, errors, coverage gaps and
+summaries.
 """
 
 from __future__ import annotations
 
+import contextlib
 import json
 import os
 import re
@@ -23,11 +24,11 @@ from typing import Final
 _TEST_COMMAND: Final[re.Pattern[str]] = re.compile(
     r"^(?:uv run (?:\S+ )*?)?(?:\S*/)?(?:pytest|tox|python3? -m pytest)(?:\s|$)"
 )
-_SHELL_SYNTAX: Final[re.Pattern[str]] = re.compile(r"[|<>;&`\n]|\$\(")
+_SHELL_SYNTAX: Final[re.Pattern[str]] = re.compile(r"[|<>;&`#\n]|\$\(")
 # pytest-cov before 6.0 opens its report with a dashed rule instead of a section line.
 _SECTION: Final[re.Pattern[str]] = re.compile(r"^(?:=+ (?P<title>.+?) =+|-+ coverage: .+ -+)$")
 _KEPT_SECTIONS: Final[tuple[str, ...]] = ("FAILURES", "ERRORS", "short test summary info")
-_COVERAGE_ROW: Final[re.Pattern[str]] = re.compile(r"^\S+(?:\s+\d+){2,4}\s+(?P<cover>\d+)%")
+_COVERAGE_ROW: Final[re.Pattern[str]] = re.compile(r"^\S+(?:\s+\d+){2,4}\s+(?P<cover>\d+(?:\.\d+)?)%")
 _KEPT_LINE: Final[re.Pattern[str]] = re.compile(
     r"^(?:ERROR|FAILED|FAIL Required|Name\s+Stmts|TOTAL\s)|^\s*\S+: (?:OK|FAIL|SKIP|exit -?\d+)|congratulations|"
     r"evaluation failed"
@@ -48,10 +49,18 @@ def rewrite(event: dict[str, object]) -> dict[str, object] | None:
         return None
     script = shlex.quote(str(Path(__file__).resolve()))
     piped = f"( set -o pipefail; {command.strip()} 2>&1 | {script} filter )"
-    return {"hookSpecificOutput": {"hookEventName": "PreToolUse", "updatedInput": {**tool_input, "command": piped}}}
+    # The rewritten command no longer matches the user's own rules, so approve the test run it wraps explicitly
+    return {
+        "hookSpecificOutput": {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "allow",
+            "permissionDecisionReason": "test run, output filtered to failures",
+            "updatedInput": {**tool_input, "command": piped},
+        }
+    }
 
 
-def condense(text: str, log: Path) -> str:
+def condense(text: str) -> str:
     lines = text.splitlines()
     if len(lines) <= _SHORT_OUTPUT:
         return text
@@ -61,21 +70,25 @@ def condense(text: str, log: Path) -> str:
         if section := _SECTION.match(line):
             in_section = section["title"] in _KEPT_SECTIONS
             kept.add(index)  # the final "N passed in Xs" summary is also a section line
-        elif in_section or _KEPT_LINE.search(line) or ((row := _COVERAGE_ROW.match(line)) and row["cover"] != "100"):
+        elif (
+            in_section or _KEPT_LINE.search(line) or ((row := _COVERAGE_ROW.match(line)) and float(row["cover"]) < 100)
+        ):
             kept.add(index)
     if not kept:
-        kept = set(range(len(lines) - _FALLBACK_TAIL, len(lines)))
+        kept = set(range(max(0, len(lines) - _FALLBACK_TAIL), len(lines)))
     kept |= set(range(len(lines) - _TAIL, len(lines)))
     excerpt = "\n".join(lines[index] for index in sorted(kept))
-    return f"[test output filtered: {len(kept)} of {len(lines)} lines kept; full output in {log}]\n{excerpt}\n"
+    return f"[test output filtered: {len(kept)} of {len(lines)} lines kept]\n{excerpt}\n"
 
 
 def _new_log() -> Path:
     _LOG_DIR.mkdir(parents=True, exist_ok=True)
     cutoff = time.time() - _LOG_MAX_AGE
     for old in _LOG_DIR.glob("*.log"):
-        if old.stat().st_mtime < cutoff:
-            old.unlink(missing_ok=True)
+        # Another filter running at the same time may prune the same file first
+        with contextlib.suppress(FileNotFoundError):
+            if old.stat().st_mtime < cutoff:
+                old.unlink()
     return _LOG_DIR / f"{time.strftime('%Y%m%dT%H%M%S')}-{os.getpid()}.log"
 
 
@@ -85,10 +98,15 @@ def main(argv: list[str]) -> int:
             if (output := rewrite(json.load(sys.stdin))) is not None:
                 json.dump(output, sys.stdout)
         case ["filter"]:
-            text = sys.stdin.read()
             log = _new_log()
-            log.write_text(text, encoding="utf-8")
-            sys.stdout.write(condense(text, log))
+            sys.stdout.write(f"[full test output: {log}]\n")
+            sys.stdout.flush()
+            with log.open("wb") as sink:
+                while chunk := sys.stdin.buffer.read1():
+                    sink.write(chunk)
+                    sink.flush()
+            # Tests may print bytes that are not UTF-8; showing them replaced beats losing the whole run
+            sys.stdout.write(condense(log.read_bytes().decode("utf-8", errors="replace")))
         case _:
             sys.stderr.write("usage: filter-test-output.py rewrite|filter\n")
             return 2
