@@ -1,7 +1,8 @@
 # apt packages installed on Linux. Mirrors the CLI tools in dot_Brewfile; GUI apps, Mac App
 # Store entries, and macOS-only tools (mas, duti, pinentry-mac) have no Linux equivalent here.
 # rustup, uv, and mise come from their own official installers, not apt.
-# No apt package exists for: crane, prek, yamlfmt, googleworkspace-cli, anomalyco/tap/opencode.
+# No apt package exists for: crane, prek, yamlfmt, googleworkspace-cli, anomalyco/tap/opencode, and mikefarah's yq
+# (apt's yq is a different tool, a jq wrapper).
 
 # gcc, make, and libc headers build Rust crates with C dependencies.
 build-essential
@@ -23,11 +24,11 @@ lsd
 mprocs
 tig
 tmux
+neovim
 tree
 w3m
 universal-ctags
 wget
-yq
 zoxide
 aria2
 cmake

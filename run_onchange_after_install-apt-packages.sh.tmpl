@@ -20,6 +20,11 @@ if ! command -v fd >/dev/null 2>&1 && fdfind=$(command -v fdfind); then
     mkdir -p "${HOME}/.local/bin"
     ln -sf "${fdfind}" "${HOME}/.local/bin/fd"
 fi
+# bat ships as batcat for the same reason; MANPAGER and the b abbreviation call bat.
+if ! command -v bat >/dev/null 2>&1 && batcat=$(command -v batcat); then
+    mkdir -p "${HOME}/.local/bin"
+    ln -sf "${batcat}" "${HOME}/.local/bin/bat"
+fi
 
 echo "✅ apt packages installed"
 {{ end -}}

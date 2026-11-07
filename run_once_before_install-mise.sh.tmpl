@@ -1,4 +1,5 @@
-{{- if ne (get .chezmoi.osRelease "id") "fedora" -}}
+{{- /* Fedora installs mise with DNF and macOS with Homebrew */ -}}
+{{- if and (eq .chezmoi.os "linux") (ne (get .chezmoi.osRelease "id") "fedora") -}}
 #!/bin/bash
 set -euo pipefail
 

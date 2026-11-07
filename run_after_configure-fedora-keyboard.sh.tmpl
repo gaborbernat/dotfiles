@@ -11,9 +11,17 @@ if ! command -v xremap >/dev/null 2>&1; then
     exit 0
 fi
 
-user=$(id -un)
-sudo bash '{{ .chezmoi.sourceDir }}/scripts/fedora/keyboard/install-system.sh' \
-    '{{ .chezmoi.sourceDir }}/scripts/fedora/keyboard/config.yml' "${user}"
+# This script reruns on every apply so the extension can install once GNOME is up, but the system part needs sudo, so
+# it runs only when its installer or config changed since the last success.
+stamp="${XDG_STATE_HOME:-${HOME}/.local/state}/chezmoi/keyboard-system.sha256"
+want='{{ print (include "scripts/fedora/keyboard/install-system.sh") (include "scripts/fedora/keyboard/config.yml") | sha256sum }}'
+if [[ "$(cat "${stamp}" 2>/dev/null || true)" != "${want}" ]]; then
+    user=$(id -un)
+    sudo bash '{{ .chezmoi.sourceDir }}/scripts/fedora/keyboard/install-system.sh' \
+        '{{ .chezmoi.sourceDir }}/scripts/fedora/keyboard/config.yml' "${user}"
+    mkdir -p "$(dirname "${stamp}")"
+    printf '%s\n' "${want}" >"${stamp}"
+fi
 
 if ! gnome_session_ready; then
     echo "GNOME session unavailable; xremap extension will install on the next chezmoi apply"
