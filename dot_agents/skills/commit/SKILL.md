@@ -13,9 +13,11 @@ communicate the intent and reasoning behind the changes, not describe what the c
 Follow Commitizen conventions with a relevant emoji:
 
 ```text
-<emoji> <type>(<scope>): <subject>
+<emoji> <type>(<scope>)[!]: <subject>
 
 <body>
+
+<footer>
 ```
 
 **Types**: feat, fix, docs, style, refactor, perf, test, build, ci, chore, revert
@@ -33,12 +35,23 @@ Follow Commitizen conventions with a relevant emoji:
 - 👷 ci - CI/CD changes
 - ⏪ revert - reverting changes
 
+The table is a house convention, not gitmoji: tests take 🧪 where gitmoji uses ✅.
+
+**Scope**: reuse a scope that `git log --oneline` already shows for the area; coin a new one only when no past commit
+names it.
+
 ## Subject Line
 
 - Under 50 characters
 - Imperative mood ("add" not "added" or "adds")
 - No period at end
 - Emoji at start, then type(scope): subject
+- `!` after the scope when the change breaks callers, such as removing a parameter or a default
+
+## Footer
+
+- `BREAKING CHANGE: <what callers must change>` whenever the subject carries `!`
+- `Fixes #N` for an issue the commit closes, `Refs #N` for one it relates to; never in the subject
 
 ## Body
 
@@ -67,16 +80,42 @@ unexplained, written in paragraphs wrapped at 80 characters. Focus on:
 Users with high-latency connections were getting logged out mid-authentication
 because the session token expired before the OAuth provider responded.
 
-Extended the token validity window specifically for the OAuth callback phase.
-This preserves our security model for normal sessions while accommodating
-real-world network conditions during the authentication handshake.
+Extended the token validity window for the OAuth callback phase only. A token
+leaked during the handshake now stays usable for longer; normal sessions keep
+the short expiry.
+```
+
+**One-line example**:
+
+```text
+♻️ refactor(cli): inline single-use option parser
+```
+
+**Bad** (restates the diff):
+
+```text
+♻️ refactor(cache): change TTL from 60 to 300 and add lock
+
+Changed the TTL constant from 60 to 300 seconds and wrapped refresh() in a
+lock.
+```
+
+**Good** (says why):
+
+```text
+🐛 fix(cache): stop refresh stampede on expiry
+
+Every worker refreshed the entry in the same second it expired, saturating
+the upstream API. The lock lets one worker refresh while the others serve the
+stale value, and the longer TTL cuts refreshes fivefold.
 ```
 
 ## Workflow
 
 1. Run `git status` to see what's staged
 2. Run `git diff --staged` to review the actual changes
-3. Identify the primary purpose (the "why")
+3. Identify the primary purpose (the "why"). If the staged diff mixes concerns, unstage it and commit each concern
+   separately
 4. Write subject line: emoji + type(scope): imperative summary
 5. Write body paragraphs explaining motivation and approach
 6. Write the message to a file, then commit with `git commit -F <file>`. Never pass it inline: `-m` hands backticks and
