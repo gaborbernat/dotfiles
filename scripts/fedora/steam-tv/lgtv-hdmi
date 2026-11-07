@@ -1,5 +1,8 @@
 #!/usr/bin/python3
-"""Wake the LG TV and switch it to the PC's HDMI input over webOS's SSAP websocket API."""
+"""Wake the LG TV and switch it to the PC's HDMI input, or turn it off, over webOS's SSAP websocket API.
+
+Usage: lgtv-hdmi KEY_FILE [on|off]
+"""
 
 import json
 import logging
@@ -17,20 +20,25 @@ if TYPE_CHECKING:
     from websockets.sync.connection import Connection
 
 _BOOT_SECONDS: Final[int] = 30
+_HDMI_INPUT: Final[str] = "HDMI_1"
+_HDMI_APP: Final[str] = "com.webos.app.hdmi1"
 _LOG: Final[logging.Logger] = logging.getLogger("lgtv-hdmi")
 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(message)s")
+    key_file = Path(sys.argv[1])
+    if sys.argv[2:] == ["off"]:
+        turn_off(key_file)
+        return
     wake()
-    hdmi_input = "HDMI_1"
     deadline = time.monotonic() + _BOOT_SECONDS
     while True:
         try:
             with open_tv() as tv:
-                register(tv, Path(sys.argv[1]))
+                register(tv, key_file)
                 ensure_screen_on(tv)
-                request(tv, "ssap://tv/switchInput", {"inputId": hdmi_input})
+                request(tv, "ssap://tv/switchInput", {"inputId": _HDMI_INPUT})
             break
         # A booting TV refuses connections, or accepts one and closes it with 1008 Try Again Later
         except (OSError, WebSocketException) as error:
@@ -39,7 +47,24 @@ def main() -> None:
             time.sleep(1)
         except RuntimeError as error:
             sys.exit(f"lgtv-hdmi: {error}")
-    _LOG.info("TV on, input %s", hdmi_input)
+    _LOG.info("TV on, input %s", _HDMI_INPUT)
+
+
+def turn_off(key_file: Path) -> None:
+    try:
+        with open_tv() as tv:
+            register(tv, key_file)
+            app = request(tv, "ssap://com.webos.applicationManager/getForegroundAppInfo").get("appId")
+            # Someone switched to another input or app after playing; the TV is theirs now
+            if app == _HDMI_APP:
+                request(tv, "ssap://system/turnOff")
+    # A TV that refuses the connection is already off
+    except OSError, WebSocketException:
+        _LOG.info("TV already off")
+    except RuntimeError as error:
+        sys.exit(f"lgtv-hdmi: {error}")
+    else:
+        _LOG.info("TV off" if app == _HDMI_APP else f"TV left on, showing {app}")
 
 
 def wake() -> None:
@@ -139,7 +164,7 @@ class _Message(TypedDict, total=False):
 
 
 _Payload = TypedDict(
-    "_Payload", {"client-key": str, "pairingType": str, "returnValue": bool, "state": str}, total=False
+    "_Payload", {"appId": str, "client-key": str, "pairingType": str, "returnValue": bool, "state": str}, total=False
 )
 
 

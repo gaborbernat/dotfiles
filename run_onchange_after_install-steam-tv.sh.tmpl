@@ -3,9 +3,12 @@
 # trigger hash: {{ include "scripts/fedora/steam-tv/steam-tv-trigger" | sha256sum }}
 # TV hash: {{ include "scripts/fedora/steam-tv/lgtv-hdmi" | sha256sum }}
 # launcher hash: {{ include "scripts/fedora/steam-tv/steam-tv" | sha256sum }}
+# off hash: {{ include "scripts/fedora/steam-tv/steam-tv-off" | sha256sum }}
 # rule hash: {{ include "scripts/fedora/steam-tv/99-steam-tv.rules" | sha256sum }}
 # system unit hash: {{ include "scripts/fedora/steam-tv/steam-tv.service" | sha256sum }}
+# off system unit hash: {{ include "scripts/fedora/steam-tv/steam-tv-off.service" | sha256sum }}
 # user unit hash: {{ include "scripts/fedora/steam-tv/steam-tv-user.service" | sha256sum }}
+# off user unit hash: {{ include "scripts/fedora/steam-tv/steam-tv-off-user.service" | sha256sum }}
 # ids hash: {{ include "scripts/fedora/steam-tv/ids.conf" | sha256sum }}
 set -euo pipefail
 

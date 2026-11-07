@@ -1,0 +1,7 @@
+[Unit]
+Description=Exit Steam
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/steam -shutdown
+TimeoutStartSec=60

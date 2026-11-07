@@ -1,4 +1,8 @@
 # @XBOX_VENDOR@ is Microsoft, so any Xbox controller matches. Match the js node because over Bluetooth the
 # controller advertises enough keys that udev tags it a keyboard, not a joystick.
 ACTION=="add", SUBSYSTEM=="input", KERNEL=="js*", ATTRS{id/vendor}=="@XBOX_VENDOR@", \
-    TAG+="systemd", ENV{SYSTEMD_WANTS}+="steam-tv.service"
+    TAG+="systemd", ENV{SYSTEMD_WANTS}+="steam-tv.service", ENV{STEAM_TV_CONTROLLER}="1"
+# A removed device has no attributes left to match, but udev keeps the properties set when it was added.
+# SYSTEMD_WANTS acts only on add, so start the unit directly.
+ACTION=="remove", SUBSYSTEM=="input", KERNEL=="js*", ENV{STEAM_TV_CONTROLLER}=="1", \
+    RUN+="/usr/bin/systemctl --no-block start steam-tv-off.service"

@@ -1,0 +1,9 @@
+[Unit]
+Description=Exit Steam and turn the TV off after the last controller disconnects
+
+[Service]
+Type=oneshot
+StateDirectory=steam-tv
+StateDirectoryMode=0700
+ExecStart=/usr/local/bin/steam-tv-off
+TimeoutStartSec=180

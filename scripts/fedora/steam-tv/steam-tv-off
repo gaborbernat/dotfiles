@@ -1,0 +1,19 @@
+#!/usr/bin/bash
+# Exits Steam and turns the TV off once the last Xbox controller disconnects, unless a game is running.
+set -euo pipefail
+
+# A Bluetooth controller drops and reconnects on its own, so only a disconnect that lasts counts
+sleep 30
+if grep -sqx @XBOX_VENDOR@ /sys/class/input/js*/device/id/vendor; then
+    exit 0
+fi
+# The player may reconnect, or carry on with keyboard and mouse
+if /usr/bin/pgrep --full 'reaper SteamLaunch' >/dev/null; then
+    exit 0
+fi
+
+steam_users=$(/usr/bin/ps -C steam -o user:32= || true)
+for user in $(/usr/bin/sort -u <<<"${steam_users}" || true); do
+    /usr/bin/systemctl --user --machine="${user}@" start steam-tv-off.service || true
+done
+exec /usr/local/bin/lgtv-hdmi "${STATE_DIRECTORY?set by systemd StateDirectory=}/lgtv-client-key" off
