@@ -1,5 +1,7 @@
 [Unit]
 Description=Exit Steam and turn the TV off after the last controller disconnects
+# A controller reconnecting cancels a pending shutdown, and the two never write the TV's key file at once
+Conflicts=steam-tv.service
 
 [Service]
 Type=oneshot

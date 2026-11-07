@@ -191,11 +191,11 @@ def ensure_screen_on(tv: Connection) -> None:
         "Active",
         "Screen Saver",
     }:
-        if state == "Screen Off":
-            request(tv, "ssap://com.webos.service.tvpower/power/turnOnScreen")
-        elif time.monotonic() > deadline:
+        if time.monotonic() > deadline:
             msg = f"TV stayed in power state {state!r}"
             raise RuntimeError(msg)
+        if state == "Screen Off":
+            request(tv, "ssap://com.webos.service.tvpower/power/turnOnScreen")
         time.sleep(1)
 
 

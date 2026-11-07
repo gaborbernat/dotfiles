@@ -5,6 +5,6 @@ ACTION=="add", SUBSYSTEM=="input", KERNEL=="js*", ATTRS{id/bustype}=="0005", ATT
     ATTRS{uniq}=="@XBOX_CONTROLLERS@", \
     TAG+="systemd", ENV{SYSTEMD_WANTS}+="steam-tv.service", ENV{STEAM_TV_CONTROLLER}="1"
 # A removed device has no attributes left to match, but udev keeps the properties set when it was added.
-# SYSTEMD_WANTS acts only on add, so start the unit directly.
+# SYSTEMD_WANTS acts only on add, so start the unit directly; restart, so the wait counts from the last disconnect.
 ACTION=="remove", SUBSYSTEM=="input", KERNEL=="js*", ENV{STEAM_TV_CONTROLLER}=="1", \
-    RUN+="/usr/bin/systemctl --no-block start steam-tv-off.service"
+    RUN+="/usr/bin/systemctl --no-block restart steam-tv-off.service"
