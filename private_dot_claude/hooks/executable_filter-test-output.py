@@ -102,7 +102,7 @@ def main(argv: list[str]) -> int:
             sys.stdout.write(f"[full test output: {log}]\n")
             sys.stdout.flush()
             with log.open("wb") as sink:
-                while chunk := sys.stdin.buffer.read1():
+                while chunk := os.read(sys.stdin.fileno(), 65536):
                     sink.write(chunk)
                     sink.flush()
             # Tests may print bytes that are not UTF-8; showing them replaced beats losing the whole run

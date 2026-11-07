@@ -156,7 +156,7 @@ def test_main_rewrite_prints_nothing_for_other_commands(
 
 
 def test_main_filter_logs_and_prunes(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str]
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, capsys: pytest.CaptureFixture[str], request: pytest.FixtureRequest
 ) -> None:
     log_dir = tmp_path / "logs"
     log_dir.mkdir()
@@ -166,7 +166,10 @@ def test_main_filter_logs_and_prunes(
     day_ago = time.time() - 2 * 24 * 3600
     os.utime(stale, (day_ago, day_ago))
     monkeypatch.setattr(ftp, "_LOG_DIR", log_dir)
-    monkeypatch.setattr(sys, "stdin", io.TextIOWrapper(io.BytesIO(b"1 passed \xff\n"), encoding="utf-8"))
+    output = tmp_path / "output"
+    output.write_bytes(b"1 passed \xff\n")
+    monkeypatch.setattr(sys, "stdin", stdin := output.open(encoding="utf-8"))
+    request.addfinalizer(stdin.close)
     assert ftp.main(["filter"]) == 0
     (log,) = set(log_dir.glob("*.log")) - {fresh}
     assert (capsys.readouterr().out, log.read_bytes(), stale.exists()) == (
