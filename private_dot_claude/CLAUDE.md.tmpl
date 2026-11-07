@@ -12,9 +12,16 @@ I start sub-agents only by agent type, never with a model override:
 
 I never use `general-purpose`, `Explore` or `Plan`. Sub-agents cannot start agents of their own.
 
+# Compact instructions
+
+When compacting, keep verbatim: process rules and scope exclusions the user gave in conversation, approaches tried and
+rejected with the reason, open review findings with file:line, and the current task's acceptance criteria.
+{{- if eq .chezmoi.os "darwin" }}
+
 # Browser Automation
 
 For every browser task I use `agent-browser --cdp 9222`, which attaches to the dedicated agent Chrome (profile
 `~/.chrome-agent`, started at login by the LaunchAgent `com.bgabor8.chrome-agent`). I never use `--auto-connect`, never
 attach to the main Chrome profile, and never write my own CDP client. If 9222 does not answer, I start the agent with
 `launchctl kickstart gui/$(id -u)/com.bgabor8.chrome-agent` and log in there when a site asks.
+{{- end }}
