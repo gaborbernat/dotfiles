@@ -70,7 +70,7 @@ code and drafts replies; it never posts, resolves a thread, or dismisses a revie
    and report the URLs:
 
    ```bash
-   gh api repos/{owner}/{repo}/pulls/{n}/comments/{comment_id}/replies -f body=@reply.md
+   gh api repos/{owner}/{repo}/pulls/{n}/comments/{comment_id}/replies -F body=@reply.md
    ```
 
    Answer a review body or PR comment with `gh pr comment {n} --body-file reply.md`. Leave threads unresolved for the
