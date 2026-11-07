@@ -47,7 +47,8 @@ The **Common** rules apply to every language. They are written with Python examp
 `Final`), but the rule itself is language-agnostic: in another language apply the same intent with that language's
 idioms, mapping the Python specifics yourself (its formatter for `ruff`, its test framework for `pytest`). The Python
 rules in [references/python.md](references/python.md) add the mechanics that only make sense in Python; when working in
-Python, read that file and apply both.
+Python, read that file and apply both. In Python, simplint enforces many Common rules, and where it disagrees with this
+skill, simplint wins.
 
 ## Common
 
@@ -61,10 +62,10 @@ Python, read that file and apply both.
     encouraged rather than omitted: it captures rationale the code cannot, and doubles as durable context a coding agent
     will reliably read. Put that comment at the line that makes the choice.
 
-    Keep every paragraph of a comment, docstring or document under 100 words; split a longer one at a change of topic.
-    In documents (README, design notes), prefer paragraphs, distill parallel items into a short list, and use **bold**,
-    _italics_, `>` quotes and indentation where they make the text easier to read; give a long document headings for its
-    main topics.
+    Keep every paragraph of a comment, docstring or document to at most 100 words; split a longer one at a change of
+    topic. In documents (README, design notes), prefer paragraphs, distill parallel items into a short list, and use
+    **bold**, _italics_, `>` quotes and indentation where they make the text easier to read; give a long document
+    headings for its main topics.
 
     A README describes the product from its user's side. A contributing guide introduces the domain concepts and how
     they relate, illustrated by one labeled example; it names no classes, modules or files (they rot) and skips generic
@@ -77,11 +78,11 @@ Python, read that file and apply both.
     - A module or package docstring is one line saying what the module is: no design notes, usage instructions or import
       advice. Test modules carry none.
     - Classes, functions and methods carry none; their name, signature and types document them, and a class's why goes
-      in a comment at the code it explains. Two exceptions document every parameter, the return value and each exception
-      callers must handle (Python: reST `:param:`, `:returns:`, `:raises:`): a library's public, user-facing API, and a
-      method of a public interface (protocol, ABC) whose name does not say what it does or that callers must expect to
-      raise. A project that follows this disables ruff's missing-docstring rules (`D1xx`) in its configuration; that is
-      a project setting, not a suppression.
+      in a comment at the code it explains. One exception documents every parameter, the return value and each exception
+      callers must handle (Python: reST `:param:`, `:returns:`, `:raises:`): a library's public, user-facing API,
+      including the methods of its public protocols and ABCs. Application code carries none. A project that follows this
+      disables ruff's missing-docstring rules (`D1xx`) in its configuration; that is a project setting, not a
+      suppression.
 
 02. **No section/grouping comments.** Never use a comment as a visual divider or section header to group code
     (`# --- section a ---`, `# === helpers ===`, `# Setup`, banner bars). It restates structure the code already shows
@@ -116,12 +117,13 @@ Python, read that file and apply both.
     aliases, test markers) stay, as do values whose identity must stay stable across calls (a memoization key, a UI hook
     dependency) and a value expensive to rebuild on a hot path, with a one-line comment saying so.
 
-06. **Descriptive names.** Give every name a descriptive word. Single-character names are allowed only as loop or
-    comprehension targets (`[x.id for x in rows]`); everywhere else name the thing. Avoid architecture jargon whose
-    everyday meaning differs (`WorkerPorts` for a group of storage collaborators reads as network ports): name the thing
-    for what it holds. One name per concept, one concept per name: two concepts never share a name (two modules called
-    `queue`, "sealed" meaning both encrypted and inventory-complete), and one concept is never called two things. Before
-    naming a concept, grep for the term the codebase already uses for it and adopt that term.
+06. **Descriptive names.** Give every name a descriptive word. Single-character names are allowed only as comprehension
+    targets (`[x.id for x in rows]`) and `_`; name `for` loop targets, type parameters and everything else. Avoid
+    architecture jargon whose everyday meaning differs (`WorkerPorts` for a group of storage collaborators reads as
+    network ports): name the thing for what it holds. One name per concept, one concept per name: two concepts never
+    share a name (two modules called `queue`, "sealed" meaning both encrypted and inventory-complete), and one concept
+    is never called two things. Before naming a concept, grep for the term the codebase already uses for it and adopt
+    that term.
 
 07. **Define after use (reads like a book).** Order every module so each function, method, and class is defined _below_
     the code that uses it: the entry point sits near the top and the helpers it calls follow in first-call order, so the
@@ -215,8 +217,8 @@ Python, read that file and apply both.
    source file.
 
 2. **One behavior per test.** Each test checks one thing. Split a test that asserts unrelated behaviors; a precondition
-   assert followed by the result it guards is still one behavior. No branching (`if`) inside a test body: parameterize
-   instead.
+   assert followed by the result it guards is still one behavior. No branching (`if`, `match`, a conditional expression)
+   inside a test body: parameterize instead.
 
 3. **Parameterize.** Collapse near-duplicate test functions into a single table-driven case with a readable id per row.
 
