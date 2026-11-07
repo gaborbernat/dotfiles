@@ -31,9 +31,9 @@ Work in the repository selected by the user, or the current repository when none
    that edit changed, with no skipped rules. Recheck the final diff for regressions and unnecessary changes. Use
    `/style` to audit the diff and commit message before committing, then the drafted report before sending it.
 
-5. Have a reviewer with fresh context check the final PR diff, including your uncommitted fixes. Spawn a subagent and
-   give it only the repository, the worktree path, the merge base, and the PR number. Withhold your findings, fixes and
-   reasoning: a reviewer that inherits them inherits their blind spots. Ask it to:
+5. Have a reviewer with fresh context check the final PR diff, including your uncommitted fixes. Spawn a `sonnet-review`
+   subagent and give it only the repository, the worktree path, the merge base, and the PR number. Withhold your
+   findings, fixes and reasoning: a reviewer that inherits them inherits their blind spots. Ask it to:
 
    - review the diff adversarially for correctness, performance, and maintainability, reproducing a suspected bug with a
      test run where it can;
@@ -45,8 +45,8 @@ Work in the repository selected by the user, or the current repository when none
    Check `git status` in the worktree after it returns and discard anything it changed. A subagent that fails, times
    out, or returns no report did not review: retry it once, then report the review as not run, never as clean.
 
-   Before acting on a blocker or major finding, give it alone to a new validator subagent with the same worktree and no
-   other context. It returns confirmed or refuted, quoting the line that decides it. Drop what it cannot confirm.
+   Before acting on a blocker or major finding, give it alone to a new `sonnet-review` validator with the same worktree
+   and no other context. It returns confirmed or refuted, quoting the line that decides it. Drop what it cannot confirm.
    Resolve each remaining finding in this session as exactly one of:
 
    - **Fix**: the finding holds. Apply the fix under the rules of step 4 and rerun the full test suite. A fix that
