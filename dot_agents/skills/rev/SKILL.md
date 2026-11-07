@@ -33,28 +33,39 @@ Work in the repository selected by the user, or the current repository when none
 
 5. Have a reviewer with fresh context check the final PR diff, including your uncommitted fixes. Spawn a subagent and
    give it only the repository, the worktree path, the merge base, and the PR number. Withhold your findings, fixes and
-   reasoning: a reviewer that inherits them inherits their blind spots. Ask it to review the diff adversarially for
-   correctness, performance, and maintainability without editing tracked files, to keep any scratch files under the
-   worktree and never in `/tmp`, and to return each finding with a severity (blocker, major, nit), its file and line,
-   and the evidence. A subagent that fails, times out, or returns no report did not review: retry it once, then report
-   the review as not run, never as clean.
+   reasoning: a reviewer that inherits them inherits their blind spots. Ask it to:
 
-   Resolve each finding in this session as exactly one of:
+   - review the diff adversarially for correctness, performance, and maintainability, reproducing a suspected bug with a
+     test run where it can;
+   - skip code the PR does not change, anything a linter or type checker catches, style, and speculation that depends on
+     inputs nothing in the code produces;
+   - leave tracked files unchanged and keep scratch files under the worktree, never in `/tmp`;
+   - return each finding with a severity (blocker, major, nit), its file and line, and the evidence.
 
-   - **Fix**: the finding holds. Apply the fix under the rules of step 4.
-   - **Contest**: the finding is wrong, and you cite evidence the reviewer could read, such as a file and symbol, a test
-     run, or the PR description. "Intentional" is not evidence. Having written the fix yourself is no reason to doubt
-     the reviewer.
+   Check `git status` in the worktree after it returns and discard anything it changed. A subagent that fails, times
+   out, or returns no report did not review: retry it once, then report the review as not run, never as clean.
+
+   Before acting on a blocker or major finding, give it alone to a new validator subagent with the same worktree and no
+   other context. It returns confirmed or refuted, quoting the line that decides it. Drop what it cannot confirm.
+   Resolve each remaining finding in this session as exactly one of:
+
+   - **Fix**: the finding holds. Apply the fix under the rules of step 4 and rerun the full test suite. A fix that
+     removes a guard or broadens an `except` cites, as file:line, the invariant that rules out the guarded case.
+   - **Contest**: the finding is wrong, and you quote the line that disproves it. "Intentional" is not evidence, and
+     neither is a long rebuttal: only the code is. Having written the fix yourself is no reason to doubt the reviewer.
    - **Escalate**: the finding is wrong only because of knowledge outside the repository, such as a maintainer decision.
      Leave it for the user.
    - **Decline**: a nit not worth changing. Record it.
 
    Add a comment or a doc line when a human reader needs it, never only because a reviewer without context asked.
 
-   After any fix, run a new round with a new subagent. A round is clean when it raises no blocker or major finding that
-   is not already contested, escalated, or declined; a round whose review did not run is not clean. A fixed finding
-   raised again means the fix failed: reopen it. Stop after two consecutive clean rounds. Stop and ask the user after
-   five rounds, or on churn: a new finding at a fix you just applied, which reverting that fix would resolve.
+   After any fix, run a new round with a new reviewer. Give it only the lines changed since the previous round and their
+   callers, plus the contested and declined findings with their evidence so it does not raise them again; still withhold
+   your fixes and reasoning. A round is clean when it raises no confirmed blocker or major finding that is not already
+   contested, escalated, or declined; a round whose review did not run is not clean. A fixed finding raised again means
+   the fix failed: reopen it. Stop at the first clean round. Later rounds produce more invented findings than real ones,
+   so after three rounds, or on churn (a new finding at a fix you just applied, which reverting that fix would resolve),
+   stop, report the review as not converged with its open findings, and ask the user whether to rethink the approach.
 
 6. Put all fixes for each PR in **one new commit on top of its head**. Do not amend, rebase, force-push, or change the
    PR's existing commits. Inspect the staged diff before committing and follow the repository's commit format. If the PR
