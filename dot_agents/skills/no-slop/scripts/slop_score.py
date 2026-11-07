@@ -46,6 +46,9 @@ _GATE: Final[tuple[_CompiledSpec, ...]] = tuple(
                 r"\[citation needed\]",
                 r"\[link\]",
                 r"\bxxxx+\b",
+                r"\b\d{4}-XX-XX\b",
+                # Case-sensitive so snake_case names such as insert_rows stay out.
+                r"\b(?-i:INSERT_[A-Z_]+)\b",
             ),
         ),
         (
@@ -220,14 +223,9 @@ _GATE: Final[tuple[_CompiledSpec, ...]] = tuple(
                 r"\bit'?s worth (?:noting|mentioning)\b",
                 r"\bat the end of the day\b",
                 r"\bin a world where\b",
-                r"\bdue to the fact that\b",
-                r"\bat this point in time\b",
                 r"\bit is important to note\b",
                 r"\bneedless to say\b",
                 r"\bit goes without saying\b",
-                r"\bas a matter of fact\b",
-                r"\bthe fact of the matter\b",
-                r"\bfor all intents and purposes\b",
             ),
         ),
         (
@@ -393,20 +391,14 @@ def _advisory(text: str) -> Counter[str]:
     counts = Counter(words)
     lines = [line for line in text.splitlines() if line.strip()]
     bullets = sum(1 for line in lines if re.match(r"\s*([-*+]|\d+\.)\s", line))
-    passive = r"""
-        \b (?: is | are | was | were | be | been | being | am ) \s+
-        (?: \w+ ed
-          | done | made | given | taken | seen | known | written
-          | built | sent | held | kept | left | told | shown
-          | found | paid | put | set | born | drawn | grown ) \b
-    """
     signals = {
         **{group: sum(counts[word] for word in members) for group, members in _ADVISORY_WORDS.items()},
         "stock vocabulary": len(
             re.findall(
                 r"\b(?:delv(?:e|es|ed|ing)|showcas(?:e|es|ed|ing)|multifaceted|nuanced|meticulous(?:ly)?|commendable"
                 r"|noteworthy|tapestry|kaleidoscope|symphony|cornerstone|interplay|intricac(?:y|ies)|intricate"
-                r"|fostering|symboliz(?:e|es|ing)|labyrinthine|palpable|transcend(?:s|ed|ing)?"
+                r"|foster(?:s|ed|ing)?|underscor(?:e|es|ed|ing)|leverag(?:e|es|ed|ing)|prioritiz(?:e|es|ed|ing)"
+                r"|symboliz(?:e|es|ing)|labyrinthine|palpable|transcend(?:s|ed|ing)?"
                 r"|elucidat(?:e|es|ing)|ever[- ](?:evolving|changing)|nestled|unparalleled|groundbreaking"
                 r"|breathtaking|vibrant|transformative)\b",
                 text,
@@ -445,7 +437,26 @@ def _advisory(text: str) -> Counter[str]:
                 re.IGNORECASE,
             )
         ),
-        "passive voice": len(re.findall(passive, text, re.VERBOSE | re.IGNORECASE)),
+        # Models append these analysis clauses about five times as often as human writers.
+        "participle tails": len(
+            re.findall(
+                r",\s+(?:ensuring|reflecting|contributing to|fostering|enhancing|highlighting|underscoring"
+                r"|emphasizing)\b",
+                text,
+                re.IGNORECASE,
+            )
+        ),
+        "preserving assurance": len(re.findall(r"\bwhile (?:preserving|maintaining|retaining)\b", text, re.IGNORECASE)),
+        # Wordy, but common in human writing: a concision prompt, not an AI tell.
+        "concision": len(
+            re.findall(
+                r"\b(?:due to the fact that|at this point in time|as a matter of fact|the fact of the matter"
+                r"|for all intents and purposes)\b",
+                text,
+                re.IGNORECASE,
+            )
+        ),
+        "curly quotes": len(re.findall(r"[\u2018\u2019\u201c\u201d]", text)),
         "lazy extremes": len(re.findall(r"\b(?:always|never|everyone|everybody|nobody)\b", lowered)),
         "repeated three-item lists": int(len(re.findall(r"\b\w+,\s+\w+,?\s+and\s+\w+\b", lowered)) >= 3),
         "uniform rhythm": int((cv := _sentence_length_cv(text)) is not None and cv < 0.3),
@@ -456,6 +467,7 @@ def _advisory(text: str) -> Counter[str]:
         "bold-bullet run": int(sum(1 for line in lines if re.match(r"\s*([-*+]|\d+\.)\s+\*\*", line)) >= 3),
         "repeated sentence openers": _repeated_openers(text),
         "pithy fragments": _pithy_fragments(text),
+        "title-case headings": _title_case_headings(text),
     }
     return Counter({name: count for name, count in signals.items() if count})
 
@@ -523,6 +535,16 @@ def _repeated_openers(text: str) -> int:
 
 def _pithy_fragments(text: str) -> int:
     return sum(1 for part in _SENT_SPLIT.split(text) if "," in part and 0 < len(_WORD.findall(part)) <= 6)
+
+
+def _title_case_headings(text: str) -> int:
+    minor = {"a", "an", "and", "as", "at", "but", "by", "for", "from", "in", "of", "on", "or", "the", "to", "vs"}
+    # Requiring two capitalized words after the first keeps two-word proper nouns ("Python Packaging") out.
+    return sum(
+        len(rest := [word for word in _WORD.findall(heading)[1:] if word.lower() not in minor]) >= 2
+        and all(word[0].isupper() for word in rest)
+        for heading in re.findall(r"(?m)^ {0,3}#{1,6}[ \t]+(.+)$", text)
+    )
 
 
 def _voice_line(text: str) -> str:

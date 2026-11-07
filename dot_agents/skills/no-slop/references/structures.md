@@ -123,8 +123,10 @@ tells the reader more than either a vague "this happens because" or a forced sec
 
 ## Passive Voice
 
-Passive voice can hide an actor. Name the actor when readers need to know who did the work; keep passive voice when the
-actor is unknown or the affected thing belongs at the front of the sentence.
+Passive voice is not an AI tell: models use agentless passive at about half the human rate
+([arXiv 2410.16107](https://arxiv.org/html/2410.16107v2)). Review it only for clarity. Passive voice can hide an actor.
+Name the actor when readers need to know who did the work; keep passive voice when the actor is unknown or the affected
+thing belongs at the front of the sentence.
 
 | Pattern                    | Fix                  |
 | -------------------------- | -------------------- |
@@ -134,6 +136,27 @@ actor is unknown or the affected thing belongs at the front of the sentence.
 | "The decision was reached" | Name who decided     |
 
 **Instead:** When the actor matters, put them at the front of the sentence.
+
+## Participle Tails
+
+A present-participle clause appended to a finished sentence ("..., ensuring X") comments on that sentence instead of
+adding a fact. Prompted to match a human sample's style, GPT-4o still used participial clauses 5.3 times as often as the
+human writers ([arXiv 2410.16107](https://arxiv.org/html/2410.16107v2)).
+
+| Pattern                                                     | Problem                                    |
+| ----------------------------------------------------------- | ------------------------------------------ |
+| ", ensuring X" / ", enhancing X"                            | Claims a benefit the sentence did not show |
+| ", reflecting X" / ", contributing to X" / ", fostering X"  | Asserts a cause or effect without evidence |
+| ", highlighting X" / ", underscoring X" / ", emphasizing X" | Tells the reader what to conclude          |
+
+**Instead:** If the consequence is real, state it as its own sentence with the evidence. Otherwise cut the tail.
+
+## Nominalization Stacking
+
+Verbs turned into nouns and chained with "of": "the implementation of the validation of user input". In the same study,
+GPT-4o used nominalizations 2.1 times as often as the human writers. Each stacked noun hides who acts and what they do.
+
+**Instead:** Restore the verb and its subject. "The handler validates user input."
 
 ## Repeated Sentence Starters
 

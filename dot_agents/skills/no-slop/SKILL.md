@@ -15,7 +15,8 @@ deliberate style.
 1. Check the task, audience, and any length or format constraint. Lead PRs and short replies with the answer or concrete
    change; a longer explanation can open with the technical question it will answer.
 2. Cut throat-clearing, repeated framing, empty emphasis, and claims that lack a specific fact or source. Keep necessary
-   qualifications and comparisons.
+   qualifications and comparisons. When a word is flagged, rewrite the sentence around what it claims; never swap in a
+   synonym, which only becomes the next tell.
 3. Check the argument: each claim should follow from the evidence available in the source material. Do not invent a
    number, citation, causal link, or stronger conclusion to make a sentence sound precise.
 4. Check the result for repeated openers, parallel sentence templates, and monotonous rhythm. Preserve useful structure,
@@ -35,8 +36,8 @@ For PRs, commits, comments, docstrings, naming, and code structure, see [referen
 ## Quick checks
 
 Before delivering, check for stock openers, hollow contrasts, repeated sentence shapes, unsupported significance, and
-unnecessary length. Review adverbs, passive voice, punctuation, and list structure in context; none is a standalone
-reason to delete content. Preserve quoted text and code examples.
+unnecessary length. Review adverbs, punctuation, and list structure in context; none is a standalone reason to delete
+content. Preserve quoted text and code examples.
 
 ## Validate
 
