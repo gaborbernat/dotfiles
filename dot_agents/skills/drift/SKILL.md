@@ -23,8 +23,10 @@ it changes nothing until the user asks for fixes.
      sample output, version requirement, and path a page states. Look it up in the source at `HEAD`.
    - **Undocumented surface**: each user-facing item from step 2 that no page mentions. Internal code is out of scope.
 
-   Confirm each claim by reading the source. Running a documented example confirms it better; ask the user before
-   executing anything, then run it in the project's dev environment.
+   Start with the deterministic checks the project supports, run in its dev environment: `cog --check` where cog is
+   used, the docs build with its link check, Sybil, pytest-examples or doctest when configured, and a grep of every code
+   identifier the docs name against `HEAD`. Then confirm the remaining claims by reading the source. Running a
+   documented example those checks do not cover confirms it better; ask the user before executing it.
 
 4. For a large doc set, split the pages into groups and give each group to a subagent with the repository path, its
    pages, and step 3. Tell each to keep scratch files under the repository's `target/scratch/`, never in `/tmp`, and to
@@ -33,9 +35,11 @@ it changes nothing until the user asks for fixes.
    the source yourself and drop what does not hold.
 
 5. Report only the differences, grouped by page, ranked by how badly a reader following the page would fail. For each:
-   the doc location (`path:line`), what it says, what the code does, and the source location that shows it. When the
-   page looks right and the code looks wrong, mark it as a possible bug instead of a doc fix. End with the pages not
-   audited, if any. If nothing differs, say "No drift detected" and list what was checked.
+   the doc location (`path:line`), what it says, what the code does, the source location that shows it, and how it was
+   confirmed. At equal impact, list findings confirmed by a check or a missing identifier before those inferred from
+   reading, which are wrong far more often. When the page looks right and the code looks wrong, mark it as a possible
+   bug instead of a doc fix. End with the pages not audited, if any. If nothing differs, say "No drift detected" and
+   list what was checked.
 
 6. Stop and ask whether to fix. On approval, branch from the default branch and update every affected page, examples
    included, keeping each page in its Diátaxis quadrant. Leave suspected code bugs for the user to decide. Build the
