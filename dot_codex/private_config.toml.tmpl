@@ -24,10 +24,14 @@ default_permissions = "dev"
 enabled = true
 
 # One workspace-mcp per Google account: a separate credentials dir pins each to its own login.
-# Client ID/secret come from ~/.secrets.
+# The client ID and secret come from ~/.secrets, sourced only for the server's own process.
 [mcp_servers.gmail]
-command = "uvx"
+command = "fish"
 args = [
+  "--no-config",
+  "-c",
+  "source ~/.secrets; exec $argv",
+  "uvx",
   "workspace-mcp@latest",
   "--single-user",
   "--permissions",
@@ -35,7 +39,6 @@ args = [
   "--disabled-tools",
   "send_gmail_message",
 ]
-env_vars = ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"]
 startup_timeout_sec = 60
 
 [mcp_servers.gmail.env]
@@ -48,8 +51,12 @@ approval_mode = "prompt"
 
 # Sharing changes stay off so an injected prompt can't publish files.
 [mcp_servers.gdrive]
-command = "uvx"
+command = "fish"
 args = [
+  "--no-config",
+  "-c",
+  "source ~/.secrets; exec $argv",
+  "uvx",
   "workspace-mcp@latest",
   "--single-user",
   "--permissions",
@@ -58,7 +65,6 @@ args = [
   "manage_drive_access",
   "set_drive_file_permissions",
 ]
-env_vars = ["GOOGLE_OAUTH_CLIENT_ID", "GOOGLE_OAUTH_CLIENT_SECRET"]
 startup_timeout_sec = 60
 
 [mcp_servers.gdrive.env]

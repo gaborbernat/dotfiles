@@ -2,12 +2,16 @@
 # Mirrors the gmail/gdrive servers in dot_codex/private_config.toml.tmpl; ~/.claude.json is not chezmoi-managed.
 set -eu
 
+# Installing the CLI changes this path and so re-runs the script; until then there is nothing to configure
+# claude: {{ lookPath "claude" | default "not installed" }}
 command -v claude >/dev/null 2>&1 || exit 0
 
 add() {
     name=$1 account=$2
     shift 2
-    args=$(printf '"%s",' workspace-mcp@latest --single-user "$@")
+    # The client ID and secret stay out of the environment: fish sources ~/.secrets for this process only
+    # shellcheck disable=SC2016 # $argv belongs to fish, which expands it when the server starts
+    args=$(printf '"%s",' --no-config -c 'source ~/.secrets; exec $argv' uvx workspace-mcp@latest --single-user "$@")
     if claude mcp get "${name}" >/dev/null 2>&1; then
         claude mcp remove --scope user "${name}" >/dev/null
     fi
@@ -15,11 +19,9 @@ add() {
         cat <<EOF
 {
   "type": "stdio",
-  "command": "uvx",
+  "command": "fish",
   "args": [${args%,}],
   "env": {
-    "GOOGLE_OAUTH_CLIENT_ID": "\${GOOGLE_OAUTH_CLIENT_ID}",
-    "GOOGLE_OAUTH_CLIENT_SECRET": "\${GOOGLE_OAUTH_CLIENT_SECRET}",
     "WORKSPACE_MCP_CREDENTIALS_DIR": "{{ .chezmoi.homeDir }}/.local/share/workspace-mcp/${account}",
     "USER_GOOGLE_EMAIL": "${account}@gmail.com"
   }
