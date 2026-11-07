@@ -128,6 +128,14 @@ flowchart LR
     class Auth,Retry warn;
 ```
 
+## Fresh-reader check
+
+Once the title and body pass `/no-slop`, give a subagent only those two, never the diff, and ask it to paraphrase in two
+to five sentences what changes, for whom, and how the parts fit. Compare the paraphrase with the diff. Whatever it gets
+wrong or cannot say is a gap in the body, not in the reader: fix the body, rerun `/no-slop`, and check again with a new
+subagent. Stop after three rounds and show the user the remaining mismatch. A subagent that returns nothing did not
+check: retry it once, then tell the user the check did not run.
+
 ## Labels
 
 Pick applicable labels from `enhancement`, `bug`, `documentation` based on the change type:
@@ -146,8 +154,9 @@ Pick applicable labels from `enhancement`, `bug`, `documentation` based on the c
 3. Identify the primary purpose (what user/developer problem this solves)
 4. Draft title following Commitizen format with emoji
 5. Write description paragraphs: the impact and why, then the architecture
-6. Determine labels from the change type
-7. Create with:
+6. Run the **Fresh-reader check**
+7. Determine labels from the change type
+8. Create with:
 
 ```bash
 gh pr create --title "..." --body-file <file> --label "<labels>"
@@ -160,5 +169,6 @@ gh pr create --title "..." --body-file <file> --label "<labels>"
 3. Identify the primary purpose (what user/developer problem this solves)
 4. Draft title following Commitizen format with emoji
 5. Write description paragraphs: the impact and why, then the architecture
-6. Determine labels from the change type
-7. Update with `gh pr edit <number> --title "..." --body-file <file>` and add missing labels
+6. Run the **Fresh-reader check**
+7. Determine labels from the change type
+8. Update with `gh pr edit <number> --title "..." --body-file <file>` and add missing labels

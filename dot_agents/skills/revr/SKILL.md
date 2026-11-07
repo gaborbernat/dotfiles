@@ -22,6 +22,12 @@ before it is posted.
 03. Search the project's documentation for the behavior, API, command, or setting changed by the PR. Note every page and
     example that the diff makes inaccurate or incomplete, and missing tests for each behavioral change.
 
+    Check the PR description with a reader who has no context. Give a subagent only the PR title and description, never
+    the diff, and ask it to paraphrase in two to five sentences what changes, for whom, and how the parts fit. Compare
+    that paraphrase with the diff. A claim the diff does not implement, a behavior change neither mentions, or a point
+    the paraphrase gets wrong is a finding for the review body. A subagent that returns nothing did not check: retry it
+    once, then tell the user the check did not run.
+
 04. Read both `/simp` and `/no-slop` in full, including their referenced rules, and audit the **entire PR diff** against
     its merge base, including tests and prose, with `/style`. Each violation is a finding.
 
@@ -43,14 +49,14 @@ before it is posted.
       it works: what you ran with the fix applied in the worktree and the result. Name the condition under which an
       alternative is better. Discard the trial edit afterwards; never commit it.
 
-    A style point from `/simp` or `/no-slop`, or a readability point that is a matter of taste, is a one- or two-sentence
-    comment prefixed with `nit:`, phrased as a suggestion ("perhaps let's…", "Can we…?") with the reason, and a short
-    code example when prose alone is ambiguous.
+    A style point from `/simp` or `/no-slop`, or a readability point that is a matter of taste, is a one- or
+    two-sentence comment prefixed with `nit:`, phrased as a suggestion ("perhaps let's…", "Can we…?") with the reason,
+    and a short code example when prose alone is ambiguous.
 
 06. Write the review body for the author: open by thanking them for the work on the PR, professionally and without
-    flattery, in one short clause that adds nothing about the review history or how they handled earlier feedback,
-    then say in one or two sentences what is left before it can ship, plus any whole-PR points. Never report what the
-    review validated, which tests passed, or what works; a review implies the rest was checked. Pick the event:
+    flattery, in one short clause that adds nothing about the review history or how they handled earlier feedback, then
+    say in one or two sentences what is left before it can ship, plus any whole-PR points. Never report what the review
+    validated, which tests passed, or what works; a review implies the rest was checked. Pick the event:
     `REQUEST_CHANGES` when any finding is a correctness bug or must be fixed before merge, `COMMENT` when everything is
     optional, `APPROVE` when there are no findings.
 
