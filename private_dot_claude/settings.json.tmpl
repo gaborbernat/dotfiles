@@ -158,7 +158,8 @@
   "agentPushNotifEnabled": true,
   "enabledPlugins": {
     "pyright-lsp@claude-plugins-official": true,
-    "rust-analyzer-lsp@claude-plugins-official": true
+    "rust-analyzer-lsp@claude-plugins-official": true,
+    "clangd-lsp@claude-plugins-official": true
   }{{- $auto := joinPath .chezmoi.homeDir ".local/share/chezmoi-private/claude_auto_mode.json" }}{{ if stat $auto }},
   "autoMode": {{ output "cat" $auto }}{{ end }}
 }
