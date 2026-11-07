@@ -55,9 +55,10 @@ code and drafts replies; it never posts, resolves a thread, or dismisses a revie
 5. Ask about every escalated item at once before editing, then reclassify each with the user's answer.
 
 6. Apply the fixes following the repository's instructions and conventions. Add or change tests that show each
-   behavioral fix, and run the relevant checks. Read `/simp` and `/no-slop` in full and apply them to the changed lines;
-   audit the final diff and commit messages with `/style`. Commit on top of the head, split by concern; never amend,
-   rebase, or force-push, so reviewers can see what changed since their review. Push to the head branch.
+   behavioral fix, and run the relevant checks. Read `/simp` and `/no-slop` in full, once per session, and apply them to
+   the changed lines; audit the final diff and commit messages with `/style`. Commit on top of the head, split by
+   concern; never amend, rebase, or force-push, so reviewers can see what changed since their review. Push to the head
+   branch.
 
 7. Draft one reply per thread or review, in the reviewer's thread, as a colleague using "we". Lead with the outcome: for
    a fix, what changed and the commit as a full URL; for a contest, the evidence with its permalink; for a decline, the

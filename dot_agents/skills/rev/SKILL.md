@@ -24,12 +24,12 @@ Work in the repository selected by the user, or the current repository when none
 4. Follow the repository's instructions and conventions. Add or change tests that demonstrate each behavioral fix, then
    run the relevant checks.
 
-   Read both `/simp` and `/no-slop` in full, including their referenced rules, and apply every rule to the **entire
-   final PR diff** against its merge base, including tests and prose. Do not treat a passing `/no-slop` gate as
-   completion: perform its full manual review. Apply `/no-slop` to the commit message and user-facing report too. Repeat
-   both passes after any further edit, with no skipped rules. Recheck the final diff for regressions and unnecessary
-   changes. Use `/style` to audit the diff and commit message before committing, then the drafted report before sending
-   it.
+   Read both `/simp` and `/no-slop` in full, including their referenced rules, once per session; when they are already
+   loaded, do not read them again. Apply every rule to the **entire final PR diff** against its merge base, including
+   tests and prose. Do not treat a passing `/no-slop` gate as completion: perform its full manual review. Apply
+   `/no-slop` to the commit message and user-facing report too. After a further edit, rerun both passes on the lines
+   that edit changed, with no skipped rules. Recheck the final diff for regressions and unnecessary changes. Use
+   `/style` to audit the diff and commit message before committing, then the drafted report before sending it.
 
 5. Have a reviewer with fresh context check the final PR diff, including your uncommitted fixes. Spawn a subagent and
    give it only the repository, the worktree path, the merge base, and the PR number. Withhold your findings, fixes and

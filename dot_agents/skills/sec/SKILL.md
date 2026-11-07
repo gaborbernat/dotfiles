@@ -173,10 +173,11 @@ flowchart LR
 ## Prose
 
 Apply every `/no-slop` rule to every advisory summary and body, issue title and body, PR title and body, commit message,
-and the report to the user. Read `/no-slop` in full, with each reference it points to (phrases, lexicon, structures,
-voice, code, examples), and check every sentence against each instruction and listed pattern by hand. Run its scorer
-too, but a passing `GATE` does not end the pass: work through each `ADVISORY` and `VOICE` finding and the patterns the
-scorer cannot check. Repeat the full pass after every edit.
+and the report to the user. Read `/no-slop` in full once per session, with each reference it points to (phrases,
+lexicon, structures, voice, code, examples), and check every sentence against each instruction and listed pattern by
+hand. Run its scorer too, but a passing `GATE` does not end the pass: work through each `ADVISORY` and `VOICE` finding
+and the patterns the scorer cannot check. After an edit, recheck the changed sentences against every instruction and
+pattern, and rerun the scorer.
 
 Write concise, factual text in a neutral register:
 

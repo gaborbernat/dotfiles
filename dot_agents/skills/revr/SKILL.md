@@ -31,9 +31,10 @@ before it is posted.
     body; so is a description that leaves the reader unable to say what feedback is wanted. A subagent that returns
     nothing did not check: retry it once, then tell the user the check did not run.
 
-04. Read both `/simp` and `/no-slop` in full, including their referenced rules, and audit the **entire PR diff** against
-    its merge base, including tests and prose, with `/style`. Each violation on a line the PR changes is a nit that
-    quotes the rule it applies. Fold more than five nits into one note in the review body.
+04. Read both `/simp` and `/no-slop` in full, including their referenced rules, once per session (when they are already
+    loaded, do not read them again), and audit the **entire PR diff** against its merge base, including tests and prose,
+    with `/style`. Each violation on a line the PR changes is a nit that quotes the rule it applies. Fold more than five
+    nits into one note in the review body.
 
     Before drafting, give each finding that is not a nit alone to a new validator subagent with the worktree and no
     other context. It returns confirmed or refuted, quoting the line that decides it. Drop what it does not confirm. A
@@ -72,7 +73,8 @@ before it is posted.
     comment's `line`, and `start_line` for a range, must fall inside one hunk of that file, on side `RIGHT` for added or
     context lines and `LEFT` for removed lines. Re-anchor or move to the body any comment that fails.
 
-08. Apply `/no-slop` to every comment and the body, and `/simp` to any code example in them. Repeat after any edit.
+08. Apply `/no-slop` to every comment and the body, and `/simp` to any code example in them. After an edit, recheck the
+    sentences and code it changed.
 
 09. Present the draft to the user and stop: the event, the body, then each comment as `path:line` (or `path:start-end`)
     with its text, ranked by severity. Do not post anything until the user approves; apply their edits and present again
