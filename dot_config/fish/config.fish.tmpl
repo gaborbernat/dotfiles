@@ -20,8 +20,9 @@ set -q ET_VERSION; and set -gx BROWSER $HOME/.local/libexec/et-open/open
 set -gx DEBUG_PRINT_LIMIT 1000000
 set -gx MANPAGER "sh -c 'col -bx | bat -l man -p'"
 
+# --move keeps nested shells from stacking duplicates, and missing directories are skipped.
 {{- if eq .chezmoi.os "darwin" }}
-set -gx PATH \
+fish_add_path --global --path --prepend --move \
     $HOME/.local/sbin \
     $HOME/.local/bin \
     $HOME/.cargo/bin \
@@ -32,8 +33,7 @@ set -gx PATH \
     /opt/homebrew/opt/flex/bin \
     /opt/homebrew/opt/zip/bin \
     /Applications/Docker.app/Contents/Resources/bin \
-    $HOME/go/bin \
-    $PATH
+    $HOME/go/bin
 
 # The GNU tool dirs go through fish_user_paths, not the plain PATH above: `mise activate` (below) rebuilds $PATH
 # system-first on every cd, burying them behind the macOS BSD equivalents, but fish re-applies fish_user_paths on top
@@ -61,14 +61,12 @@ set -gx CPPFLAGS \
 set -gx PY_PYTHON 3.14
 set -gx HOMEBREW_NO_ANALYTICS 1
 {{- else }}
-set -gx PATH \
+fish_add_path --global --path --prepend --move \
     $HOME/.local/sbin \
     $HOME/.local/bin \
     $HOME/.cargo/bin \
     $HOME/go/bin \
-    /opt/bb/bin \
-    /usr/share/vscode-server-linux-x64-web/bin/remote-cli \
-    $PATH
+    /usr/share/vscode-server-linux-x64-web/bin/remote-cli
 {{- end }}
 # The et-aware `open` wrapper goes through fish_user_paths so `mise activate` can't bury it, kept in its own dir so
 # the rest of ~/.local/bin keeps its place. Outside et sessions it hands straight to the platform opener.
@@ -86,7 +84,7 @@ if status --is-interactive
     abbr --add gpv "gh pr view -w"
     abbr --add prs "gh pr create -f; gh pr view -w"
     abbr --add prsd "gh pr create -f -d; gh pr view -w"
-    abbr --add gca "git aa; git can; git pu -f"
+    abbr --add gca "git aa; git can; git pf"
     abbr --add cu 'chezmoi update'
     abbr --add ca 'chezmoi apply'
     abbr --add l lsd
@@ -169,7 +167,7 @@ end
 
 if test -d "$HOME/.bun"
     set --export BUN_INSTALL "$HOME/.bun"
-    set --export PATH $BUN_INSTALL/bin $PATH
+    fish_add_path --global --path --prepend --move $BUN_INSTALL/bin
 end
 
 # DWARF debug info dominates the Rust dev target size; line-tables-only keeps incremental builds and file:line panic

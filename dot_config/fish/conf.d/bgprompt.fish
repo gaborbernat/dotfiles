@@ -3,6 +3,8 @@ status is-interactive || exit
 # The async jobs report back through universal variables, so key the names by pid to keep shells apart.
 set --global _bgp_git _bgp_git_$fish_pid
 set --global _bgp_context _bgp_context_$fish_pid
+fish $__fish_config_dir/bgprompt/sweep.fish &
+disown
 
 function $_bgp_git --on-variable $_bgp_git
     commandline --function repaint
