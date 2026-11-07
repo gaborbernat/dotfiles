@@ -5,13 +5,13 @@ description: Audit a repository's documentation against its current source and r
 
 # drift
 
-Work in the repository selected by the user, or the current repository when none is named. The audit reads and
-reports; it changes nothing until the user asks for fixes.
+Work in the repository selected by the user, or the current repository when none is named. The audit reads and reports;
+it changes nothing until the user asks for fixes.
 
 1. Find the documentation: the source tree the docs build reads (`docs/` and the path in `mkdocs.yml`, `conf.py`, or the
    docs tox environment), the README, and other top-level guides. Skip changelogs, release notes, and news fragments:
-   they record history and are meant to be outdated. In a Diátaxis project, treat tutorials, how-to guides, reference,
-   and explanation as separate passes; a fix that lands in reference often misses the how-to showing the old usage.
+   they describe past releases. In a Diátaxis project, treat tutorials, how-to guides, reference, and explanation as
+   separate passes; a fix that lands in reference often misses the how-to showing the old usage.
 
 2. Find what the code exposes to users: the CLI parser, configuration schema and keys, environment variables, defaults,
    the public API (`__all__`, exported symbols, entry points), plugin hooks, error messages users act on, and supported
