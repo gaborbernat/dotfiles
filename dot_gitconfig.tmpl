@@ -155,7 +155,7 @@
             sed 's|^upstream/||'); \
         [ -n \"$upstream_branch\" ] || upstream_branch=main; \
         git rebase \"upstream/$upstream_branch\"; \
-        git push -u origin \"$b\"; \
+        git push --force-with-lease -u origin \"$b\"; \
     }; f"
 
 [credential]
