@@ -2,6 +2,7 @@ README.md
 pyproject.toml
 docs/
 scripts/
+target/
 .pre-commit-config.yaml
 .setup-gpg-key.sh
 .cargo-build-jobs.sh
