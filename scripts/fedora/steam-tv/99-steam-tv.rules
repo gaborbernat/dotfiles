@@ -1,6 +1,8 @@
-# @XBOX_VENDOR@ is Microsoft, so any Xbox controller matches. Match the js node because over Bluetooth the
-# controller advertises enough keys that udev tags it a keyboard, not a joystick.
-ACTION=="add", SUBSYSTEM=="input", KERNEL=="js*", ATTRS{id/vendor}=="@XBOX_VENDOR@", \
+# Match the js node because over Bluetooth the controller advertises enough keys that udev tags it a keyboard, not a
+# joystick. A controller unlocks the desktop, so only the paired ones listed match: over Bluetooth (bus 0005) the kernel
+# sets uniq to the bonded address, while a USB device could claim any vendor ID or serial.
+ACTION=="add", SUBSYSTEM=="input", KERNEL=="js*", ATTRS{id/bustype}=="0005", ATTRS{id/vendor}=="@XBOX_VENDOR@", \
+    ATTRS{uniq}=="@XBOX_CONTROLLERS@", \
     TAG+="systemd", ENV{SYSTEMD_WANTS}+="steam-tv.service", ENV{STEAM_TV_CONTROLLER}="1"
 # A removed device has no attributes left to match, but udev keeps the properties set when it was added.
 # SYSTEMD_WANTS acts only on add, so start the unit directly.
