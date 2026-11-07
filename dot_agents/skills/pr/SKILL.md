@@ -130,7 +130,7 @@ flowchart LR
 
 ## Fresh-reader check
 
-Once the title and body pass `/no-slop`, give a `sonnet-review` subagent only those two, never the diff, and ask it to
+Once the title and body pass `/no-slop`, give a `opus-review` subagent only those two, never the diff, and ask it to
 paraphrase in two to five sentences what changes, for whom, and how the parts fit, then to list what it had to infer
 rather than read. Compare the paraphrase with the diff. Whatever it gets wrong, cannot say, or had to infer is a gap in
 the body, not in the reader: fix the body, rerun `/no-slop`, and check again with a new subagent. Stop after three

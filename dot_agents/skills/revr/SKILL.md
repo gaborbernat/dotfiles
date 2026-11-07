@@ -24,7 +24,7 @@ before it is posted.
 03. Search the project's documentation for the behavior, API, command, or setting changed by the PR. Note every page and
     example that the diff makes inaccurate or incomplete, and missing tests for each behavioral change.
 
-    Check the PR description with a reader who has no context. Give a `sonnet-review` subagent only the PR title and
+    Check the PR description with a reader who has no context. Give a `opus-review` subagent only the PR title and
     description, never the diff, and ask it to paraphrase in two to five sentences what changes, for whom, and how the
     parts fit, and to say what feedback the author wants from reviewers. Compare that paraphrase with the diff. A claim
     the diff does not implement, a behavior change neither mentions, or a point the paraphrase gets wrong is a finding
@@ -36,9 +36,9 @@ before it is posted.
     with `/style`. Each violation on a line the PR changes is a nit that quotes the rule it applies. Fold more than five
     nits into one note in the review body.
 
-    Before drafting, give each finding that is not a nit alone to a new `sonnet-review` validator with the worktree and
-    no other context. It returns confirmed or refuted, quoting the line that decides it. Drop what it does not confirm.
-    A validator that fails did not check: retry it once, then show the finding to the user marked unverified.
+    Before drafting, give each finding that is not a nit alone to a new `opus-review` validator with the worktree and no
+    other context. It returns confirmed or refuted, quoting the line that decides it. Drop what it does not confirm. A
+    validator that fails did not check: retry it once, then show the finding to the user marked unverified.
 
 05. Turn each finding into one inline comment anchored to the diff line or line range it concerns. A point about the
     whole PR (layout, scope, an approach to rethink) goes in the review body instead. Write as a colleague, using "we"

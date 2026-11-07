@@ -28,11 +28,11 @@ it changes nothing until the user asks for fixes.
    identifier the docs name against `HEAD`. Then confirm the remaining claims by reading the source. Running a
    documented example those checks do not cover confirms it better; ask the user before executing it.
 
-4. For a large doc set, split the pages into groups and give each group to a `sonnet-review` subagent with the
-   repository path, its pages, and step 3. Tell each to keep scratch files under the repository's `target/scratch/`,
-   never in `/tmp`, and to return findings with both locations and the evidence. A subagent that fails, times out, or
-   returns nothing did not audit: retry it once, then list its pages as not audited. Treat every subagent finding as a
-   claim: check it against the source yourself and drop what does not hold.
+4. For a large doc set, split the pages into groups and give each group to a `opus-review` subagent with the repository
+   path, its pages, and step 3. Tell each to keep scratch files under the repository's `target/scratch/`, never in
+   `/tmp`, and to return findings with both locations and the evidence. A subagent that fails, times out, or returns
+   nothing did not audit: retry it once, then list its pages as not audited. Treat every subagent finding as a claim:
+   check it against the source yourself and drop what does not hold.
 
 5. Report only the differences, grouped by page, ranked by how badly a reader following the page would fail. For each:
    the doc location (`path:line`), what it says, what the code does, the source location that shows it, and how it was

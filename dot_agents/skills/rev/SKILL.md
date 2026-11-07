@@ -1,6 +1,6 @@
 ---
 name: rev
-description: Review and fix one pull request by number, or list the open pull requests not authored by the authenticated GitHub user to review one at a time. Use for an adversarial PR review that produces one fix commit per PR and pushes verified fixes.
+description: Review and fix one pull request by number, or all open pull requests not authored by the authenticated GitHub user. Use for an adversarial PR review that produces one fix commit per PR and pushes verified fixes.
 ---
 
 # rev
@@ -9,9 +9,9 @@ Work in the repository selected by the user, or the current repository when none
 
 1. If given a PR number, review that PR, regardless of author. Otherwise, get the current account from `gh api user`,
    list every open PR in the repository with pagination, and skip PRs authored by that account. Report when none
-   qualify. Otherwise list the qualifying PRs with their titles and stop: each PR gets its own `/rev <number>` in a
-   fresh session, or after `/clear`, so one review's context does not crowd the next and each keeps its fresh-context
-   reviewer, which a subagent could not start.
+   qualify. Review the qualifying PRs one at a time: take each through steps 2 to 9, pushed and reported, before
+   starting the next, so a compaction only ever summarizes finished PRs. Run every PR from this session rather than
+   handing it to a subagent, which could not start the fresh-context reviewer and validators.
 
 2. Inspect the PR's description, base and head commits, full diff, surrounding code, and relevant checks. Use an
    isolated worktree at the PR's exact head commit so other branches and uncommitted work stay intact. Review
@@ -33,7 +33,7 @@ Work in the repository selected by the user, or the current repository when none
    that edit changed, with no skipped rules. Recheck the final diff for regressions and unnecessary changes. Use
    `/style` to audit the diff and commit message before committing, then the drafted report before sending it.
 
-5. Have a reviewer with fresh context check the final PR diff, including your uncommitted fixes. Spawn a `sonnet-review`
+5. Have a reviewer with fresh context check the final PR diff, including your uncommitted fixes. Spawn a `opus-review`
    subagent and give it only the repository, the worktree path, the merge base, and the PR number. Withhold your
    findings, fixes and reasoning: a reviewer that inherits them inherits their blind spots. Ask it to:
 
@@ -47,7 +47,7 @@ Work in the repository selected by the user, or the current repository when none
    Check `git status` in the worktree after it returns and discard anything it changed. A subagent that fails, times
    out, or returns no report did not review: retry it once, then report the review as not run, never as clean.
 
-   Before acting on a blocker or major finding, give it alone to a new `sonnet-review` validator with the same worktree
+   Before acting on a blocker or major finding, give it alone to a new `opus-review` validator with the same worktree
    and no other context. It returns confirmed or refuted, quoting the line that decides it. Drop what it cannot confirm.
    Resolve each remaining finding in this session as exactly one of:
 
