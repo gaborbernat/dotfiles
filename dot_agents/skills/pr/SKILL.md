@@ -12,13 +12,22 @@ they interact. Leave out which files change and how the code achieves it; a revi
 
 ## Base
 
-Diff against the merge base with the default branch, using the `upstream` remote when it exists and `origin` otherwise:
+Diff against the merge base with the default branch, using the `upstream` remote when it exists and `origin` otherwise.
+Shell variables do not survive between tool calls, so resolve the base and read the diff and log in one call, and stop
+when the base is empty or the diff has no changes:
 
 ```bash
 remote=$(git remote | grep -qx upstream && echo upstream || echo origin)
 git rev-parse -q --verify "$remote/HEAD" >/dev/null || git remote set-head "$remote" --auto
 base=$(git rev-parse --abbrev-ref "$remote/HEAD")
+[ -n "$base" ] || { echo "no default branch for $remote" >&2; exit 1; }
+echo "base: $base"
+git log --oneline "$base"..HEAD
+git diff "$base"...HEAD
 ```
+
+If the current branch is the default branch, or the log is empty, stop and tell the user there is nothing to open a PR
+for.
 
 ## Title Format
 
@@ -36,7 +45,8 @@ Follow Commitizen conventions with 1-2 relevant emoji:
 - `🐛 fix(api): resolve race condition in request handler`
 - `♻️ refactor(core): simplify state management flow`
 
-Keep titles under 72 characters. The emoji goes at the start; pick one that matches the change type.
+Keep titles to at most 72 characters, emoji included. The emoji goes at the start; pick one that matches the change
+type.
 
 ## Description Format
 
@@ -93,15 +103,12 @@ title and body are drafted, run `/no-slop` on them before creating or updating t
 **Good example**:
 
 ```markdown
-Google sign-ins landed on an error page: the session token expired before the OAuth callback completed. 🔐
+Google sign-ins ended on an error page whenever the provider answered after the session token expired, which hit users
+on slow connections most ([#412](https://github.com/acme/app/issues/412)). 🔐 Once this merges, they finish signing in.
 
-It got worse as more users signed in from far away, where network latency is higher.
-
-The fix extends token validity during the OAuth flow and retries the callback handler. ✨
-
-Tokens stay short-lived outside the OAuth flow, so a leaked token still expires within the usual window.
-
-The retry logic uses exponential backoff to avoid hammering the auth provider.
+The session service now issues a longer-lived token only for the OAuth handshake, and the callback handler retries when
+the provider is slow to answer. ✨ The trade-off: a token leaked mid-handshake stays usable for that longer window, while
+every other session token keeps the short expiry.
 ```
 
 ## Diagrams
@@ -150,14 +157,13 @@ Pick applicable labels from `enhancement`, `bug`, `documentation` based on the c
 
 ### Creating a new PR
 
-1. Run `git diff "$base"...HEAD` to see all changes
-2. Run `git log "$base"..HEAD --oneline` to see commit history
-3. Identify the primary purpose (what user/developer problem this solves)
-4. Draft title following Commitizen format with emoji
-5. Write description paragraphs: the impact and why, then the architecture
-6. Run the **Fresh-reader check**
-7. Determine labels from the change type
-8. Create with:
+1. Run the **Base** block to read the commits and the full diff
+2. Identify the primary purpose (what user/developer problem this solves)
+3. Draft title following Commitizen format with emoji
+4. Write description paragraphs: the impact and why, then the architecture
+5. Run the **Fresh-reader check**
+6. Determine labels from the change type, and keep only those the repository has (`gh label list`)
+7. Push the branch if it has no upstream (`git push -u origin HEAD`), then create with:
 
 ```bash
 gh pr create --title "..." --body-file <file> --label "<labels>"
@@ -165,11 +171,12 @@ gh pr create --title "..." --body-file <file> --label "<labels>"
 
 ### Updating an existing PR
 
-1. Run `git diff "$base"...HEAD` to see all changes
-2. Run `git log "$base"..HEAD --oneline` to see commit history
+1. Read the current title, body and labels (`gh pr view <number> --json title,body,labels`); keep what still holds and
+   any links, checklists or notes the author added by hand
+2. Run the **Base** block to read the commits and the full diff
 3. Identify the primary purpose (what user/developer problem this solves)
 4. Draft title following Commitizen format with emoji
 5. Write description paragraphs: the impact and why, then the architecture
 6. Run the **Fresh-reader check**
-7. Determine labels from the change type
+7. Determine labels from the change type, and keep only those the repository has (`gh label list`)
 8. Update with `gh pr edit <number> --title "..." --body-file <file>` and add missing labels
