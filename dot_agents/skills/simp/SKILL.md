@@ -11,8 +11,12 @@ dropping an unused default changes a signature, narrowing an `except` lets an un
 dependency fallback turns a degraded mode into a load-time failure. Name each such change in the report. It does not
 hunt for bugs; use `/code-review` for that.
 
-Read each target file and its siblings first to match existing conventions, then apply every rule that fits. Report what
-changed and why. Run the project's tests if test files were touched.
+Restyle only the lines the change touches plus the lines they force to change (callers of a renamed function, imports,
+tests); leave untouched code in a file alone. A file named as the target counts as touched throughout.
+
+Read each target file and its siblings first to match existing conventions, then apply every rule that fits. Siblings
+settle what the rules leave open; when a sibling contradicts a rule, the rule wins for lines you write or touch, and
+untouched code stays as it is. Report what changed and why. Run the project's tests if test files were touched.
 
 Apply the rules as written. A rule's exception holds only when a concrete, unavoidable necessity forces it: a line that
 cannot otherwise fit the width limit, a value the language requires to exist before use, an upstream bug with no other
@@ -30,7 +34,8 @@ made the code harder to manage, for example:
 - a module or class now mixes concerns that belong apart (I/O inside domain logic, one component's details hard-coded in
   a generic one);
 - a dependency now points the wrong way (a lower layer importing a higher one, a cycle);
-- logic is duplicated across places that will drift;
+- existing logic is duplicated across places that will drift (a copy the change introduced is removed directly under
+  Common rule 09);
 - a function or class has grown past one responsibility, or a seam exists only to make testing possible;
 - a package no longer groups related concepts, so a reader cannot tell where something lives.
 
@@ -92,6 +97,10 @@ idioms, mapping the Python specifics yourself (its formatter for `ruff`, its tes
     statement across several lines (a long log or exception message, a nested call argument), or because the identical
     subexpression repeats within one statement. Prefer the named two-line form over the inlined multi-line explosion.
 
+    Inlining stops at a density cap: never nest conditional expressions (`a if c else b`), and never write a
+    comprehension with more than one `for` or with a conditional expression inside it. Where inlining would break the
+    cap, name the piece or use a statement.
+
     Readability, documenting intent, visual symmetry, and giving a comment a home are not exceptions: inline the value
     and put any comment at the use site. A genuine module-scope configuration or taxonomy constant stays named (and
     typed `Final` in Python); lifting a one-off local to module scope only to name or comment it does not make it one.
@@ -110,7 +119,8 @@ idioms, mapping the Python specifics yourself (its formatter for `ruff`, its tes
     comprehension targets (`[x.id for x in rows]`); everywhere else name the thing. Avoid architecture jargon whose
     everyday meaning differs (`WorkerPorts` for a group of storage collaborators reads as network ports): name the thing
     for what it holds. One name per concept, one concept per name: two concepts never share a name (two modules called
-    `queue`, "sealed" meaning both encrypted and inventory-complete), and one concept is never called two things.
+    `queue`, "sealed" meaning both encrypted and inventory-complete), and one concept is never called two things. Before
+    naming a concept, grep for the term the codebase already uses for it and adopt that term.
 
 07. **Define after use (reads like a book).** Order every module so each function, method, and class is defined _below_
     the code that uses it: the entry point sits near the top and the helpers it calls follow in first-call order, so the
@@ -132,19 +142,23 @@ idioms, mapping the Python specifics yourself (its formatter for `ruff`, its tes
     interface or is passed as a callback. Split a long function only at a task boundary, never into one-use fragments to
     meet a line count.
 
-09. **Group values that travel together.** Parameters that describe one thing or always move together become one
+09. **Reuse before writing.** Before writing a helper, search the repo and the standard library for one that does the
+    job, and call it. Delete any copy the change introduced. This applies directly, even when the helper lives in
+    another module; merging duplicates that predate the change across modules stays a structural refactor to propose.
+
+10. **Group values that travel together.** Parameters that describe one thing or always move together become one
     immutable record passed as a single argument; review every signature with five or more parameters. Group by meaning,
     not to hit a count, and leave a parameter alone when no group fits. Leave a dependency's own signature as it is.
 
-10. **No unused defaults.** A parameter or field default stays only when some production call site omits it on purpose.
+11. **No unused defaults.** A parameter or field default stays only when some production call site omits it on purpose.
     Otherwise remove it so callers pass the value explicitly; tests do not justify a default. A command-line tool's
     user-facing defaults stay.
 
-11. **Remove what production code does not use.** That covers functions, methods, fields, parameters, return values and
+12. **Remove what production code does not use.** That covers functions, methods, fields, parameters, return values and
     branches no production code reads. A parameter that exists only so tests can inject a stand-in goes too; tests patch
     the real boundary instead.
 
-12. **Interfaces need a second implementation or a layer to decouple.** Within one module, apply this directly; across
+13. **Interfaces need a second implementation or a layer to decouple.** Within one module, apply this directly; across
     modules, propose it. Remove an interface (protocol, ABC) with one implementation in the same package; its consumers
     name the implementation. An interface that does decouple layers lives with the code that consumes it, not in a
     shared "interfaces" module, and each implementation inherits it explicitly so the type checker verifies it where it
@@ -153,7 +167,7 @@ idioms, mapping the Python specifics yourself (its formatter for `ruff`, its tes
     A resource with paired setup and teardown (signal handlers, a lock, a temporary install) is a context manager, so
     the teardown cannot be forgotten.
 
-13. **Keep details with their owner.** Moving a value or type to another module is a structural refactor, so propose it.
+14. **Keep details with their owner.** Moving a value or type to another module is a structural refactor, so propose it.
     A value specific to one component (its lease duration, its capacity, a feed name) is declared by that component and
     read through its interface, never hard-coded in a generic module with a comment naming the component.
 
@@ -161,33 +175,35 @@ idioms, mapping the Python specifics yourself (its formatter for `ruff`, its tes
     a single concept moves to it, one shared by several goes to the owner of the contract they meet at, and packages
     never import each other at runtime (annotation-only references go under `TYPE_CHECKING`).
 
-14. **Explicit errors.** Catch only the exception types the guarded call can raise; read the callee to find them. A
+15. **Explicit errors.** Catch only the exception types the guarded call can raise; read the callee to find them. A
     catch-all is allowed only at a deliberate containment boundary (a service loop's per-cycle or per-item handler),
     with a one-line reason. Define a new error type only when some handler must treat it differently from an existing
-    type; otherwise raise a built-in one. Never tell errors apart by reading their message.
+    type; otherwise raise a built-in one. Never tell errors apart by reading their message. When narrowing an `except`,
+    cite in the report the callee line that shows what it raises, as `file:line`.
 
-15. **No fallbacks for required dependencies.** Load a required dependency directly and let a broken install fail at
+16. **No fallbacks for required dependencies.** Load a required dependency directly and let a broken install fail at
     load time. Do not wrap its import in a guard that turns its absence into a friendly refusal or a degraded mode.
 
-16. **No defensive code for impossible states.** Don't guard against a condition the callers, types, or invariants
+17. **No defensive code for impossible states.** Don't guard against a condition the callers, types, or invariants
     already preclude; delete the branch instead of writing an `if` (or a test) for a case that cannot occur. A guard
     earns its place only when something real can violate it at runtime (untrusted input, an allocation/OS failure, a
-    documented `None`).
+    documented `None`). When deleting a guard, cite in the report the invariant or callee line that rules the case out,
+    as `file:line`.
 
     If a branch is unreachable without a bug elsewhere it is dead code: remove it, or, when removing it would lose an
     untestable safety net (an allocation failure, an exhaustive-`switch` default the compiler requires), exclude it from
     coverage with a one-line justification, never a hollow test.
 
-17. **Compare composite values in one check.** When comparing or asserting a structured value (`dict`, `list`, `tuple`,
+18. **Compare composite values in one check.** When comparing or asserting a structured value (`dict`, `list`, `tuple`,
     dataclass, model), compare the whole object with a single `==` against one expected literal rather than picking it
     apart field by field across several comparisons. One equality reads better, gives a full diff on failure, and can't
     drift out of sync. Break it up only when you assert on a subset.
 
-18. **Fix, never suppress, linter and type-checker findings.** Resolve every finding by fixing the code. Do not add
+19. **Fix, never suppress, linter and type-checker findings.** Resolve every finding by fixing the code. Do not add
     ignore directives or disable rules to silence them. When a genuine fix is impossible (e.g. an upstream stub bug),
     the suppression names the specific error code and carries an inline reason or upstream link, never a blanket ignore.
 
-19. **Explicit public API.** Expose only the names other modules use; keep everything else internal to the file. Never
+20. **Explicit public API.** Expose only the names other modules use; keep everything else internal to the file. Never
     widen a symbol's visibility just to reach it from elsewhere.
 
 ### Test rules
@@ -248,7 +264,8 @@ These rules cover only what ruff cannot. The lint step above handles anything ru
 (`TC00x`), modern-syntax upgrades (`UP`), exception-message/`raise ... from` hygiene (`EM`/`B904`), and blind-except
 bans (`BLE001`/`E722`).
 
-01. **Walrus.** Use `:=` whenever it makes the code more compact without hurting readability.
+01. **Walrus.** Use `:=` whenever it makes the code more compact without hurting readability or breaking the density cap
+    of Common rule 04.
 
 02. **`Final` for constants.** Any value that is never reassigned, especially at module scope, is typed `Final[<type>]`.
 
