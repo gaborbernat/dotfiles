@@ -1,6 +1,6 @@
 ---
 name: rev
-description: Review and fix one pull request by number, or all open pull requests not authored by the authenticated GitHub user. Use for an adversarial PR review that produces one fix commit per PR and pushes verified fixes.
+description: Review and fix one pull request by number, or list the open pull requests not authored by the authenticated GitHub user to review one at a time. Use for an adversarial PR review that produces one fix commit per PR and pushes verified fixes.
 ---
 
 # rev
@@ -9,9 +9,11 @@ Work in the repository selected by the user, or the current repository when none
 
 1. If given a PR number, review that PR, regardless of author. Otherwise, get the current account from `gh api user`,
    list every open PR in the repository with pagination, and skip PRs authored by that account. Report when none
-   qualify.
+   qualify. Otherwise list the qualifying PRs with their titles and stop: each PR gets its own `/rev <number>` in a
+   fresh session, or after `/clear`, so one review's context does not crowd the next and each keeps its fresh-context
+   reviewer, which a subagent could not start.
 
-2. Inspect each PR's description, base and head commits, full diff, surrounding code, and relevant checks. Use an
+2. Inspect the PR's description, base and head commits, full diff, surrounding code, and relevant checks. Use an
    isolated worktree at the PR's exact head commit so other branches and uncommitted work stay intact. Review
    adversarially for correctness, performance, and maintainability; investigate plausible failures and fix those
    supported by evidence.
@@ -67,15 +69,15 @@ Work in the repository selected by the user, or the current repository when none
    so after three rounds, or on churn (a new finding at a fix you just applied, which reverting that fix would resolve),
    stop, report the review as not converged with its open findings, and ask the user whether to rethink the approach.
 
-6. Put all fixes for each PR in **one new commit on top of its head**. Do not amend, rebase, force-push, or change the
-   PR's existing commits. Inspect the staged diff before committing and follow the repository's commit format. If the PR
+6. Put all fixes in **one new commit on top of the PR's head**. Do not amend, rebase, force-push, or change the PR's
+   existing commits. Inspect the staged diff before committing and follow the repository's commit format. If the PR
    needs no changes, do not create an empty commit.
 
-7. Before any push, give the user a concise explanation for each PR of what changed and why, the checks run, the number
-   of fresh review rounds, each contested or escalated finding with its evidence, and any unresolved issue. Do not post
-   PR comments or reviews.
+7. Before any push, give the user a concise explanation of what changed and why, the checks run, the number of fresh
+   review rounds, each contested or escalated finding with its evidence, and any unresolved issue. Do not post PR
+   comments or reviews.
 
-8. Verify each remote PR head is still the commit reviewed. If it moved, recheck the new diff and update the fix and
+8. Verify the remote PR head is still the commit reviewed. If it moved, recheck the new diff and update the fix and
    checks before pushing. Push only to the PR's head branch, without force. If that branch is not writable, report the
    blocker and leave the local commit available.
 
