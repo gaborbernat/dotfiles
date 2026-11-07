@@ -1,0 +1,5 @@
+---
+interface:
+  display_name: "Docs drift"
+  short_description: "Report where documentation disagrees with the source"
+  default_prompt: "Use $drift to audit this repository's documentation against its source."

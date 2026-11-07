@@ -1,0 +1,5 @@
+---
+interface:
+  display_name: "Address PR feedback"
+  short_description: "Fix review feedback and draft replies for approval"
+  default_prompt: "Use $fb to address the review feedback on the given pull request."
