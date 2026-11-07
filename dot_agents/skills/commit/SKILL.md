@@ -42,7 +42,7 @@ names it.
 
 ## Subject Line
 
-- Under 50 characters
+- At most 50 characters, emoji included
 - Imperative mood ("add" not "added" or "adds")
 - No period at end
 - Emoji at start, then type(scope): subject
@@ -80,9 +80,9 @@ unexplained, written in paragraphs wrapped at 80 characters. Focus on:
 Users with high-latency connections were getting logged out mid-authentication
 because the session token expired before the OAuth provider responded.
 
-Extended the token validity window for the OAuth callback phase only. A token
-leaked during the handshake now stays usable for longer; normal sessions keep
-the short expiry.
+Extended the token validity window for the OAuth handshake only. A token
+leaked mid-handshake stays usable for that longer window; every other session
+token keeps the short expiry.
 ```
 
 **One-line example**:
@@ -112,7 +112,9 @@ stale value, and the longer TTL cuts refreshes fivefold.
 
 ## Workflow
 
-1. Run `git status` to see what's staged
+1. Run `git status` to see what's staged. If nothing is staged, stage only the files of the change the user asked to
+   commit, by path; never `git add -A` or `git add .`, which sweep in unrelated work. Stop and ask when it is unclear
+   which files belong
 2. Run `git diff --staged` to review the actual changes
 3. Identify the primary purpose (the "why"). If the staged diff mixes concerns, unstage it and commit each concern
    separately
@@ -121,3 +123,6 @@ stale value, and the longer TTL cuts refreshes fivefold.
 6. Write the message to a file, then commit with `git commit -F <file>`. Never pass it inline: `-m` hands backticks and
    `$(...)` to the shell as command substitution, and the heredoc workaround does not exist in every shell (fish has no
    heredocs at all)
+7. If a pre-commit hook fails, the commit did not happen: fix what it reports, or stage the files it reformatted, and
+   commit again with the same message. Never bypass hooks with `--no-verify`, and never `--amend` to recover, which
+   would rewrite the previous commit
