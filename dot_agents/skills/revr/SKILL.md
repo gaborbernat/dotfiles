@@ -1,6 +1,7 @@
 ---
 name: revr
 description: Review one pull request, given by number, and draft a GitHub review with comments anchored to diff lines. Use for an adversarial PR review that proposes changes for the user to approve and post, without editing code.
+disable-model-invocation: true
 ---
 
 # revr
@@ -31,10 +32,11 @@ before it is posted.
     for the review body; so is a description that leaves the reader unable to say what feedback is wanted. A subagent
     that returns nothing did not check: retry it once, then tell the user the check did not run.
 
-04. Read both `/simp` and `/no-slop` in full, including their referenced rules, once per session (when they are already
-    loaded, do not read them again), and audit the **entire PR diff** against its merge base, including tests and prose,
-    with `/style`. Each violation on a line the PR changes is a nit that quotes the rule it applies. Fold more than five
-    nits into one note in the review body.
+04. Read both `/simp` and `/no-slop` in full, including their referenced rules, once per session and again after a
+    compaction (when they are already loaded, do not read them again), and audit the **entire PR diff** against its
+    merge base, including tests and prose, with `/style` used as an audit only: change no file, and turn each of its
+    findings into a nit here. Each violation on a line the PR changes is a nit that quotes the rule it applies. Fold
+    more than five nits into one note in the review body.
 
     Before drafting, give each finding that is not a nit alone to a new `opus-review` validator with the worktree and no
     other context. It returns confirmed or refuted, quoting the line that decides it. Drop what it does not confirm. A

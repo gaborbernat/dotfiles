@@ -26,16 +26,18 @@ Work in the repository selected by the user, or the current repository when none
 4. Follow the repository's instructions and conventions. Add or change tests that demonstrate each behavioral fix, then
    run the relevant checks.
 
-   Read both `/simp` and `/no-slop` in full, including their referenced rules, once per session; when they are already
-   loaded, do not read them again. Apply every rule to the **entire final PR diff** against its merge base, including
-   tests and prose. Do not treat a passing `/no-slop` gate as completion: perform its full manual review. Apply
-   `/no-slop` to the commit message and user-facing report too. After a further edit, rerun both passes on the lines
-   that edit changed, with no skipped rules. Recheck the final diff for regressions and unnecessary changes. Use
-   `/style` to audit the diff and commit message before committing, then the drafted report before sending it.
+   Read both `/simp` and `/no-slop` in full, including their referenced rules, once per session and again after a
+   compaction; when they are already loaded, do not read them again. Apply every rule to the **entire final PR diff**
+   against its merge base, including tests and prose. Do not treat a passing `/no-slop` gate as completion: perform its
+   full manual review. Apply `/no-slop` to the commit message and user-facing report too. After a further edit, rerun
+   both passes on the lines that edit changed, with no skipped rules. Recheck the final diff for regressions and
+   unnecessary changes. Run `/style` once the fresh-review rounds of step 5 end, on the final diff and the drafted
+   commit message before committing, then on the drafted report before sending it.
 
-5. Have a reviewer with fresh context check the final PR diff, including your uncommitted fixes. Spawn a `opus-review`
-   subagent and give it only the repository, the worktree path, the merge base, and the PR number. Withhold your
-   findings, fixes and reasoning: a reviewer that inherits them inherits their blind spots. Ask it to:
+5. Have a reviewer with fresh context check the final PR diff, including your uncommitted fixes. Stage your own fixes
+   first (`git add -A` in the worktree), so the reviewer's changes stay distinguishable from yours. Spawn an
+   `opus-review` subagent and give it only the repository, the worktree path, the merge base, and the PR number.
+   Withhold your findings, fixes and reasoning: a reviewer that inherits them inherits their blind spots. Ask it to:
 
    - review the diff adversarially for correctness, performance, and maintainability, reproducing a suspected bug with a
      test run where it can;
@@ -44,7 +46,8 @@ Work in the repository selected by the user, or the current repository when none
    - leave tracked files unchanged and keep scratch files under the worktree, never in `/tmp`;
    - return each finding with a severity (blocker, major, nit), its file and line, and the evidence.
 
-   Check `git status` in the worktree after it returns and discard anything it changed. A subagent that fails, times
+   Check `git status` in the worktree after it returns and discard only its unstaged changes and untracked files
+   (`git restore .` and `git clean -fd` after reviewing the list), never your staged fixes. A subagent that fails, times
    out, or returns no report did not review: retry it once, then report the review as not run, never as clean.
 
    Before acting on a blocker or major finding, give it alone to a new `opus-review` validator with the same worktree
