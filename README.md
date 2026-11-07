@@ -281,7 +281,7 @@ Connecting an Xbox controller runs a [udev trigger](scripts/fedora/steam-tv/stea
 Wake-on-LAN, switches it to HDMI 1 through webOS, and opens Big Picture: in the session on screen if someone is logged
 in, otherwise by logging in `gaming` once through GDM's runtime config. It also unlocks a locked desktop so Big Picture
 works without a keyboard, which means any paired controller can unlock it. The trigger ignores a controller reconnecting
-mid-game. When the last Xbox controller stays disconnected for 30 seconds and no game is running, a
+mid-game. When the last Xbox controller stays disconnected for 60 seconds and no game is running, a
 [second trigger](scripts/fedora/steam-tv/steam-tv-off) exits `Steam` and turns the TV off, unless the TV has moved to
 another input or app. Enable Turn on via Wi-Fi on the TV, and accept the pairing prompt it shows on the first connect.
 

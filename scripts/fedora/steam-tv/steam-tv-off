@@ -3,7 +3,7 @@
 set -euo pipefail
 
 # A Bluetooth controller drops and reconnects on its own, so only a disconnect that lasts counts
-sleep 30
+sleep 60
 if grep -sqx @XBOX_VENDOR@ /sys/class/input/js*/device/id/vendor; then
     exit 0
 fi
