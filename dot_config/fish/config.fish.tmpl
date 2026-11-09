@@ -76,6 +76,10 @@ set -gx GOPATH $HOME/go
 
 set -gx DIFF_AGAINST upstream/main
 
+if test -f "$HOME/.secrets"
+    source "$HOME/.secrets"
+end
+
 if status --is-interactive
     set --global fish_function_path $__fish_config_dir/local_functions $fish_function_path
 
@@ -161,10 +165,6 @@ if status --is-interactive
 
     if test -f "$HOME/.local/share/chezmoi-private/fish_work.fish"
         source "$HOME/.local/share/chezmoi-private/fish_work.fish"
-    end
-
-    if test -f "$HOME/.secrets"
-        source "$HOME/.secrets"
     end
 
 end
