@@ -4,8 +4,8 @@ These add the Python-only mechanics; apply them alongside the Common rules.
 
 After editing, fix linting before the PR is opened. If the project has a `.lintrc.yaml` at its root, run
 `linterator check -l info --fix .` (linterator already runs ruff, so do not also run it separately). Otherwise, run
-`ruff check --fix --unsafe-fixes --output-format=concise .; uvx simplint check --fix .; ruff format .`, in that order:
-simplint sits between Ruff's linter and its formatter. Either way, ensure it passes.
+`ruff check --fix --unsafe-fixes --output-format=concise . && uvx simplint check --fix . && ruff format .`, in that
+order: simplint sits between Ruff's linter and its formatter. Either way, ensure it passes.
 
 [simplint](https://github.com/gaborbernat/simplint) is the source of truth for the Python style it checks; where this
 skill and simplint disagree, simplint wins. It enforces, and these rules therefore do not restate: section and restating
