@@ -119,7 +119,7 @@ repos:
           echo "Found hardcoded home paths - use \$HOME variable instead"; exit 1; fi' --
         language: system
         types: [text]
-        exclude: ^(\.pre-commit-config\.yaml|CLAUDE\.md)$
+        exclude: ^\.pre-commit-config\.yaml$
         priority: 2
       - id: ruff-format
         name: ruff format
@@ -212,7 +212,6 @@ repos:
         entry: bash -c 'command -v udevadm > /dev/null || exit 0; udevadm verify --no-summary "$@"' --
         language: system
         files: \.rules$
-        exclude: ^dot_codex/
         priority: 4
       - id: systemd-analyze-verify
         name: systemd-analyze verify

@@ -31,7 +31,10 @@ def main() -> None:
     results: Final[list[tuple[str, str, str, str]]] = []
     obsolete: Final[set[str]] = set()
     failed = False
-    versions: Final = [v for i in range(15, 7, -1) for v in ([f"3.{i}", f"3.{i}t"] if i >= 14 else [f"3.{i}"])]
+    free_threaded_min_minor: Final = 14
+    versions: Final = [
+        v for i in range(15, 7, -1) for v in ([f"3.{i}", f"3.{i}t"] if i >= free_threaded_min_minor else [f"3.{i}"])
+    ]
 
     with Progress(
         SpinnerColumn(),

@@ -149,11 +149,12 @@ def format_value(key: str, value: JsonValue, type_map: dict[str, type]) -> str:
 
 
 def human_readable_size(size: float) -> str:
-    if size < 1024:
+    binary_unit: Final = 1024
+    if size < binary_unit:
         return f"{size} B"
     for unit in ("KB", "MB", "GB", "TB", "PB"):
-        size /= 1024.0
-        if size < 1024.0:
+        size /= binary_unit
+        if size < binary_unit:
             return f"{size:.2f} {unit}"
     return f"{size:.2f} PB"
 

@@ -21,7 +21,7 @@ def test_get_auth_prefers_environment(monkeypatch: pytest.MonkeyPatch, mocker: M
     gh = mocker.patch("_github.subprocess.run", autospec=True)
 
     assert (auth := get_auth()) is not None
-    assert auth.token == "environment-token"
+    assert auth.token == "environment-token"  # noqa: S105  # test token
     gh.assert_not_called()
 
 

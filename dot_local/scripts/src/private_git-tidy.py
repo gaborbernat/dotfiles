@@ -426,7 +426,7 @@ def show_remaining_branches_summary(
         capture=True,
     )
     for line in output.splitlines():
-        if len(parts := line.split("\t", 2)) != 3 or parts[0] in excluded:
+        if len(parts := line.split("\t", 2)) != 3 or parts[0] in excluded:  # noqa: PLR2004  # branch, age, subject
             continue
         branch, when, message = parts
         table.add_row(f"* {branch}" if branch == current_branch else f"  {branch}", when, message)
