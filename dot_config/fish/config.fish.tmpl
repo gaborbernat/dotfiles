@@ -114,6 +114,13 @@ if status --is-interactive
     abbr --add pcu 'prek autoupdate -j 12'
     abbr --add pcr 'prek run --all-files'
     bind super-a beginning-of-buffer begin-selection end-of-buffer fish_clipboard_copy
+    # JetBrains terminal tools type commands in key by key, and the closers autopair inserts corrupt them.
+    if test "$TERMINAL_EMULATOR" = JetBrains-JediTerm; and functions -q _autopair_fish_key_bindings
+        functions --erase _autopair_fish_key_bindings
+        for mode in default insert
+            bind --mode $mode --erase $autopair_left $autopair_right \177 \b \t
+        end
+    end
 
     command -q zoxide && zoxide init fish | source
     command -q atuin && atuin init fish | source
