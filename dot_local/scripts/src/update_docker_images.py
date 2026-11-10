@@ -57,7 +57,7 @@ def scan_images() -> list[ImageStatus]:
     rows: Final = [
         parts
         for raw_line in listing.stdout.splitlines()
-        if len(parts := raw_line.split("\t")) == 4 and "<none>" not in parts[0]
+        if len(parts := raw_line.split("\t")) == 4 and "<none>" not in parts[0]  # noqa: PLR2004  # Docker fields
     ]
     inspected: Final = bulk_inspect([row[1] for row in rows])
     registry: Final[list[ImageStatus]] = []
@@ -248,23 +248,27 @@ def format_age(created: datetime | None) -> str:
     if created is None:
         return ""
     days: Final = (datetime.now(UTC) - created).days
+    days_per_week: Final = 7
+    days_per_month: Final = 30
+    days_per_year: Final = 365
     if days < 1:
         return "today"
-    if days < 7:
+    if days < days_per_week:
         return f"{days}d ago"
-    if days < 30:
-        return f"{days // 7}w ago"
-    if days < 365:
-        return f"{days // 30}mo ago"
-    return f"{days // 365}y ago"
+    if days < days_per_month:
+        return f"{days // days_per_week}w ago"
+    if days < days_per_year:
+        return f"{days // days_per_month}mo ago"
+    return f"{days // days_per_year}y ago"
 
 
 def format_duration(duration: float | None) -> str:
     if duration is None:
         return ""
-    if duration < 60:
+    seconds_per_minute: Final = 60
+    if duration < seconds_per_minute:
         return f"{duration:.1f}s"
-    return f"{int(duration // 60)}m{int(duration % 60)}s"
+    return f"{int(duration // seconds_per_minute)}m{int(duration % seconds_per_minute)}s"
 
 
 def process_image(status: ImageStatus, lock: threading.Lock) -> None:
@@ -359,10 +363,11 @@ def short_digest(digest: str) -> str:
 
 
 def format_bytes(num: float) -> str:
+    decimal_unit: Final = 1000
     for unit in ("B", "KB", "MB", "GB"):
-        if num < 1000:
+        if num < decimal_unit:
             return f"{num:.0f}{unit}" if unit == "B" else f"{num:.1f}{unit}"
-        num /= 1000
+        num /= decimal_unit
     return f"{num:.1f}TB"
 
 

@@ -26,12 +26,19 @@ format.docstring-code-line-length = 120
 format.docstring-code-format = true
 lint.select = ["ALL"]
 lint.ignore = [
-  "COM812",  # conflicts with formatter
-  "CPY",     # No copyright
-  "D",       # no docs
-  "ISC001",  # conflicts with formatter
-  "S",       # we trust ourselves
-  "PLR2004", # magic numbers are fine
+  "COM812", # conflicts with formatter
+  "CPY",    # personal scripts have no copyright headers
+  "D1",     # application scripts have no public API docstrings
+  "D203",   # incompatible with D211
+  "D212",   # incompatible with D213
+]
+lint.per-file-ignores."src/*.py" = [
+  "S603", # installed tools receive arguments without a shell
+  "S606", # docker uses argv through execvp
+  "S607", # installed tools resolve from PATH
+]
+lint.per-file-ignores."tests/*.py" = [
+  "S101", # pytest uses assertions
 ]
 lint.isort = { known-first-party = ["tests"] }
 
