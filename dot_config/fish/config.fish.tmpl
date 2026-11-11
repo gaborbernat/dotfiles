@@ -121,6 +121,24 @@ if status --is-interactive
             bind --mode $mode --erase $autopair_left $autopair_right \177 \b \t
         end
     end
+    # Fish keeps a line with a syntax error in the buffer, and IDE terminal tools type the next command onto it.
+    if test "$TERMINAL_EMULATOR" = JetBrains-JediTerm
+        function _jetbrains_enter
+            commandline --is-valid
+            if test $status -ne 1
+                _bgp_transient
+                return
+            end
+            echo
+            fish --no-execute --command (commandline | string collect)
+            commandline --replace ""
+            commandline --function repaint
+        end
+        for mode in default insert
+            bind --mode $mode \r _jetbrains_enter
+            bind --mode $mode \n _jetbrains_enter
+        end
+    end
 
     command -q zoxide && zoxide init fish | source
     command -q atuin && atuin init fish | source
