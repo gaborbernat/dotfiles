@@ -7,7 +7,7 @@
 # ///
 import argparse
 import json
-import subprocess
+import subprocess  # ruff: ignore[suspicious-subprocess-import]  # uv commands update installed Pythons
 from typing import Final, Literal, TypedDict
 
 from packaging.version import Version
@@ -47,15 +47,18 @@ def main() -> None:
         for version in versions:
             progress.update(task, description=f"🔍 Finding latest patch version for Python {version}...")
             variant: Variant = "freethreaded" if version.endswith("t") else "default"
-            base_version = Version(version.removesuffix("t"))
-            latest = find_latest_version(available, base_version, variant)
-            installed_for_minor = find_installed_for_minor(currently_installed, base_version, variant)
+            latest = find_latest_version(available, Version(version.removesuffix("t")), variant)
 
             if not latest:
-                results.append((version, "-", "[red]Not found[/]", installed_for_minor))
+                results.append((
+                    version,
+                    "-",
+                    "[red]Not found[/]",
+                    find_installed_for_minor(currently_installed, Version(version.removesuffix("t")), variant),
+                ))
                 progress.advance(task)
                 continue
-            if already_installed := latest in currently_installed:
+            if latest in currently_installed:
                 installed_ok = True
                 status = "[green]Already installed[/]"
             elif opts.dry_run:
@@ -71,12 +74,17 @@ def main() -> None:
             else:
                 failed = True
 
-            results.append((version, latest, status, installed_for_minor))
+            results.append((
+                version,
+                latest,
+                status,
+                find_installed_for_minor(currently_installed, Version(version.removesuffix("t")), variant),
+            ))
 
             # uv tools run on this minor version
             if (
                 version == "3.14"
-                and not already_installed
+                and latest not in currently_installed
                 and installed_ok
                 and not upgrade_tools(latest, dry_run=opts.dry_run)
             ):

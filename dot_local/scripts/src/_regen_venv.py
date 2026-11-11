@@ -6,7 +6,7 @@
 # ///
 import os
 import re
-import subprocess
+import subprocess  # ruff: ignore[suspicious-subprocess-import]  # uv creates and populates the venv
 import tomllib
 from pathlib import Path
 from typing import Final

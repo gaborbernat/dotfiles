@@ -13,7 +13,7 @@ import platform
 import pty
 import re
 import shutil
-import subprocess
+import subprocess  # ruff: ignore[suspicious-subprocess-import]  # docker commands are this script's interface
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -57,7 +57,10 @@ def scan_images() -> list[ImageStatus]:
     rows: Final = [
         parts
         for raw_line in listing.stdout.splitlines()
-        if len(parts := raw_line.split("\t")) == 4 and "<none>" not in parts[0]  # noqa: PLR2004  # Docker fields
+        if (
+            len(parts := raw_line.split("\t")) == 4  # ruff: ignore[magic-value-comparison]  # Docker fields
+            and "<none>" not in parts[0]
+        )
     ]
     inspected: Final = bulk_inspect([row[1] for row in rows])
     registry: Final[list[ImageStatus]] = []
@@ -195,7 +198,7 @@ def update_registry_images(images: list[ImageStatus]) -> None:
     for future, status in futures.items():
         try:
             future.result()
-        except Exception as exc:  # noqa: BLE001  # per-image containment boundary, the failure is shown in its row
+        except Exception as exc:  # ruff: ignore[blind-except]  # report per-image failure
             with lock:
                 status.state = "error"
                 status.detail = str(exc)

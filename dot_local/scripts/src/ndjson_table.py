@@ -115,7 +115,9 @@ def matching_rows(
 def is_blank(value: JsonValue) -> bool:
     # bool subclasses int, and False is a value rather than an empty cell
     return (
-        value is None or value == "" or (isinstance(value, int | float) and not isinstance(value, bool) and value == 0)
+        value is None
+        or (isinstance(value, str) and not value)
+        or (isinstance(value, int | float) and not isinstance(value, bool) and value == 0)
     )
 
 
