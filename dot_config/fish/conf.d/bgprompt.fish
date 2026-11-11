@@ -118,13 +118,10 @@ function _bgp_transient_prompt
     return 1
 end
 
-# A syntax error keeps the line in the buffer here, and IDE terminal tools type straight on after it.
-if test "$TERMINAL_EMULATOR" != JetBrains-JediTerm
-    bind \r _bgp_transient
-    bind \n _bgp_transient
-    bind -M insert \r _bgp_transient
-    bind -M insert \n _bgp_transient
-end
+bind \r _bgp_transient
+bind \n _bgp_transient
+bind -M insert \r _bgp_transient
+bind -M insert \n _bgp_transient
 
 set --global bgp_color_normal (set_color normal)
 
