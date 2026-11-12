@@ -9,8 +9,9 @@
 # ///
 
 import dataclasses
+import operator
 import os
-import subprocess
+import subprocess  # ruff: ignore[suspicious-subprocess-import]  # this script drives git
 from argparse import ArgumentParser, Namespace
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from datetime import UTC, datetime, timedelta
@@ -25,7 +26,7 @@ from rich.prompt import Confirm
 from rich.table import Table
 from rich_argparse import RichHelpFormatter
 
-from _github import get_auth
+from _github import get_auth  # ruff: ignore[import-private-name]  # standalone scripts share this helper
 
 if TYPE_CHECKING:
     from github.Repository import Repository
@@ -123,7 +124,7 @@ def is_readonly_git(cmd: list[str]) -> bool:
 
 
 def get_github_repo(console: Console, opts: Options) -> Repository | None:
-    try:
+    try:  # ruff: ignore[too-many-statements-in-try-clause]  # repository discovery fails soft on git or API errors
         # Forks track the canonical repository as upstream, which is where their PRs merge
         remote_url = run_git(["git", "remote", "get-url", "upstream"], opts, capture=True, check=False).strip()
         if not remote_url:
@@ -194,7 +195,7 @@ def load_all_data(console: Console, opts: Options, default_branch: str, github_r
             ]
         progress.update(task, description="Analyzing stale branches...")
         stale_branches: Final = sorted(
-            get_stale_branches({default_branch, *gone, *merged}, opts), key=lambda item: item[1]
+            get_stale_branches({default_branch, *gone, *merged}, opts), key=operator.itemgetter(1)
         )
         stale: Final[list[StaleBranch]] = []
         for index, (branch, days_ago) in enumerate(stale_branches, 1):
@@ -218,21 +219,21 @@ def load_all_data(console: Console, opts: Options, default_branch: str, github_r
 
 
 def find_merged_pr_refs(github_repo: Repository, opts: Options, console: Console) -> dict[str, set[str]]:
+    if opts.verbose:
+        console.print(f"[dim]Fetching closed PRs from {github_repo.full_name}...[/dim]")
+    refs: Final[dict[str, set[str]]] = {}
+    count = 0
     try:
-        if opts.verbose:
-            console.print(f"[dim]Fetching closed PRs from {github_repo.full_name}...[/dim]")
-        refs: Final[dict[str, set[str]]] = {}
-        count = 0
         for pr in github_repo.get_pulls(state="closed", sort="created", direction="desc"):
             count += 1
             if pr.merged and pr.head and pr.head.ref and pr.head.sha:
                 refs.setdefault(pr.head.ref, set()).add(pr.head.sha)
-        if opts.verbose:
-            console.print(f"[dim]Checked {count} closed PRs; {len(refs)} merged head refs[/dim]")
     except GithubException as error:
         if opts.verbose:
             console.print(f"[yellow]GitHub API error: {error}[/yellow]")
         return {}
+    if opts.verbose:
+        console.print(f"[dim]Checked {count} closed PRs; {len(refs)} merged head refs[/dim]")
     return refs
 
 
@@ -426,7 +427,10 @@ def show_remaining_branches_summary(
         capture=True,
     )
     for line in output.splitlines():
-        if len(parts := line.split("\t", 2)) != 3 or parts[0] in excluded:  # noqa: PLR2004  # branch, age, subject
+        if (
+            len(parts := line.split("\t", 2)) != 3  # ruff: ignore[magic-value-comparison]  # branch, age, subject
+            or parts[0] in excluded
+        ):
             continue
         branch, when, message = parts
         table.add_row(f"* {branch}" if branch == current_branch else f"  {branch}", when, message)

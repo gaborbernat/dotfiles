@@ -1,9 +1,9 @@
-import subprocess
+import subprocess  # ruff: ignore[suspicious-subprocess-import]  # tests construct subprocess results and errors
 from typing import TYPE_CHECKING
 
 import pytest
 
-from _github import get_auth
+from _github import get_auth  # ruff: ignore[import-private-name]  # this file tests the shared helper
 
 if TYPE_CHECKING:
     from unittest.mock import MagicMock
@@ -11,17 +11,18 @@ if TYPE_CHECKING:
     from pytest_mock import MockerFixture
 
 
-@pytest.fixture(autouse=True)
+@pytest.fixture
 def inject_into_ssl(mocker: MockerFixture) -> MagicMock:
     return mocker.patch("_github.inject_into_ssl", autospec=True)
 
 
+@pytest.mark.usefixtures("inject_into_ssl")
 def test_get_auth_prefers_environment(monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture) -> None:
     monkeypatch.setenv("GITHUB_TOKEN", "environment-token")
     gh = mocker.patch("_github.subprocess.run", autospec=True)
 
     assert (auth := get_auth()) is not None
-    assert auth.token == "environment-token"  # noqa: S105  # test token
+    assert auth.token == "environment-token"  # ruff: ignore[hardcoded-password-string]  # test token
     gh.assert_not_called()
 
 
@@ -32,6 +33,7 @@ def test_get_auth_prefers_environment(monkeypatch: pytest.MonkeyPatch, mocker: M
         pytest.param("\n", None, id="empty gh output"),
     ],
 )
+@pytest.mark.usefixtures("inject_into_ssl")
 def test_get_auth_uses_gh_auth(
     monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture, stdout: str, expected: str | None
 ) -> None:
@@ -49,6 +51,7 @@ def test_get_auth_uses_gh_auth(
         pytest.param(subprocess.CalledProcessError(1, ("gh", "auth", "token")), id="gh not authenticated"),
     ],
 )
+@pytest.mark.usefixtures("inject_into_ssl")
 def test_get_auth_handles_gh_failure(
     monkeypatch: pytest.MonkeyPatch, mocker: MockerFixture, error: OSError | subprocess.CalledProcessError
 ) -> None:

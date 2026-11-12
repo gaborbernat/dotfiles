@@ -1,7 +1,7 @@
 """github.com access shared by the scripts in this directory."""
 
 import os
-import subprocess
+import subprocess  # ruff: ignore[suspicious-subprocess-import]  # gh CLI is the token fallback
 from typing import Final
 
 from github.Auth import Token

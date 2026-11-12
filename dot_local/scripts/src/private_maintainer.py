@@ -21,7 +21,7 @@ from rich.table import Table
 from rich.text import Text
 from rich_argparse import RichHelpFormatter
 
-from _github import get_auth
+from _github import get_auth  # ruff: ignore[import-private-name]  # standalone scripts share this helper
 
 if TYPE_CHECKING:
     from github.Auth import Token

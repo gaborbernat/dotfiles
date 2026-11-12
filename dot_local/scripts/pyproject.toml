@@ -24,21 +24,22 @@ line-length = 120
 format.preview = true
 format.docstring-code-line-length = 120
 format.docstring-code-format = true
+lint.preview = true
 lint.select = ["ALL"]
 lint.ignore = [
-  "COM812", # conflicts with formatter
-  "CPY",    # personal scripts have no copyright headers
-  "D1",     # application scripts have no public API docstrings
-  "D203",   # incompatible with D211
-  "D212",   # incompatible with D213
+  "missing-trailing-comma",            # conflicts with formatter
+  "CPY",                               # personal scripts have no copyright headers
+  "D1",                                # application scripts have no public API docstrings
+  "incorrect-blank-line-before-class", # conflicts with blank-line-before-class
+  "multi-line-summary-first-line",     # conflicts with multi-line-summary-second-line
 ]
 lint.per-file-ignores."src/*.py" = [
-  "S603", # installed tools receive arguments without a shell
-  "S606", # docker uses argv through execvp
-  "S607", # installed tools resolve from PATH
+  "subprocess-without-shell-equals-true", # installed tools receive arguments without a shell
+  "start-process-with-no-shell",          # docker uses argv through execvp
+  "start-process-with-partial-path",      # installed tools resolve from PATH
 ]
 lint.per-file-ignores."tests/*.py" = [
-  "S101", # pytest uses assertions
+  "assert", # pytest uses assertions
 ]
 lint.isort = { known-first-party = ["tests"] }
 

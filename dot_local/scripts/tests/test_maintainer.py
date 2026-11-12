@@ -1,4 +1,5 @@
 from io import StringIO
+from itertools import starmap
 from unittest.mock import MagicMock
 
 import pytest
@@ -115,10 +116,8 @@ def test_check_pr_status_workflow_runs(
     workflow_runs: list[tuple[int, int, int, str, str | None]],
     expected: tuple[str, str] | None,
 ) -> None:
-    pr.base.repo.get_commit.return_value.get_check_runs.return_value = [
-        _action_check_run(run_id, suite_id, conclusion, name) for run_id, suite_id, conclusion, name in check_runs
-    ]
-    pr.base.repo.get_workflow_runs.return_value = [_workflow_run(*workflow_run) for workflow_run in workflow_runs]
+    pr.base.repo.get_commit.return_value.get_check_runs.return_value = list(starmap(_action_check_run, check_runs))
+    pr.base.repo.get_workflow_runs.return_value = list(starmap(_workflow_run, workflow_runs))
 
     assert check_pr_status(pr) == expected
 
