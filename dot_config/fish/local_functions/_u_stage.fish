@@ -35,9 +35,6 @@ function _u_stage -a name
             and _u_run cargo install-update \
                 (cargo install-update -l 2>/dev/null | string match -rv cargo-nextest | awk "NR>1 && NF {print \$1}")
             and _u_run cargo install --locked cargo-nextest
-            and if test -f /etc/fedora-release
-                _u_run update_fedora_extras oxidecord
-            end
         case npm
             set -l outdated (npm outdated -g --parseable 2>/dev/null | awk -F: '{print $4}')
             if set -q outdated[1]

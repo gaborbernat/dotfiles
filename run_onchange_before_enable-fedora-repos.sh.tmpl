@@ -15,6 +15,9 @@ sudo dnf copr enable -y blakegardner/xremap
 sudo dnf copr enable -y jdxcode/mise
 sudo dnf install -y fedora-workstation-repositories
 sudo dnf config-manager enable rpmfusion-nonfree-steam
+if ! rpm -q rpmfusion-nonfree-release >/dev/null 2>&1; then
+    sudo dnf install -y "https://mirrors.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-$(rpm -E %fedora).noarch.rpm"
+fi
 sudo bash {{ joinPath .chezmoi.sourceDir "scripts/fedora/install-insync.sh" | quote }}
 
 if ! rpm -q chatgpt >/dev/null 2>&1; then

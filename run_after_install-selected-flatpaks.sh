@@ -24,4 +24,8 @@ if ((${#missing[@]} > 0)); then
     sudo flatpak install --system -y flathub "${missing[@]}"
 fi
 
+if flatpak info app.legcord.Legcord >/dev/null 2>&1; then
+    sudo flatpak uninstall --system -y app.legcord.Legcord
+fi
+
 flatpak permission-set background background app.bluebubbles.BlueBubbles yes
