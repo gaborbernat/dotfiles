@@ -80,6 +80,7 @@ libnotify
 libgda
 libgda-sqlite
 libdrm-devel
+libxkbcommon-x11-devel
 ncdu
 ncurses
 nmap-ncat

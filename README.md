@@ -76,7 +76,7 @@ The macOS Brewfile also installs [BetterCmdTab](https://bettercmdtab.app/), [Dis
 
 Both systems use [JetBrains Mono](https://www.jetbrains.com/lp/mono/) fonts.
 
-Fedora adds [Astra Monitor](https://github.com/AstraExt/astra-monitor),
+Fedora adds [Oxidecord](https://github.com/s1099/oxidecord), [Astra Monitor](https://github.com/AstraExt/astra-monitor),
 [Dash to Panel](https://github.com/home-sweet-gnome/dash-to-panel),
 [Copyous](https://extensions.gnome.org/extension/8834/copyous/), [LocalSend](https://localsend.org/),
 [Gradia](https://apps.gnome.org/Gradia/), [Bazecor](https://github.com/Dygmalab/Bazecor),

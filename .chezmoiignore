@@ -53,6 +53,7 @@ set-fedora-fish-shell.sh
 install-kooha.sh
 install-rustdesk.sh
 install-ghostty.sh
+install-oxidecord.sh
 install-tuxtalk.sh
 install-selected-flatpaks.sh
 install-streamcontroller-icons.sh
