@@ -1,6 +1,6 @@
 # Homebrew baseline for every macOS machine. List leaf packages only; brew installs their dependencies.
 # A private chezmoi source adds entries in ~/.local/share/chezmoi-private/Brewfile and drops public ones listed in
-# Brewfile.skip (legcord and opencode on the work machine); the brew-bundle script merges them.
+# Brewfile.skip (opencode and others on the work machine); the brew-bundle script merges them.
 
 tap "anomalyco/tap"
 brew "atuin"            # shell history search
@@ -97,7 +97,6 @@ cask "iina"                      # video player
 cask "insta360-link-controller"  # webcam control
 cask "jetbrains-toolbox"         # IDE manager
 cask "launchcontrol"             # launchd manager
-cask "legcord"                   # Discord client (private may skip)
 cask "logi-options+"             # Logitech mouse/keyboard settings
 cask "path-finder"               # file manager
 cask "rode-central"              # RODE audio device control

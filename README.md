@@ -70,9 +70,8 @@ install sources. These links cover the desktop apps and frequently used CLI tool
 
 The macOS Brewfile also installs [BetterCmdTab](https://bettercmdtab.app/), [Discord](https://discord.com/),
 [Element](https://element.io/), [Insta360 Link Controller](https://www.insta360.com/),
-[LaunchControl](https://www.soma-zone.com/LaunchControl/), [Legcord](https://github.com/Legcord/Legcord),
-[Path Finder](https://www.cocoatech.io/), [RØDE Central](https://rode.com/en-us/apps/RODE-central),
-[Simple Comic](https://github.com/MaddTheSane/Simple-Comic),
+[LaunchControl](https://www.soma-zone.com/LaunchControl/), [Path Finder](https://www.cocoatech.io/),
+[RØDE Central](https://rode.com/en-us/apps/RODE-central), [Simple Comic](https://github.com/MaddTheSane/Simple-Comic),
 [Keystroke Pro](https://appahead.studio/apps/keystroke-pro/), and [Magnet](https://magnet.crowdcafe.com/).
 
 Both systems use [JetBrains Mono](https://www.jetbrains.com/lp/mono/) fonts.
