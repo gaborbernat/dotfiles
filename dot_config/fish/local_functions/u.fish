@@ -1,5 +1,5 @@
 function u -d "Update all development tools (one mprocs tab per tool)"
-    set -l stages uv rust cargo npm fisher docker
+    set -l stages uv rust npm fisher docker
     if test (uname) = Darwin
         set --prepend stages brew casks
     else if command -q dnf

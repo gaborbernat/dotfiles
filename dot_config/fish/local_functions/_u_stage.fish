@@ -30,9 +30,9 @@ function _u_stage -a name
             _u_uv_inventory
             test $ok -eq 0
         case rust
+            # cargo runs after rustup: while rustup swaps the toolchain, its cargo proxy has no binary to run.
             _u_run rustup update
-        case cargo
-            _u_run cargo install-update \
+            and _u_run cargo install-update \
                 (cargo install-update -l 2>/dev/null | string match -rv cargo-nextest | awk "NR>1 && NF {print \$1}")
             and _u_run cargo install --locked cargo-nextest
         case npm
