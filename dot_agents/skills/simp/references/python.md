@@ -38,5 +38,10 @@ covers argument-count caps, `TYPE_CHECKING` moves, syntax upgrades, exception-me
 3. **Pytest mechanics.** Put shared setup in `pytest` fixtures and mock through `pytest-mock`'s `mocker`, preferring
    `mocker.create_autospec(Target)`; for a bare callable, autospec a typed stub function.
 
+4. **Module-level regexes.** A pattern used inside a function is compiled once into a module constant, even with one
+   call site, so no call pays for `re`'s cache lookup or, once the bounded cache evicts it, a full recompile:
+   `_IMAGE_NAME: Final[re.Pattern[str]] = re.compile(r"...", re.VERBOSE)`, then `_IMAGE_NAME.fullmatch(s)`. A pattern
+   with no metacharacters is a `str` method instead.
+
 Keep all other house conventions (type annotations everywhere, one assertion-concept per test) intact while applying
 these.
