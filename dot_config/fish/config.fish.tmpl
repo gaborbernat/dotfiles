@@ -19,10 +19,9 @@ set -gx NPM_CONFIG_PREFIX $HOME/.local
 set -q ET_VERSION; and set -gx BROWSER $HOME/.local/libexec/et-open/open
 set -gx DEBUG_PRINT_LIMIT 1000000
 set -gx MANPAGER "sh -c 'col -bx | bat -l man -p'"
-# /tmp is a small disk; long agent sessions and test runs filled it.
+# /tmp is a small disk; long Claude Code sessions filled it with task output.
 set -gx CLAUDE_CODE_TMPDIR $HOME/.cache/claude-tmp
-set -gx TMPDIR $HOME/.cache/claude-tmp
-mkdir -p $TMPDIR
+mkdir -p $CLAUDE_CODE_TMPDIR
 
 # --move keeps nested shells from stacking duplicates, and missing directories are skipped.
 {{- if eq .chezmoi.os "darwin" }}
