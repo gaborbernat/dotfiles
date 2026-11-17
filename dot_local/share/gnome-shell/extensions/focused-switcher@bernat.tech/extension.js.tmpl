@@ -89,7 +89,9 @@ export default class FocusedSwitcherExtension extends Extension {
             };
             const shownId = window.connect('shown', () => {
                 clearPending();
-                if (!window.get_transient_for() && !window.is_fullscreen() && window.get_monitor() !== monitorIndex)
+                // gamescope starts fullscreen on the pointer's monitor, not the one Big Picture launched it from
+                const movable = !window.is_fullscreen() || window.get_wm_class() === 'gamescope';
+                if (!window.get_transient_for() && movable && window.get_monitor() !== monitorIndex)
                     window.move_to_monitor(monitorIndex);
                 if (global.display.focus_window === window) this._focusMonitor = window.get_monitor();
             });
