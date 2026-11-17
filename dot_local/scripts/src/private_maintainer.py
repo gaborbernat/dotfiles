@@ -8,6 +8,7 @@
 # ]
 # ///
 
+import re
 import webbrowser
 from argparse import ArgumentParser, Namespace
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -162,7 +163,7 @@ def scan_single_repository(
     failed_prs: Final[list[tuple[str, PullRequest, str, str | None]]] = []
     pr_titles: Final[list[str]] = []
     for pr in repo.get_pulls(state="open", sort="created", direction="asc"):
-        if pr.draft or pr.user.type != "Bot" or pr.user.login not in {"dependabot[bot]", "pre-commit-ci[bot]"}:
+        if pr.draft or pr.user.type != "Bot" or not _UPDATE_BOT.fullmatch(pr.user.login):
             continue
         if (failure := check_pr_status(pr)) is None:
             mergeable_prs.append((repo.name, pr, pr.head.sha))
@@ -170,6 +171,19 @@ def scan_single_repository(
             failed_prs.append((repo.name, pr, *failure))
         pr_titles.append(f"#{pr.number} {pr.title}")
     return mergeable_prs, failed_prs, pr_titles, repo.name
+
+
+_UPDATE_BOT: Final[re.Pattern[str]] = re.compile(
+    r"""
+    (?:
+        dependabot
+        | pre-commit-ci
+        | [\w-]+-release  # each project's own GitHub App, which opens lock refresh and release PRs
+    )
+    \[bot\]  # GitHub suffixes every App login
+    """,
+    re.VERBOSE,
+)
 
 
 def check_pr_status(pr: PullRequest) -> tuple[str, str | None] | None:
@@ -302,4 +316,9 @@ def open_failed_prs(console: Console, failed_prs: list[tuple[str, PullRequest, s
 if __name__ == "__main__":
     main()
 
-__all__ = ["check_pr_status", "display_failed_prs", "display_mergeable_prs"]
+__all__ = [
+    "check_pr_status",
+    "display_failed_prs",
+    "display_mergeable_prs",
+    "scan_single_repository",
+]

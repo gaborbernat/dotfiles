@@ -1,11 +1,15 @@
 from io import StringIO
 from itertools import starmap
+from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
 from rich.console import Console
 
-from private_maintainer import check_pr_status, display_failed_prs, display_mergeable_prs
+from private_maintainer import check_pr_status, display_failed_prs, display_mergeable_prs, scan_single_repository
+
+if TYPE_CHECKING:
+    from pytest_mock import MockerFixture
 
 
 @pytest.fixture
@@ -168,3 +172,45 @@ def _workflow_run(run_id: int, suite_id: int, workflow_id: int, status: str, con
     )
     workflow.configure_mock(name="PR gate")
     return workflow
+
+
+@pytest.mark.parametrize(
+    "login",
+    [
+        pytest.param("dependabot[bot]", id="dependabot"),
+        pytest.param("pre-commit-ci[bot]", id="pre-commit-ci"),
+        pytest.param("gaborbernat-mdformat-hugo-release[bot]", id="release-app"),
+    ],
+)
+def test_scan_single_repository_lists_update_bot(mocker: MockerFixture, pr: MagicMock, login: str) -> None:
+    pr.configure_mock(draft=False, **{"user.login": login, "user.type": "Bot"})
+    _repository(mocker, pr)
+
+    mergeable, _, titles, _ = scan_single_repository(mocker.sentinel.auth, "owner/repo")
+
+    assert (mergeable, titles) == ([("repo", pr, "head")], ["#1 Update"])
+
+
+def _repository(mocker: MockerFixture, pr: MagicMock) -> None:
+    repo = mocker.patch("private_maintainer.Github", autospec=True).return_value.get_repo.return_value
+    repo.configure_mock(name="repo", **{"get_pulls.return_value": [pr]})
+    mocker.patch("private_maintainer.check_pr_status", autospec=True, return_value=None)
+
+
+@pytest.mark.parametrize(
+    ("login", "user_type", "draft"),
+    [
+        pytest.param("release-drafter[bot]", "Bot", False, id="other-bot"),
+        pytest.param("someone-release[bot]", "User", False, id="user-named-like-app"),
+        pytest.param("dependabot[bot]", "Bot", True, id="draft"),
+    ],
+)
+def test_scan_single_repository_skips_other_prs(
+    mocker: MockerFixture, pr: MagicMock, login: str, user_type: str, *, draft: bool
+) -> None:
+    pr.configure_mock(draft=draft, **{"user.login": login, "user.type": user_type})
+    _repository(mocker, pr)
+
+    mergeable, failed, titles, _ = scan_single_repository(mocker.sentinel.auth, "owner/repo")
+
+    assert (mergeable, failed, titles) == ([], [], [])
