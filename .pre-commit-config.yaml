@@ -65,7 +65,7 @@ repos:
         priority: 4
 
   - repo: https://github.com/biomejs/pre-commit
-    rev: v2.6.4
+    rev: v2.6.6
     hooks:
       # vicinae and Stream Deck rewrite their own JSON, so formatting it only churns the diff
       - id: biome-check
