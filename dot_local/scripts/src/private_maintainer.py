@@ -85,9 +85,9 @@ def run(console: Console, auth: Token, opts: Options) -> None:
 def scan_repositories(
     console: Console, auth: Token
 ) -> tuple[list[tuple[str, PullRequest, str]], list[tuple[str, PullRequest, str, str | None]]]:
-    # Mirrors the primary and maintenance projects in bernat-tech/data/projects.yaml (presentations excluded);
-    # keep both in sync. toml-fmt covers its monorepo components; pyproject-fmt and tox-toml-fmt are listed
-    # separately because the pre-commit hook mirrors are their own repos and get their own bot PRs.
+    # Every repository linked from https://bernat.tech/oss, plus pytest-memray and the shared github-workflows, which
+    # the page leaves out; keep them in sync. toml-fmt covers its monorepo components; pyproject-fmt and tox-toml-fmt
+    # are listed separately because the pre-commit hook mirrors are their own repos and get their own bot PRs.
     repositories: Final = (
         "tox-dev/platformdirs",
         "tox-dev/filelock",
@@ -100,6 +100,7 @@ def scan_repositories(
         "tox-dev/sphinx-autodoc-typehints",
         "tox-dev/pre-commit-uv",
         "tox-dev/action-pre-commit-uv",
+        "tox-dev/github-workflows",
         "tox-dev/tox-uv",
         "tox-dev/toml-fmt",
         "tox-dev/pyproject-fmt",
@@ -128,6 +129,9 @@ def scan_repositories(
         "gaborbernat/ropi_jegyzet_latex",
         "gaborbernat/dotfiles",
         "gaborbernat/gaborbernat",
+        "gaborbernat/simplint",
+        "tox-dev/python-sbom",
+        "quotaline/quotaline",
     )
     with console.status("Searching for bot PRs..."):
         bot_prs: Final = find_bot_prs(Github(auth=auth), repositories)
