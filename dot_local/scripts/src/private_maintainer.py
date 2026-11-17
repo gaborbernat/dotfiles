@@ -11,6 +11,7 @@
 import re
 import webbrowser
 from argparse import ArgumentParser, Namespace
+from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import TYPE_CHECKING, Final
 
@@ -25,6 +26,8 @@ from rich_argparse import RichHelpFormatter
 from _github import get_auth  # ruff: ignore[import-private-name]  # standalone scripts share this helper
 
 if TYPE_CHECKING:
+    from collections.abc import Iterable, Sequence
+
     from github.Auth import Token
     from github.CheckRun import CheckRun
     from github.CommitStatus import CommitStatus
@@ -126,64 +129,77 @@ def scan_repositories(
         "gaborbernat/dotfiles",
         "gaborbernat/gaborbernat",
     )
+    with console.status("Searching for bot PRs..."):
+        bot_prs: Final = find_bot_prs(Github(auth=auth), repositories)
     mergeable_prs: Final[list[tuple[str, PullRequest, str]]] = []
     failed_prs: Final[list[tuple[str, PullRequest, str, str | None]]] = []
     with (
         Progress(SpinnerColumn(), TextColumn("[progress.description]{task.description}"), console=console) as progress,
-        ThreadPoolExecutor(max_workers=10) as executor,
+        ThreadPoolExecutor(max_workers=16) as executor,
     ):
-        task = progress.add_task("Scanning repositories...", total=len(repositories))
-        future_to_repo = {
-            executor.submit(scan_single_repository, auth, repo_path): repo_path for repo_path in repositories
-        }
-        for future in as_completed(future_to_repo):
+        task = progress.add_task("Checking bot PRs...", total=len(bot_prs))
+        future_to_pr = {executor.submit(_check_single_pr, auth, *bot_pr): bot_pr for bot_pr in bot_prs}
+        for future in as_completed(future_to_pr):
             try:
-                repo_mergeable, repo_failed, pr_titles, repo_name = future.result()
+                pr, failure = future.result()
             except (GithubException, OSError, ValueError) as exc:
-                console.print(f"[yellow]⚠ {future_to_repo[future]}: Could not fetch PRs ({exc})[/yellow]")
+                repo_path, number = future_to_pr[future]
+                console.print(f"[yellow]⚠ {repo_path}#{number}: Could not check PR ({exc})[/yellow]")
             else:
-                mergeable_prs.extend(repo_mergeable)
-                failed_prs.extend(repo_failed)
-                if pr_titles:
-                    console.print(
-                        f"[green]✓[/green] {repo_name}: {len(pr_titles)} open {'PR' if len(pr_titles) == 1 else 'PRs'}"
-                    )
-                    for title in pr_titles:
-                        console.print(f"  [dim]{title}[/dim]")
+                if failure is None:
+                    mergeable_prs.append((pr.base.repo.name, pr, pr.head.sha))
+                else:
+                    failed_prs.append((pr.base.repo.name, pr, *failure))
+                console.print(f"[green]✓[/green] {pr.base.repo.name}#{pr.number} [dim]{pr.title}[/dim]")
             progress.advance(task)
-    return mergeable_prs, failed_prs
+    # Threads finish in any order; sort so the tables read the same on every run
+    return sorted(mergeable_prs, key=_repo_and_number), sorted(failed_prs, key=_repo_and_number)
 
 
-def scan_single_repository(
-    auth: Token, repo_path: str
-) -> tuple[list[tuple[str, PullRequest, str]], list[tuple[str, PullRequest, str, str | None]], list[str], str]:
-    # A client per thread, since PyGithub sessions are not safe to share across threads
-    repo: Final = Github(auth=auth).get_repo(repo_path)
-    mergeable_prs: Final[list[tuple[str, PullRequest, str]]] = []
-    failed_prs: Final[list[tuple[str, PullRequest, str, str | None]]] = []
-    pr_titles: Final[list[str]] = []
-    for pr in repo.get_pulls(state="open", sort="created", direction="asc"):
-        if pr.draft or pr.user.type != "Bot" or not _UPDATE_BOT.fullmatch(pr.user.login):
-            continue
-        if (failure := check_pr_status(pr)) is None:
-            mergeable_prs.append((repo.name, pr, pr.head.sha))
-        else:
-            failed_prs.append((repo.name, pr, *failure))
-        pr_titles.append(f"#{pr.number} {pr.title}")
-    return mergeable_prs, failed_prs, pr_titles, repo.name
+def _repo_and_number(entry: tuple[str, PullRequest, *tuple[str | None, ...]]) -> tuple[str, int]:
+    return entry[0], entry[1].number
+
+
+def find_bot_prs(client: Github, repositories: Iterable[str]) -> list[tuple[str, int]]:
+    # One search across every repository replaces a pull listing per repository; the index lags by seconds at most
+    query: Final = " ".join(("is:pr is:open draft:false sort:created-asc", *(f"repo:{repo}" for repo in repositories)))
+    search_query: Final[str] = """
+query($query: String!, $cursor: String) {
+  search(query: $query, type: ISSUE, first: 100, after: $cursor) {
+    pageInfo { hasNextPage endCursor }
+    nodes { ... on PullRequest { number author { __typename login } repository { nameWithOwner } } }
+  }
+}
+"""
+    bot_prs: Final[list[tuple[str, int]]] = []
+    cursor: str | None = None
+    while True:
+        _, data = client.requester.graphql_query(search_query, {"query": query, "cursor": cursor})
+        search = data["data"]["search"]
+        bot_prs.extend(
+            (node["repository"]["nameWithOwner"], node["number"])
+            for node in search["nodes"]
+            if (author := node["author"]) and author["__typename"] == "Bot" and _UPDATE_BOT.fullmatch(author["login"])
+        )
+        if not search["pageInfo"]["hasNextPage"]:
+            return bot_prs
+        cursor = search["pageInfo"]["endCursor"]
 
 
 _UPDATE_BOT: Final[re.Pattern[str]] = re.compile(
     r"""
-    (?:
-        dependabot
-        | pre-commit-ci
-        | [\w-]+-release  # each project's own GitHub App, which opens lock refresh and release PRs
-    )
-    \[bot\]  # GitHub suffixes every App login
+    dependabot
+    | pre-commit-ci
+    | [\w-]+-release  # each project's own GitHub App, which opens lock refresh and release PRs
     """,
     re.VERBOSE,
 )
+
+
+def _check_single_pr(auth: Token, repo_path: str, number: int) -> tuple[PullRequest, tuple[str, str | None] | None]:
+    # A client per thread, since PyGithub sessions are not safe to share across threads; lazy skips the repo fetch
+    pr: Final = Github(auth=auth).get_repo(repo_path, lazy=True).get_pull(number)
+    return pr, check_pr_status(pr)
 
 
 def check_pr_status(pr: PullRequest) -> tuple[str, str | None] | None:
@@ -264,12 +280,25 @@ def display_mergeable_prs(console: Console, mergeable_prs: list[tuple[str, PullR
     console.print()
 
 
-def process_mergeable_prs(console: Console, opts: Options, mergeable_prs: list[tuple[str, PullRequest, str]]) -> None:
-    for repo_name, pr, checked_sha in mergeable_prs:
-        if opts.dry_run:
+def process_mergeable_prs(
+    console: Console, opts: Options, mergeable_prs: Sequence[tuple[str, PullRequest, str]]
+) -> None:
+    if opts.dry_run:
+        for repo_name, pr, _ in mergeable_prs:
             console.print(f"[dim][DRY RUN] Would approve and merge {repo_name}#{pr.number}[/dim]")
-        else:
-            approve_and_merge(console, repo_name, pr, checked_sha)
+        return
+    by_repo: Final[dict[str, list[tuple[str, PullRequest, str]]]] = defaultdict(list)
+    for entry in sorted(mergeable_prs, key=lambda item: item[1].number):
+        by_repo[entry[0]].append(entry)
+    # Merging one PR can leave a sibling in the same repository behind, so each repository merges in order
+    with ThreadPoolExecutor(max_workers=16) as executor:
+        for future in [executor.submit(_merge_in_order, console, entries) for entries in by_repo.values()]:
+            future.result()
+
+
+def _merge_in_order(console: Console, entries: list[tuple[str, PullRequest, str]]) -> None:
+    for repo_name, pr, checked_sha in entries:
+        approve_and_merge(console, repo_name, pr, checked_sha)
 
 
 def approve_and_merge(console: Console, repo_name: str, pr: PullRequest, checked_sha: str) -> None:
@@ -317,8 +346,10 @@ if __name__ == "__main__":
     main()
 
 __all__ = [
+    "Options",
     "check_pr_status",
     "display_failed_prs",
     "display_mergeable_prs",
-    "scan_single_repository",
+    "find_bot_prs",
+    "process_mergeable_prs",
 ]

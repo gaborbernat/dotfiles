@@ -4,9 +4,18 @@ from typing import TYPE_CHECKING
 from unittest.mock import MagicMock
 
 import pytest
+from github import Github
+from github.PullRequest import PullRequest
 from rich.console import Console
 
-from private_maintainer import check_pr_status, display_failed_prs, display_mergeable_prs, scan_single_repository
+from private_maintainer import (
+    Options,
+    check_pr_status,
+    display_failed_prs,
+    display_mergeable_prs,
+    find_bot_prs,
+    process_mergeable_prs,
+)
 
 if TYPE_CHECKING:
     from pytest_mock import MockerFixture
@@ -174,43 +183,69 @@ def _workflow_run(run_id: int, suite_id: int, workflow_id: int, status: str, con
     return workflow
 
 
-@pytest.mark.parametrize(
-    "login",
-    [
-        pytest.param("dependabot[bot]", id="dependabot"),
-        pytest.param("pre-commit-ci[bot]", id="pre-commit-ci"),
-        pytest.param("gaborbernat-mdformat-hugo-release[bot]", id="release-app"),
-    ],
-)
-def test_scan_single_repository_lists_update_bot(mocker: MockerFixture, pr: MagicMock, login: str) -> None:
-    pr.configure_mock(draft=False, **{"user.login": login, "user.type": "Bot"})
-    _repository(mocker, pr)
+def test_find_bot_prs_keeps_update_bots_across_pages(mocker: MockerFixture) -> None:
+    client = mocker.create_autospec(Github, instance=True)
+    client.requester.graphql_query.side_effect = [
+        (
+            {},
+            {
+                "data": {
+                    "search": {
+                        "pageInfo": {"hasNextPage": True, "endCursor": "c1"},
+                        "nodes": [
+                            _node(1, "dependabot"),
+                            _node(2, "pre-commit-ci"),
+                            _node(3, "release-drafter"),
+                            {"number": 4, "author": None, "repository": {"nameWithOwner": "o/r"}},
+                        ],
+                    }
+                }
+            },
+        ),
+        (
+            {},
+            {
+                "data": {
+                    "search": {
+                        "pageInfo": {"hasNextPage": False, "endCursor": None},
+                        "nodes": [_node(5, "gaborbernat-mdformat-hugo-release"), _node(6, "someone-release", "User")],
+                    }
+                }
+            },
+        ),
+    ]
 
-    mergeable, _, titles, _ = scan_single_repository(mocker.sentinel.auth, "owner/repo")
+    found = find_bot_prs(client, ["o/r", "o/s"])
 
-    assert (mergeable, titles) == ([("repo", pr, "head")], ["#1 Update"])
-
-
-def _repository(mocker: MockerFixture, pr: MagicMock) -> None:
-    repo = mocker.patch("private_maintainer.Github", autospec=True).return_value.get_repo.return_value
-    repo.configure_mock(name="repo", **{"get_pulls.return_value": [pr]})
-    mocker.patch("private_maintainer.check_pr_status", autospec=True, return_value=None)
+    query = "is:pr is:open draft:false sort:created-asc repo:o/r repo:o/s"
+    assert (found, [call.args[1] for call in client.requester.graphql_query.call_args_list]) == (
+        [("o/r", 1), ("o/r", 2), ("o/r", 5)],
+        [{"query": query, "cursor": None}, {"query": query, "cursor": "c1"}],
+    )
 
 
-@pytest.mark.parametrize(
-    ("login", "user_type", "draft"),
-    [
-        pytest.param("release-drafter[bot]", "Bot", False, id="other-bot"),
-        pytest.param("someone-release[bot]", "User", False, id="user-named-like-app"),
-        pytest.param("dependabot[bot]", "Bot", True, id="draft"),
-    ],
-)
-def test_scan_single_repository_skips_other_prs(
-    mocker: MockerFixture, pr: MagicMock, login: str, user_type: str, *, draft: bool
-) -> None:
-    pr.configure_mock(draft=draft, **{"user.login": login, "user.type": user_type})
-    _repository(mocker, pr)
+def _node(number: int, login: str, typename: str = "Bot") -> dict[str, int | dict[str, str]]:
+    return {
+        "number": number,
+        "author": {"__typename": typename, "login": login},
+        "repository": {"nameWithOwner": "o/r"},
+    }
 
-    mergeable, failed, titles, _ = scan_single_repository(mocker.sentinel.auth, "owner/repo")
 
-    assert (mergeable, failed, titles) == ([], [], [])
+def test_process_mergeable_prs_merges_each_repository_in_number_order(mocker: MockerFixture, console: Console) -> None:
+    merged: list[tuple[str, int]] = []
+    approve = mocker.patch(
+        "private_maintainer.approve_and_merge",
+        autospec=True,
+        side_effect=lambda _console, repo_name, pr, _sha: merged.append((repo_name, pr.number)),
+    )
+    prs = {number: mocker.create_autospec(PullRequest, instance=True, number=number) for number in (1, 2, 3)}
+    entries = [("a", prs[3], "s3"), ("b", prs[2], "s2"), ("a", prs[1], "s1")]
+
+    process_mergeable_prs(console, Options(dry_run=False, verbose=False), entries)
+
+    assert (approve.call_count, [entry for entry in merged if entry[0] == "a"], ("b", 2) in merged) == (
+        3,
+        [("a", 1), ("a", 3)],
+        True,
+    )
