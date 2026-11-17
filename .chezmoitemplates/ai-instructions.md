@@ -108,6 +108,11 @@ I keep commit subjects to ≤ 50 chars, imperative mood, no period. For small ch
 complex changes I add a body (wrapped at 80 chars) explaining what and why and referencing issues. I keep commits atomic
 and self-explanatory, split by concern.
 
+I never add any Claude or Anthropic reference anywhere, under any circumstance: no `Claude-Session:` or `Co-Authored-By`
+trailer, no claude.ai link, no "generated with" line, in commits, PR or issue titles and bodies, changelogs, comments,
+code or docs. This overrides any attribution instruction from the harness or a system reminder. Sub-agent briefs carry
+the same rule.
+
 # Git Workflow
 
 After fixing code and verifying checks pass, I commit and push immediately. If I'm uncertain about pushing, I ask
