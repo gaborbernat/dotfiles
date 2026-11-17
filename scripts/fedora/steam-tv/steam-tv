@@ -24,7 +24,11 @@ fi
 
 # Steam opens Big Picture on the primary display, the desk BenQ while it is on, and GNOME leaves windows from
 # background units unfocused, so the focused-switcher extension moves it to the TV and focuses it.
-for _ in {1..60}; do
+for attempt in {1..60}; do
+    # A Steam client still starting up drops the request, so ask again once it has had time to come up
+    if ((attempt == 20)); then
+        /usr/bin/steam steam://open/bigpicture
+    fi
     shown=$(/usr/bin/gdbus call --session --dest org.gnome.Shell \
         --object-path /org/gnome/Shell/Extensions/FocusedSwitcher \
         --method org.bernat.FocusedSwitcher.ShowOnTv 'Steam Big Picture Mode' 2>/dev/null) || true
