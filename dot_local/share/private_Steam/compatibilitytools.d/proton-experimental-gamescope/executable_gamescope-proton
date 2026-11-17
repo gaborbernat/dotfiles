@@ -30,6 +30,10 @@ case $1 in
     # it; left on gamescope, Steam never sees the game and keeps the desktop layout
     # (https://github.com/ValveSoftware/gamescope/issues/835)
     run | waitforexitandrun)
+        # Steam runs these driver probes on every start; a fullscreen gamescope for each steals focus from its UI
+        if [[ ${2##*/} == d3ddriverquery*.exe ]]; then
+            exec "${container[@]}"
+        fi
         exec env -u LD_PRELOAD gamescope -W 3840 -H 2160 -f -- env LD_PRELOAD="${LD_PRELOAD:-}" "${container[@]}"
         ;;
     # Path lookups and other helper verbs have no window
