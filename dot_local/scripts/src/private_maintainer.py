@@ -197,8 +197,9 @@ _UPDATE_BOT: Final[re.Pattern[str]] = re.compile(
 
 
 def _check_single_pr(auth: Token, repo_path: str, number: int) -> tuple[PullRequest, tuple[str, str | None] | None]:
-    # A client per thread, since PyGithub sessions are not safe to share across threads; lazy skips the repo fetch
-    pr: Final = Github(auth=auth).get_repo(repo_path, lazy=True).get_pull(number)
+    # A client per thread, since PyGithub sessions are not safe to share across threads. Lazy skips fetching the repo
+    # and head commit, which only build URLs here, and full pages keep busy check-run lists to one request.
+    pr: Final = Github(auth=auth, lazy=True, per_page=100).get_repo(repo_path).get_pull(number)
     return pr, check_pr_status(pr)
 
 
