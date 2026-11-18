@@ -7,6 +7,9 @@ function _bgp_cancel --on-signal TERM
     set --global _bgp_cancelled
 end
 
+# A shell sitting in a deleted directory starts with an empty $PWD; dirname never reaches / from there.
+string match --quiet '/*' -- $PWD; or exit
+
 set --local contexts
 set --local search_dir $PWD
 set --local found_node false
