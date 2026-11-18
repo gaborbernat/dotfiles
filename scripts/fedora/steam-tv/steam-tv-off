@@ -1,17 +1,25 @@
 #!/usr/bin/bash
-# Exits Steam and turns the TV off once the last Xbox controller disconnects, unless a game is running.
+# Closes any game, exits Steam and turns the TV off once the paired Xbox controllers stay disconnected for a minute.
 set -euo pipefail
 
 # A Bluetooth controller drops and reconnects on its own, so only a disconnect that lasts counts
 sleep 60
-if grep -sqx @XBOX_VENDOR@ /sys/class/input/js*/device/id/vendor; then
-    exit 0
-fi
-# The player may reconnect, or carry on with keyboard and mouse
-if /usr/bin/pgrep --full 'reaper SteamLaunch' >/dev/null; then
-    exit 0
-fi
+# Ask BlueZ rather than look for joystick devices: while a game runs, Steam Input adds a virtual Xbox 360 pad
+IFS='|' read -r -a controllers <<<'@XBOX_CONTROLLERS@'
+for address in "${controllers[@]}"; do
+    info=$(/usr/bin/bluetoothctl info "${address}" || true)
+    if [[ ${info} == *$'\n\tConnected: yes'* ]]; then
+        exit 0
+    fi
+done
 
+# The controller is the only input used on the TV, so a game left running has no player
+if /usr/bin/pkill --full 'reaper SteamLaunch'; then
+    for _ in {1..15}; do
+        /usr/bin/pgrep --full 'reaper SteamLaunch' >/dev/null || break
+        sleep 1
+    done
+fi
 steam_users=$(/usr/bin/ps -C steam -o user:32= || true)
 for user in $(/usr/bin/sort -u <<<"${steam_users}" || true); do
     /usr/bin/systemctl --user --machine="${user}@" start steam-tv-off.service || true
