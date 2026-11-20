@@ -25,9 +25,13 @@ fi
 # Steam opens Big Picture on the primary display, the desk BenQ while it is on, and GNOME leaves windows from
 # background units unfocused, so the focused-switcher extension moves it to the TV and focuses it.
 for attempt in {1..60}; do
-    # A Steam client still starting up drops the request, so ask again once it has had time to come up
+    # A Steam client still starting up drops the request, so ask again once it has had time to come up. Until it
+    # writes its pid file, the launcher starts a second client instead, and the two fight over the UI cache lock.
     if ((attempt == 20)); then
-        /usr/bin/steam steam://open/bigpicture
+        steam_pid=$(cat "${HOME}/.steam/steam.pid" 2>/dev/null) || steam_pid=''
+        if [[ -n "${steam_pid}" && -d "/proc/${steam_pid}" ]]; then
+            /usr/bin/steam steam://open/bigpicture
+        fi
     fi
     shown=$(/usr/bin/gdbus call --session --dest org.gnome.Shell \
         --object-path /org/gnome/Shell/Extensions/FocusedSwitcher \
