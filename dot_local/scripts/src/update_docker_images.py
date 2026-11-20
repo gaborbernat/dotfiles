@@ -298,7 +298,7 @@ def registry_digest(image: str) -> tuple[str | None, str]:
     if shutil.which("crane"):
         command = ["crane", "digest", image]
     elif shutil.which("skopeo"):
-        command = ["skopeo", "inspect", "--format", "{{.Digest}}", f"docker://{image}"]
+        command = ["skopeo", "inspect", "--no-tags", "--format", "{{.Digest}}", f"docker://{image}"]
     else:
         return None, "crane or skopeo not installed"
     result: Final = subprocess.run(command, check=False, capture_output=True, text=True)
