@@ -128,9 +128,6 @@ Forks made for this setup:
 
 - [gaborbernat/ghostty](https://github.com/gaborbernat/ghostty): the `feat/gtk-undo-upstream` branch is the source of
   [PR #14653](https://github.com/ghostty-org/ghostty/pull/14653) and of `scripts/fedora/ghostty-undo.diff`.
-- [gaborbernat/TuxTalk](https://github.com/gaborbernat/TuxTalk): its GNOME Shell extension draws the recording indicator
-  at the monitor's own scale, next to the focused window. It runs from a local checkout; the dotfiles still install the
-  upstream RPM.
 
 ## Platforms
 
@@ -218,8 +215,8 @@ The `rustdesk-pin-primary` user service keeps [RustDesk](https://rustdesk.com/)'
 connection while the displays are off or unplugged no longer brings back the screen picker. GNOME refuses screen sharing
 while the session is locked.
 
-`chezmoi` installs the [TuxTalk](https://github.com/ronb1964/TuxTalk) release RPM once, after checking its SHA-256
-digest, and binds Super+D to toggle dictation; `TuxTalk`'s own updater installs later releases.
+`chezmoi` installs the latest [TuxTalk](https://github.com/ronb1964/TuxTalk) release RPM when the installed one is
+older, after checking its SHA-256 digest, and binds Super+D to toggle dictation.
 
 ### After the first apply
 
