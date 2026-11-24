@@ -65,7 +65,7 @@ repos:
         priority: 4
 
   - repo: https://github.com/biomejs/pre-commit
-    rev: v2.6.6
+    rev: v2.6.8
     hooks:
       # vicinae and Stream Deck rewrite their own JSON, so formatting it only churns the diff
       - id: biome-check
@@ -102,7 +102,7 @@ repos:
         priority: 3
 
   - repo: https://github.com/rvben/rumdl-pre-commit
-    rev: v0.3.2
+    rev: v0.3.4
     hooks:
       - id: rumdl
         args: [--config, "line-length = 120"]
