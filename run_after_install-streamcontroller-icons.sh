@@ -57,7 +57,6 @@ fi
 
 # Colors match the macOS Stream Deck profile; extra colors paint the icon's later paths
 symbolic_icons=(
-    'nav-home actions/go-home-symbolic.svg #8b949e'
     'nav-back actions/go-previous-symbolic.svg #8b949e'
     'nav-emoji emotes/face-smile-symbolic.svg #f6c343'
     'capture devices/camera-photo-symbolic.svg #ffffff #f85149'
