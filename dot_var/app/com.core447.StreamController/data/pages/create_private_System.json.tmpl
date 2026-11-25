@@ -170,35 +170,6 @@
                 }
             }
         },
-        "3x1": {
-            "states": {
-                "0": {
-                    "actions": [
-                        {
-                            "id": "com_core447_OSPlugin::RunCommand",
-                            "settings": {
-                                "command": "df -h --output=avail / | tail -n 1",
-                                "detached": false,
-                                "display_output": true,
-                                "auto_run": 60,
-                                "label_position": "center"
-                            }
-                        }
-                    ],
-                    "image-control-action": 0,
-                    "label-control-actions": [
-                        0,
-                        0,
-                        0
-                    ],
-                    "labels": {
-                        "bottom": {
-                            "text": "Disk free"
-                        }
-                    }
-                }
-            }
-        },
         "4x1": {
             "states": {
                 "0": {
@@ -345,6 +316,35 @@
             }
         },
         "4x2": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_OSPlugin::RunCommand",
+                            "settings": {
+                                "command": "df -h --output=avail / | tail -n 1",
+                                "detached": false,
+                                "display_output": true,
+                                "auto_run": 60,
+                                "label_position": "center"
+                            }
+                        }
+                    ],
+                    "image-control-action": 0,
+                    "label-control-actions": [
+                        0,
+                        0,
+                        0
+                    ],
+                    "labels": {
+                        "bottom": {
+                            "text": "Disk free"
+                        }
+                    }
+                }
+            }
+        },
+        "3x1": {
             "states": {
                 "0": {
                     "actions": [

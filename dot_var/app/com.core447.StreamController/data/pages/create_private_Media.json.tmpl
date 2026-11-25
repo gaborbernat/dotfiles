@@ -264,44 +264,6 @@
                 }
             }
         },
-        "4x1": {
-            "states": {
-                "0": {
-                    "actions": [
-                        {
-                            "id": "com_core447_OSPlugin::RunCommand",
-                            "settings": {
-                                "command": "{{ .chezmoi.homeDir }}/.local/bin/audio-cycle sink next",
-                                "detached": false,
-                                "display_output": false,
-                                "auto_run": 0,
-                                "label_position": "bottom"
-                            }
-                        },
-                        {
-                            "id": "com_core447_OSPlugin::RunCommand",
-                            "settings": {
-                                "command": "{{ .chezmoi.homeDir }}/.local/bin/audio-cycle sink",
-                                "detached": false,
-                                "display_output": true,
-                                "auto_run": 3,
-                                "label_position": "bottom"
-                            }
-                        }
-                    ],
-                    "image-control-action": null,
-                    "label-control-actions": [
-                        null,
-                        null,
-                        1
-                    ],
-                    "media": {
-                        "path": "{{ .chezmoi.homeDir }}/.local/share/streamcontroller-icons/audio-card.svg",
-                        "size": 0.78
-                    }
-                }
-            }
-        },
         "0x2": {
             "states": {
                 "0": {
@@ -419,6 +381,44 @@
             }
         },
         "4x2": {
+            "states": {
+                "0": {
+                    "actions": [
+                        {
+                            "id": "com_core447_OSPlugin::RunCommand",
+                            "settings": {
+                                "command": "{{ .chezmoi.homeDir }}/.local/bin/audio-cycle sink next",
+                                "detached": false,
+                                "display_output": false,
+                                "auto_run": 0,
+                                "label_position": "bottom"
+                            }
+                        },
+                        {
+                            "id": "com_core447_OSPlugin::RunCommand",
+                            "settings": {
+                                "command": "{{ .chezmoi.homeDir }}/.local/bin/audio-cycle sink",
+                                "detached": false,
+                                "display_output": true,
+                                "auto_run": 3,
+                                "label_position": "bottom"
+                            }
+                        }
+                    ],
+                    "image-control-action": null,
+                    "label-control-actions": [
+                        null,
+                        null,
+                        1
+                    ],
+                    "media": {
+                        "path": "{{ .chezmoi.homeDir }}/.local/share/streamcontroller-icons/audio-card.svg",
+                        "size": 0.78
+                    }
+                }
+            }
+        },
+        "4x1": {
             "states": {
                 "0": {
                     "actions": [
