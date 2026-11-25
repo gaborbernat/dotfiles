@@ -6,9 +6,12 @@ default_language_version:
 repos:
   - repo: builtin
     hooks:
+      # Stream Deck rewrites its profiles without a final newline, so fixing them drifts from the live files
       - id: trailing-whitespace
+        exclude: ^private_Library/.*StreamDeck/
         priority: 1
       - id: end-of-file-fixer
+        exclude: ^private_Library/.*StreamDeck/
         priority: 1
       - id: mixed-line-ending
         args: [--fix=lf]
