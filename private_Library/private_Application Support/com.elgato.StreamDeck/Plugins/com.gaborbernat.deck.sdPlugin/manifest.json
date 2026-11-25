@@ -1,0 +1,43 @@
+{
+  "Actions": [
+    {
+      "Controllers": ["Keypad"],
+      "Icon": "icons/weather",
+      "Name": "Weather",
+      "States": [{ "Image": "icons/weather-key" }],
+      "SupportedInMultiActions": false,
+      "Tooltip": "Temperature, humidity and wind from wttr.in",
+      "UUID": "com.gaborbernat.deck.weather"
+    },
+    {
+      "Controllers": ["Keypad"],
+      "Icon": "icons/mic",
+      "Name": "Input switcher",
+      "States": [{ "Image": "icons/mic-key", "TitleAlignment": "bottom", "FontSize": 12 }],
+      "SupportedInMultiActions": false,
+      "Tooltip": "Show the default mic and cycle to the next one",
+      "UUID": "com.gaborbernat.deck.input"
+    },
+    {
+      "Controllers": ["Keypad"],
+      "Icon": "icons/output",
+      "Name": "Output switcher",
+      "States": [{ "Image": "icons/output-key", "TitleAlignment": "bottom", "FontSize": 12 }],
+      "SupportedInMultiActions": false,
+      "Tooltip": "Show the default output and cycle to the next one",
+      "UUID": "com.gaborbernat.deck.output"
+    }
+  ],
+  "Author": "Bernát Gábor",
+  "Category": "Deck Helper",
+  "CategoryIcon": "icons/category",
+  "CodePathMac": "deck-helper",
+  "Description": "Weather and audio device switching, shared with the Fedora StreamController setup",
+  "Icon": "icons/plugin",
+  "Name": "Deck Helper",
+  "OS": [{ "MinimumVersion": "13", "Platform": "mac" }],
+  "SDKVersion": 2,
+  "Software": { "MinimumVersion": "6.4" },
+  "UUID": "com.gaborbernat.deck",
+  "Version": "1.0.0.0"
+}

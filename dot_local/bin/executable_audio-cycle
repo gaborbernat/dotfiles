@@ -1,0 +1,25 @@
+#!/bin/bash
+# Print the default sink or source; with "next", switch to the following one first.
+set -euo pipefail
+
+kind=${1:?usage: audio-cycle sink|source [next]}
+devices() {
+    pactl -f json list "${kind}s" |
+        jq -r '.[] | select(.name | test("\\.monitor$|^bluez_input") | not) | [.name, .description] | @tsv'
+}
+
+listing=$(devices)
+current=$(pactl "get-default-${kind}")
+if [[ ${2-} == next ]]; then
+    names=()
+    while IFS=$'\t' read -r name _; do
+        names+=("${name}")
+    done <<<"${listing}"
+    next=0
+    for index in "${!names[@]}"; do
+        [[ ${names[index]} == "${current}" ]] && next=$(((index + 1) % ${#names[@]}))
+    done
+    current=${names[next]}
+    pactl "set-default-${kind}" "${current}"
+fi
+awk -F '\t' -v name="${current}" '$1 == name { print $2 }' <<<"${listing}"

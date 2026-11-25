@@ -1,0 +1,25 @@
+#!/bin/bash
+# Print one wttr.in field (t, h or w). StreamController polls every key separately and only starts
+# polling after the first interval, so cache one fetch for 15 minutes and let the keys poll often.
+set -euo pipefail
+
+field=${1:?usage: deck-weather t|h|w}
+cache="${XDG_CACHE_HOME:-${HOME}/.cache}/deck-weather"
+stale=yes
+if [[ -s ${cache} ]]; then
+    stale=$(find "${cache}" -mmin +15)
+fi
+if [[ -n ${stale} ]]; then
+    mkdir -p "$(dirname "${cache}")"
+    if weather=$(curl -fsS --max-time 10 'https://wttr.in/34.17,-118.61?m&format=%t|%h|%w'); then
+        printf '%s\n' "${weather}" >"${cache}"
+    fi
+fi
+[[ -s ${cache} ]] || exit 0
+IFS='|' read -r temperature humidity wind <"${cache}"
+case ${field} in
+    t) printf '%s\n' "${temperature#+}" ;;
+    h) printf '%s\n' "${humidity}" ;;
+    w) printf '%s\n' "${wind}" ;;
+    *) exit 2 ;;
+esac

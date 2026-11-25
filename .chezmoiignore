@@ -17,6 +17,7 @@ Library/Preferences/*.plist
 setup-ghostty-symlink.sh
 set-file-associations.sh
 brew-bundle.sh
+build-deck-helper.sh
 .duti
 .Brewfile
 Library
@@ -29,6 +30,8 @@ install-apt-packages.sh
 .config/autostart
 .config/vicinae
 .local/bin/update_fedora_extras
+.local/bin/audio-cycle
+.local/bin/deck-weather
 .local/bin/order-monitors
 .local/share/applications
 .local/share/gnome-shell

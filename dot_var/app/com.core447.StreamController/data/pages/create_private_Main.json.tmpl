@@ -407,26 +407,67 @@
                 "0": {
                     "actions": [
                         {
-                            "id": "com_core447_OSPlugin::EasyCommand",
+                            "id": "com_core447_OSPlugin::RunCommand",
                             "settings": {
-                                "command": "obs"
+                                "command": "{{ .chezmoi.homeDir }}/.local/bin/deck-weather t",
+                                "detached": false,
+                                "display_output": true,
+                                "auto_run": 30,
+                                "label_position": "top"
+                            }
+                        },
+                        {
+                            "id": "com_core447_OSPlugin::RunCommand",
+                            "settings": {
+                                "command": "{{ .chezmoi.homeDir }}/.local/bin/deck-weather h",
+                                "detached": false,
+                                "display_output": true,
+                                "auto_run": 30,
+                                "label_position": "center"
+                            }
+                        },
+                        {
+                            "id": "com_core447_OSPlugin::RunCommand",
+                            "settings": {
+                                "command": "{{ .chezmoi.homeDir }}/.local/bin/deck-weather w",
+                                "detached": false,
+                                "display_output": true,
+                                "auto_run": 30,
+                                "label_position": "bottom"
                             }
                         }
                     ],
                     "image-control-action": null,
                     "label-control-actions": [
-                        null,
-                        null,
-                        null
+                        0,
+                        1,
+                        2
                     ],
                     "labels": {
+                        "top": {
+                            "color": [
+                                240,
+                                136,
+                                62,
+                                255
+                            ]
+                        },
+                        "center": {
+                            "color": [
+                                57,
+                                197,
+                                207,
+                                255
+                            ]
+                        },
                         "bottom": {
-                            "text": "OBS"
+                            "color": [
+                                201,
+                                209,
+                                217,
+                                255
+                            ]
                         }
-                    },
-                    "media": {
-                        "path": "{{ .chezmoi.homeDir }}/.local/share/streamcontroller-icons/com.obsproject.Studio.png",
-                        "size": 0.78
                     }
                 }
             }

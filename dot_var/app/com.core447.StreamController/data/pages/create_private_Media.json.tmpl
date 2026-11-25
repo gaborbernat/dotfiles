@@ -231,25 +231,34 @@
                 "0": {
                     "actions": [
                         {
-                            "id": "com_core447_OSPlugin::EasyCommand",
+                            "id": "com_core447_OSPlugin::RunCommand",
                             "settings": {
-                                "command": "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"
+                                "command": "{{ .chezmoi.homeDir }}/.local/bin/audio-cycle source next",
+                                "detached": false,
+                                "display_output": false,
+                                "auto_run": 0,
+                                "label_position": "bottom"
+                            }
+                        },
+                        {
+                            "id": "com_core447_OSPlugin::RunCommand",
+                            "settings": {
+                                "command": "{{ .chezmoi.homeDir }}/.local/bin/audio-cycle source",
+                                "detached": false,
+                                "display_output": true,
+                                "auto_run": 3,
+                                "label_position": "bottom"
                             }
                         }
                     ],
                     "image-control-action": null,
                     "label-control-actions": [
-                        0,
-                        0,
-                        0
+                        null,
+                        null,
+                        1
                     ],
-                    "labels": {
-                        "bottom": {
-                            "text": "Mic mute"
-                        }
-                    },
                     "media": {
-                        "path": "{{ .chezmoi.homeDir }}/.local/share/streamcontroller-icons/microphone-muted.svg",
+                        "path": "{{ .chezmoi.homeDir }}/.local/share/streamcontroller-icons/microphone.svg",
                         "size": 0.78
                     }
                 }
@@ -260,25 +269,34 @@
                 "0": {
                     "actions": [
                         {
-                            "id": "com_core447_OSPlugin::EasyCommand",
+                            "id": "com_core447_OSPlugin::RunCommand",
                             "settings": {
-                                "command": "gnome-control-center sound"
+                                "command": "{{ .chezmoi.homeDir }}/.local/bin/audio-cycle sink next",
+                                "detached": false,
+                                "display_output": false,
+                                "auto_run": 0,
+                                "label_position": "bottom"
+                            }
+                        },
+                        {
+                            "id": "com_core447_OSPlugin::RunCommand",
+                            "settings": {
+                                "command": "{{ .chezmoi.homeDir }}/.local/bin/audio-cycle sink",
+                                "detached": false,
+                                "display_output": true,
+                                "auto_run": 3,
+                                "label_position": "bottom"
                             }
                         }
                     ],
                     "image-control-action": null,
                     "label-control-actions": [
-                        0,
-                        0,
-                        0
+                        null,
+                        null,
+                        1
                     ],
-                    "labels": {
-                        "bottom": {
-                            "text": "Sound"
-                        }
-                    },
                     "media": {
-                        "path": "{{ .chezmoi.homeDir }}/.local/share/streamcontroller-icons/sound.svg",
+                        "path": "{{ .chezmoi.homeDir }}/.local/share/streamcontroller-icons/audio-card.svg",
                         "size": 0.78
                     }
                 }
@@ -349,7 +367,7 @@
                         {
                             "id": "com_core447_OSPlugin::EasyCommand",
                             "settings": {
-                                "command": "obs"
+                                "command": "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"
                             }
                         }
                     ],
@@ -361,11 +379,11 @@
                     ],
                     "labels": {
                         "bottom": {
-                            "text": "OBS"
+                            "text": "Mic mute"
                         }
                     },
                     "media": {
-                        "path": "{{ .chezmoi.homeDir }}/.local/share/streamcontroller-icons/com.obsproject.Studio.png",
+                        "path": "{{ .chezmoi.homeDir }}/.local/share/streamcontroller-icons/microphone-muted.svg",
                         "size": 0.78
                     }
                 }

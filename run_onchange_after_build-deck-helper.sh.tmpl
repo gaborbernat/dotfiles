@@ -1,0 +1,15 @@
+#!/bin/bash
+# Source hash: {{ include "scripts/macos/deck-helper.swift" | sha256sum }}
+# Plist hash: {{ include "private_Library/LaunchAgents/com.gaborbernat.audio-guard.plist.tmpl" | sha256sum }}
+set -euo pipefail
+
+binary="${HOME}/.local/bin/deck-helper"
+plugin="${HOME}/Library/Application Support/com.elgato.StreamDeck/Plugins/com.gaborbernat.deck.sdPlugin"
+mkdir -p "$(dirname "${binary}")"
+xcrun swiftc -O -o "${binary}" {{ joinPath .chezmoi.sourceDir "scripts/macos/deck-helper.swift" | quote }}
+install -m 0755 "${binary}" "${plugin}/deck-helper"
+
+plist="${HOME}/Library/LaunchAgents/com.gaborbernat.audio-guard.plist"
+launchctl bootout "gui/${EUID}" "${plist}" 2>/dev/null || true
+launchctl bootstrap "gui/${EUID}" "${plist}"
+echo "✅ deck-helper built, audio guard loaded; restart Stream Deck to reload the plugin"
