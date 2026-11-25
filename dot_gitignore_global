@@ -21,3 +21,5 @@ jfrog-licenses-latest.json.gz
 coverage.xml
 CLAUDE.md
 tasks/*.md
+
+**/.claude/settings.local.json
