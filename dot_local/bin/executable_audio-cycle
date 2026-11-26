@@ -4,8 +4,11 @@ set -euo pipefail
 
 kind=${1:?usage: audio-cycle sink|source [next]}
 devices() {
-    pactl -f json list "${kind}s" |
-        jq -r '.[] | select(.name | test("\\.monitor$|^bluez_input") | not) | [.name, .description] | @tsv'
+    # pactl's JSON output turns non-ASCII descriptions such as "RØDE PodMic" into "(null)", so read the plain listing;
+    # LC_ALL=C keeps its field labels in English
+    LC_ALL=C pactl list "${kind}s" |
+        awk '/^\tName: / { name = substr($0, 8) }
+            /^\tDescription: / && name !~ /\.monitor$|^bluez_input/ { print name "\t" substr($0, 15) }'
 }
 
 listing=$(devices)
