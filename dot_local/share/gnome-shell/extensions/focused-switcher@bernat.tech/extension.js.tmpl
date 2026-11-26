@@ -1,5 +1,6 @@
 import Clutter from 'gi://Clutter';
 import Gio from 'gi://Gio';
+import GLib from 'gi://GLib';
 import GObject from 'gi://GObject';
 import Meta from 'gi://Meta';
 import Shell from 'gi://Shell';
@@ -10,6 +11,8 @@ import * as Main from 'resource:///org/gnome/shell/ui/main.js';
 
 const APP_BINDINGS = ['switch-applications', 'switch-applications-backward', 'switch-group', 'switch-group-backward'];
 const TV_PRODUCT = '{{ .monitors.tv.product }}';
+// order-monitors fixes the layout 500 ms after each change, so wait for both reconfigurations to land
+const RELAYOUT_SETTLE_MS = 2000;
 
 export default class FocusedSwitcherExtension extends Extension {
     enable() {
@@ -37,6 +40,8 @@ export default class FocusedSwitcherExtension extends Extension {
         this._focusMonitor = global.display.focus_window?.get_monitor() ?? global.display.get_current_monitor();
         this._previousFocusMonitor = this._focusMonitor;
         this._pendingWindows = new Map();
+        this._tvWindows = new Map();
+        this._relayoutTimeoutId = 0;
         const mxMaster = 'Logitech MX Master 3';
 
         this._deviceChangedId = this._backend.connect('last-device-changed', (_backend, device) => {
@@ -79,8 +84,9 @@ export default class FocusedSwitcherExtension extends Extension {
                     ? this._previousFocusMonitor
                     : (focused?.get_monitor() ?? global.display.get_current_monitor());
             const tvMonitor = [mxMaster, 'Logitech MX Keys'].includes(this._deviceName) ? this._tvMonitor() : -1;
-            const monitorIndex = tvMonitor >= 0 ? tvMonitor : focusMonitor;
-            if (monitorIndex < 0 || monitorIndex >= global.display.get_n_monitors()) return;
+            // A display change before the window shows renumbers monitors, so remember the connector, not the index
+            const connector = this._connector(tvMonitor >= 0 ? tvMonitor : focusMonitor);
+            if (!connector) return;
 
             const clearPending = () => {
                 window.disconnect(shownId);
@@ -89,14 +95,31 @@ export default class FocusedSwitcherExtension extends Extension {
             };
             const shownId = window.connect('shown', () => {
                 clearPending();
+                const monitorIndex = this._backend.get_monitor_manager().get_monitor_for_connector(connector);
+                if (monitorIndex < 0) return;
                 // gamescope starts fullscreen on the pointer's monitor, not the one Big Picture launched it from
-                const movable = !window.is_fullscreen() || window.get_wm_class() === 'gamescope';
+                const gamescope = window.get_wm_class() === 'gamescope';
+                const movable = !window.is_fullscreen() || gamescope;
                 if (!window.get_transient_for() && movable && window.get_monitor() !== monitorIndex)
                     window.move_to_monitor(monitorIndex);
+                if (gamescope && monitorIndex === this._tvMonitor()) this._keepOnTv(window);
                 if (global.display.focus_window === window) this._focusMonitor = window.get_monitor();
             });
             const unmanagedId = window.connect('unmanaged', clearPending);
             this._pendingWindows.set(window, [shownId, unmanagedId]);
+        });
+
+        // A display reconfiguration, such as a monitor waking up, can strand fullscreen windows on the primary BenQ
+        this._monitorsChangedId = Main.layoutManager.connect('monitors-changed', () => {
+            if (this._relayoutTimeoutId) GLib.source_remove(this._relayoutTimeoutId);
+            this._relayoutTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, RELAYOUT_SETTLE_MS, () => {
+                this._relayoutTimeoutId = 0;
+                const tvMonitor = this._tvMonitor();
+                if (tvMonitor >= 0)
+                    for (const window of this._tvWindows.keys())
+                        if (window.get_monitor() !== tvMonitor) window.move_to_monitor(tvMonitor);
+                return GLib.SOURCE_REMOVE;
+            });
         });
 
         for (const name of APP_BINDINGS) {
@@ -106,6 +129,26 @@ export default class FocusedSwitcherExtension extends Extension {
                 if (!popup.show(binding.is_reversed(), binding.get_name(), binding.get_mask())) popup.destroy();
             });
         }
+    }
+
+    _connector(monitorIndex) {
+        const monitorManager = this._backend.get_monitor_manager();
+        return (
+            monitorManager
+                .get_monitors()
+                .find(
+                    (monitor) =>
+                        monitor.is_active() &&
+                        monitorManager.get_monitor_for_connector(monitor.get_connector()) === monitorIndex,
+                )
+                ?.get_connector() ?? null
+        );
+    }
+
+    _keepOnTv(window) {
+        if (this._tvWindows.has(window)) return;
+        const unmanagedId = window.connect('unmanaged', () => this._tvWindows.delete(window));
+        this._tvWindows.set(window, unmanagedId);
     }
 
     _tvMonitor() {
@@ -166,9 +209,11 @@ export default class FocusedSwitcherExtension extends Extension {
                 (candidate) =>
                     candidate?.get_title() === title && candidate.get_window_type() === Meta.WindowType.NORMAL,
             );
-        if (!window) return false;
         const tvMonitor = this._tvMonitor();
-        if (tvMonitor >= 0 && window.get_monitor() !== tvMonitor) window.move_to_monitor(tvMonitor);
+        // The TV takes a few seconds to appear after waking, and steam-tv keeps asking until this succeeds
+        if (!window || tvMonitor < 0) return false;
+        if (window.get_monitor() !== tvMonitor) window.move_to_monitor(tvMonitor);
+        this._keepOnTv(window);
         // Activating from the shell skips the focus-stealing prevention that holds back windows from background units
         Main.activateWindow(window);
         return true;
@@ -183,6 +228,10 @@ export default class FocusedSwitcherExtension extends Extension {
         for (const [window, signalIds] of this._pendingWindows)
             for (const signalId of signalIds) window.disconnect(signalId);
         this._pendingWindows = null;
+        Main.layoutManager.disconnect(this._monitorsChangedId);
+        if (this._relayoutTimeoutId) GLib.source_remove(this._relayoutTimeoutId);
+        for (const [window, unmanagedId] of this._tvWindows) window.disconnect(unmanagedId);
+        this._tvWindows = null;
         this._backend = null;
 
         for (const name of APP_BINDINGS)
