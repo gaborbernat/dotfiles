@@ -34,6 +34,11 @@ case $1 in
         if [[ ${2##*/} == d3ddriverquery*.exe ]]; then
             exec "${container[@]}"
         fi
+        # Games play on the TV, so their sound follows them there whatever the desktop's default output is
+        if tv_sink=$(pactl --format=json list sinks 2>/dev/null |
+            jq --exit-status --raw-output 'first(.[] | select(.description | contains("LG TV")) | .name)'); then
+            export PULSE_SINK=${tv_sink}
+        fi
         exec env -u LD_PRELOAD gamescope -W 3840 -H 2160 -f -- env LD_PRELOAD="${LD_PRELOAD:-}" "${container[@]}"
         ;;
     # Path lookups and other helper verbs have no window
