@@ -14,6 +14,12 @@ const TV_PRODUCT = '{{ .monitors.tv.product }}';
 // order-monitors fixes the layout 500 ms after each change, so wait for both reconfigurations to land
 const RELAYOUT_SETTLE_MS = 2000;
 
+// Steam, Big Picture and every game belong on the TV, whichever monitor launched them; Proton games run in gamescope
+const isSteamWindow = (window) => {
+    const wmClass = window.get_wm_class() ?? '';
+    return wmClass === 'steam' || wmClass === 'gamescope' || wmClass.startsWith('steam_app_');
+};
+
 export default class FocusedSwitcherExtension extends Extension {
     enable() {
         this._backend = global.get_backend();
@@ -86,7 +92,6 @@ export default class FocusedSwitcherExtension extends Extension {
             const tvMonitor = [mxMaster, 'Logitech MX Keys'].includes(this._deviceName) ? this._tvMonitor() : -1;
             // A display change before the window shows renumbers monitors, so remember the connector, not the index
             const connector = this._connector(tvMonitor >= 0 ? tvMonitor : focusMonitor);
-            if (!connector) return;
 
             const clearPending = () => {
                 window.disconnect(shownId);
@@ -95,32 +100,34 @@ export default class FocusedSwitcherExtension extends Extension {
             };
             const shownId = window.connect('shown', () => {
                 clearPending();
-                const monitorIndex = this._backend.get_monitor_manager().get_monitor_for_connector(connector);
+                if (isSteamWindow(window)) {
+                    this._keepOnTv(window);
+                    return;
+                }
+                const monitorIndex = connector
+                    ? this._backend.get_monitor_manager().get_monitor_for_connector(connector)
+                    : -1;
                 if (monitorIndex < 0) return;
-                // gamescope starts fullscreen on the pointer's monitor, not the one Big Picture launched it from
-                const gamescope = window.get_wm_class() === 'gamescope';
-                const movable = !window.is_fullscreen() || gamescope;
-                if (!window.get_transient_for() && movable && window.get_monitor() !== monitorIndex)
+                if (!window.get_transient_for() && !window.is_fullscreen() && window.get_monitor() !== monitorIndex)
                     window.move_to_monitor(monitorIndex);
-                if (gamescope && monitorIndex === this._tvMonitor()) this._keepOnTv(window);
                 if (global.display.focus_window === window) this._focusMonitor = window.get_monitor();
             });
             const unmanagedId = window.connect('unmanaged', clearPending);
             this._pendingWindows.set(window, [shownId, unmanagedId]);
         });
 
-        // A display reconfiguration, such as a monitor waking up, can strand fullscreen windows on the primary BenQ
+        // A display reconfiguration, such as a monitor waking up, can strand Steam windows on the primary BenQ, and the
+        // TV only joins the layout once it wakes
         this._monitorsChangedId = Main.layoutManager.connect('monitors-changed', () => {
             if (this._relayoutTimeoutId) GLib.source_remove(this._relayoutTimeoutId);
             this._relayoutTimeoutId = GLib.timeout_add(GLib.PRIORITY_DEFAULT, RELAYOUT_SETTLE_MS, () => {
                 this._relayoutTimeoutId = 0;
-                const tvMonitor = this._tvMonitor();
-                if (tvMonitor >= 0)
-                    for (const window of this._tvWindows.keys())
-                        if (window.get_monitor() !== tvMonitor) window.move_to_monitor(tvMonitor);
+                for (const window of this._tvWindows.keys()) this._moveToTv(window);
                 return GLib.SOURCE_REMOVE;
             });
         });
+        for (const window of global.get_window_actors().map((actor) => actor.meta_window))
+            if (window?.get_window_type() === Meta.WindowType.NORMAL && isSteamWindow(window)) this._keepOnTv(window);
 
         for (const name of APP_BINDINGS) {
             Main.wm.setCustomKeybindingHandler(name, Shell.ActionMode.NORMAL, (_display, _window, _event, binding) => {
@@ -146,9 +153,17 @@ export default class FocusedSwitcherExtension extends Extension {
     }
 
     _keepOnTv(window) {
-        if (this._tvWindows.has(window)) return;
-        const unmanagedId = window.connect('unmanaged', () => this._tvWindows.delete(window));
-        this._tvWindows.set(window, unmanagedId);
+        if (!this._tvWindows.has(window))
+            this._tvWindows.set(
+                window,
+                window.connect('unmanaged', () => this._tvWindows.delete(window)),
+            );
+        this._moveToTv(window);
+    }
+
+    _moveToTv(window) {
+        const tvMonitor = this._tvMonitor();
+        if (tvMonitor >= 0 && window.get_monitor() !== tvMonitor) window.move_to_monitor(tvMonitor);
     }
 
     _tvMonitor() {
@@ -212,7 +227,6 @@ export default class FocusedSwitcherExtension extends Extension {
         const tvMonitor = this._tvMonitor();
         // The TV takes a few seconds to appear after waking, and steam-tv keeps asking until this succeeds
         if (!window || tvMonitor < 0) return false;
-        if (window.get_monitor() !== tvMonitor) window.move_to_monitor(tvMonitor);
         this._keepOnTv(window);
         // Activating from the shell skips the focus-stealing prevention that holds back windows from background units
         Main.activateWindow(window);
