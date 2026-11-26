@@ -13,12 +13,16 @@ const APP_BINDINGS = ['switch-applications', 'switch-applications-backward', 'sw
 const TV_PRODUCT = '{{ .monitors.tv.product }}';
 // order-monitors fixes the layout 500 ms after each change, so wait for both reconfigurations to land
 const RELAYOUT_SETTLE_MS = 2000;
+const BIG_PICTURE_TITLE = 'Steam Big Picture Mode';
+// Big Picture grabs focus back right after a game's window appears; later switches to it are the player's own
+const FOCUS_GRAB_WINDOW_MS = 3000;
 
 // Steam, Big Picture and every game belong on the TV, whichever monitor launched them; Proton games run in gamescope
-const isSteamWindow = (window) => {
+const isGameWindow = (window) => {
     const wmClass = window.get_wm_class() ?? '';
-    return wmClass === 'steam' || wmClass === 'gamescope' || wmClass.startsWith('steam_app_');
+    return wmClass === 'gamescope' || wmClass.startsWith('steam_app_');
 };
+const isSteamWindow = (window) => window.get_wm_class() === 'steam' || isGameWindow(window);
 
 export default class FocusedSwitcherExtension extends Extension {
     enable() {
@@ -73,12 +77,30 @@ export default class FocusedSwitcherExtension extends Extension {
                     );
         });
 
+        this._refocusGameId = 0;
+        this._focusedGame = null;
+        this._gameShownAt = new Map();
         this._focusChangedId = global.display.connect('notify::focus-window', () => {
             const window = global.display.focus_window;
             if (window?.get_window_type() !== Meta.WindowType.NORMAL) return;
 
             this._previousFocusMonitor = this._focusMonitor;
             this._focusMonitor = window.get_monitor();
+            const previousGame = this._focusedGame;
+            this._focusedGame = this._gameShownAt.has(window) ? window : null;
+            // GNOME hands focus back to Big Picture when a game goes fullscreen, and Steam Input follows focus, so the
+            // controller would drive the menus behind the game
+            const grabbed =
+                window.get_title() === BIG_PICTURE_TITLE &&
+                previousGame &&
+                !previousGame.minimized &&
+                GLib.get_monotonic_time() - this._gameShownAt.get(previousGame) < FOCUS_GRAB_WINDOW_MS * 1000;
+            if (grabbed && !this._refocusGameId)
+                this._refocusGameId = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+                    this._refocusGameId = 0;
+                    if (this._gameShownAt.has(previousGame)) Main.activateWindow(previousGame);
+                    return GLib.SOURCE_REMOVE;
+                });
         });
 
         this._windowCreatedId = global.display.connect('window-created', (_display, window) => {
@@ -102,6 +124,11 @@ export default class FocusedSwitcherExtension extends Extension {
                 clearPending();
                 if (isSteamWindow(window)) {
                     this._keepOnTv(window);
+                    // Activating from the shell skips the focus-stealing prevention that leaves Big Picture in front
+                    if (isGameWindow(window)) {
+                        this._gameShownAt.set(window, GLib.get_monotonic_time());
+                        Main.activateWindow(window);
+                    }
                     return;
                 }
                 const monitorIndex = connector
@@ -156,7 +183,10 @@ export default class FocusedSwitcherExtension extends Extension {
         if (!this._tvWindows.has(window))
             this._tvWindows.set(
                 window,
-                window.connect('unmanaged', () => this._tvWindows.delete(window)),
+                window.connect('unmanaged', () => {
+                    this._tvWindows.delete(window);
+                    this._gameShownAt.delete(window);
+                }),
             );
         this._moveToTv(window);
     }
@@ -244,8 +274,11 @@ export default class FocusedSwitcherExtension extends Extension {
         this._pendingWindows = null;
         Main.layoutManager.disconnect(this._monitorsChangedId);
         if (this._relayoutTimeoutId) GLib.source_remove(this._relayoutTimeoutId);
+        if (this._refocusGameId) GLib.source_remove(this._refocusGameId);
+        this._focusedGame = null;
         for (const [window, unmanagedId] of this._tvWindows) window.disconnect(unmanagedId);
         this._tvWindows = null;
+        this._gameShownAt = null;
         this._backend = null;
 
         for (const name of APP_BINDINGS)
