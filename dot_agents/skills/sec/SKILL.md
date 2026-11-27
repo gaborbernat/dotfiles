@@ -1,6 +1,6 @@
 ---
 name: sec
-description: Triage a security report the user provides, validate each finding, open a private GitHub security advisory for every confirmed vulnerability and a public issue for every confirmed bug, then fix each through a PR driven to green after an adversarial review. Use when handed a scanner or researcher report to act on.
+description: Triage a security report the user provides, or the repository's draft security advisories the user points to, validate each finding, open a private GitHub security advisory for every confirmed vulnerability and a public issue for every confirmed bug, then fix each through a PR driven to green after an adversarial review. Use when handed a scanner or researcher report to act on.
 disable-model-invocation: true
 ---
 
@@ -9,13 +9,20 @@ disable-model-invocation: true
 Work in the repository the report concerns, or the current repository when none is named. The user provides the report
 (a file, a pasted text, a URL, or an advisory); never go looking for reports on your own.
 
+A report can also be a GitHub repository advisory in the `draft` or `triage` state: one the user names by GHSA ID or
+URL, or all of them when the user asks to work from the repository's drafts
+(`gh api "repos/{owner}/{repo}/security-advisories?state=draft"`, then `state=triage` for privately reported ones). Read
+each with `gh api repos/{owner}/{repo}/security-advisories/{ghsa_id}`; its description and credits are the report, and
+its GHSA ID is the report identifier unless the reporter gave their own. The same process applies; only filing differs,
+as **Advisory** and **Issue** describe.
+
 ## Triage
 
 1. Split the report into findings. Keep the reporter's identifier for each (for example `ANT-2026-UK90QC27`) and the
    version or commit it was tested against.
 2. Before validating, search the repository's existing advisories (`gh api repos/{owner}/{repo}/security-advisories`),
    open and closed issues, and open PRs for each finding. Report a finding already tracked to the user with its link,
-   and do not open it again.
+   and do not open it again. An advisory that is itself the report does not count as tracking its own finding.
 3. Validate each finding against the code, never against the report's own narrative. Read the code path at the reported
    commit and at the default branch head, then reproduce the behavior in an isolated worktree: run the reporter's
    reproducer when one exists, otherwise write the smallest one that shows the claimed effect. Read a reporter's
@@ -62,6 +69,10 @@ pick the less severe one, so the score errs low rather than high), `cwe_ids`, an
 `ecosystem` and `name`, the `vulnerable_version_range` you confirmed, and `patched_versions` left empty until a release
 ships the fix.
 
+When the finding came from an existing advisory, edit that advisory instead of opening a new one: PATCH it with the same
+fields, rewriting `summary` and `description` into the structure below and keeping the reporter's material (their
+reproducer, evidence and identifier) inside it. Keep its `credits`, and leave its state alone; never publish it.
+
 Write the body to a file and pass it as JSON; never inline it in the shell. Once the fix PR exists, update the advisory
 with `gh api -X PATCH repos/{owner}/{repo}/security-advisories/{ghsa_id} --input advisory.json` to add the fix paragraph
 and PR link under **Versions tested**.
@@ -100,6 +111,11 @@ sentences, then uses these `###` sections:
 3. **Reproduction**: the reproducer in full, the command, the commit, and the output, followed by the expected behavior.
 4. **Impact**: who hits it, under which setup, and both ratings with their reasons.
 5. **Credits**: the reporter and identifier.
+
+When a bug came from an advisory, file the issue first, then close the advisory with
+`gh api -X PATCH repos/{owner}/{repo}/security-advisories/{ghsa_id} -f state=closed`, and give both links in the report.
+The issue carries what the advisory reported, so nothing is lost when the advisory closes. Leave an invalid finding's
+advisory open and report it to the user, who decides whether to close it.
 
 ## PR
 
