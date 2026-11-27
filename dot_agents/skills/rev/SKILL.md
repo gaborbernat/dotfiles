@@ -1,6 +1,6 @@
 ---
 name: rev
-description: Review and fix one pull request by number, or all open pull requests not authored by the authenticated GitHub user. Use for an adversarial PR review that produces one fix commit per PR and pushes verified fixes.
+description: Review and fix one pull request by number, or all open pull requests not authored by the authenticated GitHub user. Use for an adversarial PR review that produces one fix commit per PR, pushes verified fixes, and drives the PR's CI to green.
 ---
 
 # rev
@@ -9,7 +9,7 @@ Work in the repository selected by the user, or the current repository when none
 
 1. If given a PR number, review that PR, regardless of author. Otherwise, get the current account from `gh api user`,
    list every open PR in the repository with pagination, and skip PRs authored by that account. Report when none
-   qualify. Review the qualifying PRs one at a time: take each through steps 2 to 9, pushed and reported, before
+   qualify. Review the qualifying PRs one at a time: take each through steps 2 to 9, pushed, green and reported, before
    starting the next, so a compaction only ever summarizes finished PRs. Run every PR from this session rather than
    handing it to a subagent, which could not start the fresh-context reviewer and validators.
 
@@ -91,3 +91,17 @@ Work in the repository selected by the user, or the current repository when none
 9. After a successful push, or if the review found no code fix, use `/pr` to update the PR title, description, and
    labels to match its published diff; a superseding PR gets them when `/pr` opens it. If you cannot push, keep the
    metadata aligned with the published diff. Do not post comments or reviews.
+
+   Then drive the PR's checks to green; a PR is not done while a required check fails or waits. Workflow runs from a
+   fork can wait for maintainer approval (`gh run list --commit <head sha>` shows them as `action_required`). Approve
+   them only once the head is a commit you reviewed and, when the review produced fixes, only after your fix commit is
+   pushed, so the approved run tests your changes and never code you have not read: approve each waiting run at that
+   head with `gh api -X POST repos/<owner>/<repo>/actions/runs/<run id>/approve`. A newer head pushed by someone else
+   goes back to step 8 first.
+
+   Watch with `gh pr checks <number> --watch`. For each failure, read its log (`gh run view <run id> --log-failed`),
+   reproduce it locally or on `winvm`, and fix the cause under the rules of step 4 in a further commit on top, never
+   amending or force-pushing; push it as in step 8, then watch again. Never skip, disable or mark a check optional to
+   make it pass, and rerun a job only when its log shows an infrastructure failure, saying so. A failure the PR did not
+   cause, such as one that also fails on the base branch, is reported with the evidence instead of fixed here. Report
+   the final state of every check.

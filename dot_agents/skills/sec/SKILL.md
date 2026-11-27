@@ -193,8 +193,8 @@ Write concise, factual text in a neutral register:
 ## Review and green
 
 1. Review each PR adversarially with `/rev`, by number. It puts its fixes in one commit on top of the head and runs
-   `/style` over the final diff. Skip its last step, the `/pr` metadata update: this PR's body follows **PR** above, not
-   `/pr`'s product-owner format. Re-check the title and body against **PR** afterwards.
+   `/style` over the final diff. Skip the `/pr` metadata update in its last step: this PR's body follows **PR** above,
+   not `/pr`'s product-owner format. Re-check the title and body against **PR** afterwards.
 2. Drive each PR to green: watch its checks with `gh pr checks <n> --watch`, read the logs of every failure
    (`gh run view <id> --log-failed`), reproduce it locally or on `winvm`, fix the cause in a new commit, and push. Do
    not skip, disable or mark a check optional to make it pass. Retry a job only when its log shows an infrastructure
