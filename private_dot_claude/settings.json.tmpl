@@ -195,5 +195,5 @@
   "skipWorkflowUsageWarning": true,
   "idleCompaction": false,
   "agentPushNotifEnabled": true{{- $auto := joinPath .chezmoi.homeDir ".local/share/chezmoi-private/claude_auto_mode.json" }}{{ if stat $auto }},
-  "autoMode": {{ output "cat" $auto }}{{ end }}
+  "autoMode": {{ output "cat" $auto | fromJson | toPrettyJson | trim | replace "\n" "\n  " }}{{ end }}
 }
