@@ -31,7 +31,8 @@ as **Advisory** and **Issue** describe.
    that only happens on Windows. Record the commands and their output; they become the evidence below.
 4. Classify each finding:
    - **Invalid**: the reproducer does not show the claimed effect, the code path is unreachable, or the behavior is
-     documented and intended. Report it to the user with the evidence and stop there.
+     documented and intended. Report it to the user with the evidence and stop there; an advisory that reported it is
+     closed as **Issue** describes.
    - **Bug**: the behavior is wrong, but an attacker gains nothing they did not already have, for example the
      precondition already grants the same access, or only the invoking user can trigger it against themselves.
    - **Security**: the behavior lets someone cross a trust boundary: read, write, execute or deny something they could
@@ -112,10 +113,17 @@ sentences, then uses these `###` sections:
 4. **Impact**: who hits it, under which setup, and both ratings with their reasons.
 5. **Credits**: the reporter and identifier.
 
-When a bug came from an advisory, file the issue first, then close the advisory with
-`gh api -X PATCH repos/{owner}/{repo}/security-advisories/{ghsa_id} -f state=closed`, and give both links in the report.
-The issue carries what the advisory reported, so nothing is lost when the advisory closes. Leave an invalid finding's
-advisory open and report it to the user, who decides whether to close it.
+An advisory whose finding is not a vulnerability gets closed with a comment saying why:
+
+- **Bug**: file the issue first, then comment with the verdict and the issue link.
+- **Invalid**: comment with the verdict and the deciding evidence, such as the reproducer output or the code line that
+  rules the effect out.
+
+Write the comment to a file and post it with
+`gh api -X POST repos/{owner}/{repo}/security-advisories/{ghsa_id}/comments -F body=@<file>`; if that endpoint refuses,
+add the same text to the description under `## Triage outcome` instead. Then close the advisory with
+`gh api -X PATCH repos/{owner}/{repo}/security-advisories/{ghsa_id} -f state=closed`, and give its link, plus the issue
+link for a bug, in the report. These closing comments are the only comments the skill posts without asking.
 
 ## PR
 
