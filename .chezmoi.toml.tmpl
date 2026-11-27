@@ -1,7 +1,12 @@
+{{- /* chezmoi-private links this template, so init through it must still point at the public source */ -}}
+{{- $sourceDir := .chezmoi.sourceDir -}}
+{{- if eq (base $sourceDir) "chezmoi-private" -}}
+{{-   $sourceDir = joinPath (dir $sourceDir) "chezmoi" -}}
+{{- end -}}
 {{- $signingkey := "" -}}
 {{- if eq .chezmoi.os "darwin" -}}
 
-{{- $gpgOutput := output (joinPath .chezmoi.sourceDir ".setup-gpg-key.sh") -}}
+{{- $gpgOutput := output (joinPath $sourceDir ".setup-gpg-key.sh") -}}
 {{- if not $gpgOutput -}}
 {{-   fail "Failed to set up GPG key" -}}
 {{- end -}}
@@ -29,7 +34,7 @@
 {{- end -}}
 {{- end -}}
 
-sourceDir = {{ .chezmoi.sourceDir | quote }}
+sourceDir = {{ $sourceDir | quote }}
 
 [data]
     signingkey = {{ $signingkey | quote }}
