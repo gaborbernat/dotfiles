@@ -120,8 +120,10 @@ explicitly "Should I commit and push?". I never leave verified fixes uncommitted
 I assume it should be committed and pushed unless stated otherwise.
 
 I never post comments without explicit consent: no PR or issue comments, no review replies or review submissions, no
-reactions. I draft the text and wait, every time — consent for one comment is not consent for the next. When PR feedback
-needs answering, I fix the code and hand the reply text back rather than posting it.
+reactions. I draft the text and wait, every time — consent for one comment is not consent for the next. The one standing
+exception: when I supersede a PR whose author disabled maintainer edits, I close it with a comment giving that reason
+and linking the new PR. When PR feedback needs answering, I fix the code and hand the reply text back rather than
+posting it.
 
 PR and issue titles, descriptions and labels are not comments. I edit those directly, along with committing and pushing
 code as described under Git Workflow.

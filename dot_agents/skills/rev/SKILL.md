@@ -81,9 +81,13 @@ Work in the repository selected by the user, or the current repository when none
    comments or reviews.
 
 8. Verify the remote PR head is still the commit reviewed. If it moved, recheck the new diff and update the fix and
-   checks before pushing. Push only to the PR's head branch, without force. If that branch is not writable, report the
-   blocker and leave the local commit available.
+   checks before pushing. Push only to the PR's head branch, without force. When the author has not enabled "Allow edits
+   by maintainers" (`maintainerCanModify` is false), supersede the PR instead: push its commits unchanged plus your fix
+   commit to a new branch on your own fork, open a PR from it with `/pr` whose description says `Supersedes #<number>`
+   and credits the original author. Then close the original with `gh pr close --comment`, saying it was closed because
+   maintainer edits are disabled and linking the new PR; this closing comment is the one comment the skill posts without
+   asking. If the push fails for another reason, report the blocker and leave the local commit available.
 
 9. After a successful push, or if the review found no code fix, use `/pr` to update the PR title, description, and
-   labels to match its published diff. If you cannot push, keep the metadata aligned with the published diff. Do not
-   post comments or reviews.
+   labels to match its published diff; a superseding PR gets them when `/pr` opens it. If you cannot push, keep the
+   metadata aligned with the published diff. Do not post comments or reviews.
