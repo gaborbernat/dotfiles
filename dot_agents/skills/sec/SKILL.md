@@ -213,6 +213,9 @@ Write concise, factual text in a neutral register:
 - Claim only what the reproduction or a cited source shows. Name what is not established instead of implying it. A
   sentence nothing proves comes out.
 - Prefer short declarative sentences with concrete subjects: the function, the file, the account, the command.
+- Keep each text as short as its facts allow: say each fact once and cut filler and restated context. Show a real
+  example from the reproduction (the input, the command, its output) instead of describing it, and a diagram only where
+  **Diagrams** says it helps.
 
 ## Review and green
 

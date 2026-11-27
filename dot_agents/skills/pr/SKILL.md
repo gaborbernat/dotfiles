@@ -50,6 +50,10 @@ type.
 
 ## Description Format
 
+Keep it short and to the point: lead with the change and its effect, say each fact once, and cut filler, hedging and
+restated context. Illustrate with a real example from the work, such as the config that failed, the command run or its
+actual output, never an invented one. A diagram follows **Diagrams** below: only when it explains faster than prose.
+
 Prefer paragraphs. When the content is a set of parallel items (rollout steps, open questions, options), distill it into
 a short bullet list instead. Use rich formatting where it makes a paragraph easier to read: **bold** for the one term a
 reader must not miss, _italics_ for a defined term, `>` quotes for upstream text you rely on, and indentation for nested

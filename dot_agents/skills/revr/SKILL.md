@@ -75,8 +75,10 @@ before it is posted.
     comment's `line`, and `start_line` for a range, must fall inside one hunk of that file, on side `RIGHT` for added or
     context lines and `LEFT` for removed lines. Re-anchor or move to the body any comment that fails.
 
-08. Apply `/no-slop` to every comment and the body, and `/simp` to any code example in them. After an edit, recheck the
-    sentences and code it changed.
+08. Keep every comment and the body short and to the point: say each fact once and cut filler, hedging and restated
+    context. Show a real example from the reviewed code or your run (the input, the command, its output) rather than
+    describing it, and a mermaid diagram only when it explains faster than prose. Apply `/no-slop` to every comment and
+    the body, and `/simp` to any code example in them. After an edit, recheck the sentences and code it changed.
 
 09. Present the draft to the user and stop: the event, the body, then each comment as `path:line` (or `path:start-end`)
     with its text, ranked by severity. Do not post anything until the user approves; apply their edits and present again
