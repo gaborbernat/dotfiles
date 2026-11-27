@@ -1,0 +1,10 @@
+#!/bin/bash
+# Service hash: {{ include "dot_config/systemd/private_user/immich-update.service" | sha256sum }}
+# Timer hash: {{ include "dot_config/systemd/private_user/immich-update.timer" | sha256sum }}
+set -euo pipefail
+
+# Without linger the user manager, and with it the timer, stops once the last session ends.
+loginctl enable-linger "${USER}"
+systemctl --user daemon-reload
+systemctl --user enable --now immich-update.timer
+echo "✅ Immich nightly update timer enabled"

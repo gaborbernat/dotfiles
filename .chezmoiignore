@@ -93,6 +93,7 @@ load-opener-sock-gc.sh
 {{ end }}
 {{ if ne .chezmoi.hostname "pc" }}
 .ssh/allowed_signers
+enable-immich-update-timer.sh
 {{ end }}
 {{ if not (and (eq .chezmoi.os "linux") (eq (get .chezmoi.osRelease "id") "fedora")) }}
 .config/systemd

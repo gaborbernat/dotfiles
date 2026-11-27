@@ -1,0 +1,11 @@
+# Immich tracks the release tag, so pulling and recreating moves it to the latest version. A release that needs a
+# manual migration step lands without its notes being read first; that is the accepted trade-off for staying current.
+[Unit]
+Description=Update Immich to its latest release
+ConditionPathExists=%h/.config/immich/docker-compose.yml
+
+[Service]
+Type=oneshot
+WorkingDirectory=%h/.config/immich
+ExecStart=/usr/bin/docker compose pull --quiet
+ExecStart=/usr/bin/docker compose up --detach

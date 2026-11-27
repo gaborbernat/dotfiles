@@ -1,0 +1,10 @@
+[Unit]
+Description=Update Immich to its latest release every night
+
+[Timer]
+OnCalendar=*-*-* 04:00
+RandomizedDelaySec=30min
+Persistent=true
+
+[Install]
+WantedBy=timers.target
