@@ -3,6 +3,7 @@ LICENSE
 pyproject.toml
 docs/
 scripts/
+nas/
 target/
 .pre-commit-config.yaml
 .setup-gpg-key.sh

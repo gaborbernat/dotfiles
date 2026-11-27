@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Home</title>
+<style>
+  :root {
+    --bg: #f4f4f2; --card: #ffffff; --text: #1d1d1b; --muted: #6b6b66; --line: #e2e2dd; --accent: #2f6fde;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #141413; --card: #1f1f1d; --text: #ececea; --muted: #9a9a94; --line: #2e2e2b; --accent: #6b9cff; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font: 16px/1.4 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  }
+  main { max-width: 1000px; margin: 0 auto; padding: 32px 16px 48px; }
+  h1 { font-size: 28px; margin: 0 0 24px; font-weight: 650; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin: 28px 0 10px; font-weight: 600; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 10px; }
+  .card {
+    position: relative; display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 12px;
+    background: var(--card); border: 1px solid var(--line); transition: border-color .12s, transform .12s;
+  }
+  .card:hover, .card:focus-within { border-color: var(--accent); transform: translateY(-1px); }
+  .badge {
+    flex: none; width: 40px; height: 40px; border-radius: 10px; display: grid; place-items: center;
+    font-weight: 700; font-size: 15px; color: #fff; background: var(--c);
+  }
+  .text { min-width: 0; }
+  .name { font-weight: 600; }
+  .name a { color: inherit; text-decoration: none; outline: none; }
+  .name a::after { content: ""; position: absolute; inset: 0; border-radius: 12px; }
+  .host, .ip { font-size: 13px; overflow-wrap: anywhere; }
+  .host { color: var(--accent); }
+  .ip a { position: relative; z-index: 1; color: var(--muted); font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Home</h1>
+  <div id="sections"></div>
+
+</main>
+<script>
+  const sections = [
+    ["Media", [
+      ["Ph", "#e0592a", "Photos", "photos.lan", "http://10.2.0.143:2283"],
+      ["Pl", "#c98a00", "Plex", "plex.lan", "http://10.2.0.213:32400/web", "web/"],
+      ["qB", "#3a7bd5", "qBittorrent", "qt.lan", "http://10.2.0.213:18181"],
+    ]],
+    ["Home", [
+      ["HA", "#1ea1e6", "Home Assistant", "ha.lan", "http://10.2.0.112:8123"],
+      ["Pz", "#0f9d8a", "Presence zones", "presence.lan", "http://10.2.0.112:42069"],
+      ["BY", "#4a5a6a", "Back yard camera", "backyard-cam.lan", "https://10.2.10.21"],
+      ["DW", "#4a5a6a", "Driveway camera", "driveway-cam.lan", "https://10.2.10.22"],
+      ["Pr", "#2f8f5b", "Printer", "printer.lan", "https://10.2.0.161"],
+      ["EV", "#cc2936", "Wall Connector", "charger.lan", "http://10.2.0.128"],
+    ]],
+    ["Network and NAS", [
+      ["U", "#1f6feb", "UniFi", "unifi.lan", "https://10.2.0.1"],
+      ["AT", "#0a7fc2", "AT&T gateway", "att.lan", "http://192.168.1.254"],
+      ["N", "#5b5bd6", "NAS admin", "nas.lan", "https://10.2.0.213:52001/portal/"],
+      ["Po", "#13bef9", "Portainer", "portainer.lan", "https://10.2.0.213:19943"],
+      ["Gl", "#7a4fd6", "NAS monitor", "monitor.lan", "http://10.2.0.213:61208"],
+    ]],
+  ];
+  const el = (tag, props = {}, ...kids) => {
+    const e = Object.assign(document.createElement(tag), props);
+    e.append(...kids);
+    return e;
+  };
+  const root = document.getElementById("sections");
+  for (const [title, items] of sections) {
+    const grid = el("div", { className: "grid" });
+    for (const [badge, color, name, host, direct, path = ""] of items) {
+      const b = el("span", { className: "badge", textContent: badge });
+      b.style.setProperty("--c", color);
+      const shown = direct.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+      grid.append(el("div", { className: "card" }, b, el("div", { className: "text" },
+        el("div", { className: "name" }, el("a", { href: `https://${host.replace(/\.lan$/, ".bernat-nas.duckdns.org")}/${path}`, textContent: name })),
+        el("div", { className: "host", textContent: host }),
+        el("div", { className: "ip" }, el("a", { href: direct, textContent: shown, title: "Direct address" })),
+      )));
+    }
+    root.append(el("h2", { textContent: title }), grid);
+  }
+</script>
+</body>
+</html>
