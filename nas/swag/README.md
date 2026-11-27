@@ -9,8 +9,7 @@ The files mirror SWAG's `/config` directory:
 - `nginx/proxy-confs/local-lan.subdomain.conf` redirects `name.lan` to the duckdns name and proxies each site to its
   device.
 - `nginx/lan.conf` restricts those sites to the Trusted network (10.2.0.0/24), because port 443 is forwarded from the
-  internet. It refuses the gateway's own address too: traffic that loops back through the public address arrives from
-  there and may come from the guest network.
+  internet.
 - `www/home/index.html` is the start page.
 
 Devices without a login of their own (Wall Connector, printer, Presence, AT&T gateway) never sit behind the
@@ -27,8 +26,8 @@ internet-facing listener. Their `.lan` name redirects to the device's own addres
 
 ## Pitfalls
 
-- Firefox resolves names over DNS-over-HTTPS, gets the public address, and loops back through the gateway, which is
-  refused. Exclude the domain in `user.js`: `network.trr.excluded-domains` set to `lan, bernat-nas.duckdns.org`.
+- Do not refuse the gateway's address (10.2.0.1). Browsers using DNS-over-HTTPS, Firefox by default, get the public
+  address and loop back through the gateway, so they arrive from there.
 - A `.lan` redirect must stay a 302. Browsers cache a 301 indefinitely, so changing its target later breaks the name on
   every device that saw the old one.
 - Home Assistant answers 400 when a proxy it does not trust sends `X-Forwarded-For`, so its block skips SWAG's
