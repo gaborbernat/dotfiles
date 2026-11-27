@@ -40,8 +40,9 @@ Work in the repository selected by the user, or the current repository when none
    work, such as the failing config, the command run, or its actual output, never an invented one. Add a mermaid diagram
    only when it explains faster than prose, such as a flow across components; most PRs need none.
 
-   Use plain words a newcomer follows and spell out abbreviations (`for example`, not `e.g.`; `environment`, not `env`).
-   Link what you mention where you mention it, on the words that name it (the issue, the code line, the upstream
+   Use plain words a newcomer follows and explain technical jargon instead of assuming it: spell out shorthand such as
+   `deps` or `TTL` (`dependencies`, `time to live`), and expand an acronym the reader may not know on first use. Link
+   what you mention where you mention it, on the words that name it (the issue, the code line, the upstream
    documentation), never in a separate list of links.
 
    Keep the PR minimal: it changes only what its purpose and your fixes need. Treat a change outside that scope, in the

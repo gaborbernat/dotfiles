@@ -54,9 +54,10 @@ Keep it short and to the point: lead with the change and its effect, say each fa
 restated context. Illustrate with a real example from the work, such as the config that failed, the command run or its
 actual output, never an invented one. A diagram follows **Diagrams** below: only when it explains faster than prose.
 
-Use plain words a newcomer follows and spell out abbreviations (`for example`, not `e.g.`; `environment`, not `env`).
-Link what you mention where you mention it, on the words that name it (the issue, the code line, the upstream
-documentation), never in a separate list of links.
+Use plain words a newcomer follows and explain technical jargon instead of assuming it: spell out shorthand such as
+`deps` or `TTL` (`dependencies`, `time to live`), and expand an acronym the reader may not know on first use. Link what
+you mention where you mention it, on the words that name it (the issue, the code line, the upstream documentation),
+never in a separate list of links.
 
 Prefer paragraphs. When the content is a set of parallel items (rollout steps, open questions, options), distill it into
 a short bullet list instead. Use rich formatting where it makes a paragraph easier to read: **bold** for the one term a

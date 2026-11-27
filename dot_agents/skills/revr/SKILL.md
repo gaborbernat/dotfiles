@@ -79,10 +79,11 @@ before it is posted.
     context. Show a real example from the reviewed code or your run (the input, the command, its output) rather than
     describing it, and a mermaid diagram only when it explains faster than prose.
 
-    Use plain words a newcomer follows and spell out abbreviations (`for example`, not `e.g.`; `environment`, not
-    `env`). Link what you mention where you mention it, on the words that name it (the issue, the code line, the
-    upstream documentation), never in a separate list of links. Apply `/no-slop` to every comment and the body, and
-    `/simp` to any code example in them. After an edit, recheck the sentences and code it changed.
+    Use plain words a newcomer follows and explain technical jargon instead of assuming it: spell out shorthand such as
+    `deps` or `TTL` (`dependencies`, `time to live`), and expand an acronym the reader may not know on first use. Link
+    what you mention where you mention it, on the words that name it (the issue, the code line, the upstream
+    documentation), never in a separate list of links. Apply `/no-slop` to every comment and the body, and `/simp` to
+    any code example in them. After an edit, recheck the sentences and code it changed.
 
 09. Present the draft to the user and stop: the event, the body, then each comment as `path:line` (or `path:start-end`)
     with its text, ranked by severity. Do not post anything until the user approves; apply their edits and present again
