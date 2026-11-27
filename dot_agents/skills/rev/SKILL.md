@@ -34,6 +34,12 @@ Work in the repository selected by the user, or the current repository when none
    unnecessary changes. Run `/style` once the fresh-review rounds of step 5 end, on the final diff and the drafted
    commit message before committing, then on the drafted report before sending it.
 
+   Keep every piece of prose you write concise and to the point: PR bodies, commit messages, changelog entries, code
+   comments, and the supersede closing comment. Lead with the change and its effect, say each fact once, and cut
+   background the reader already has, hedging, and restated context. Where one makes the point faster than a sentence,
+   show a real example taken from this work, such as the failing config, the command run, or its actual output, never an
+   invented one.
+
 5. Have a reviewer with fresh context check the final PR diff, including your uncommitted fixes. Stage your own fixes
    first (`git add -A` in the worktree), so the reviewer's changes stay distinguishable from yours. Spawn an
    `opus-review` subagent and give it only the repository, the worktree path, the merge base, and the PR number.
