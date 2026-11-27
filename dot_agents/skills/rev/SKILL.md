@@ -35,11 +35,14 @@ Work in the repository selected by the user, or the current repository when none
    commit message before committing, then on the drafted report before sending it.
 
    Keep every piece of prose you write concise and to the point: PR bodies, commit messages, changelog entries, code
-   comments, and the supersede closing comment. Lead with the change and its effect, say each fact once, and cut
-   background the reader already has, hedging, and restated context. Where one makes the point faster than a sentence,
-   show a real example taken from this work, such as the failing config, the command run, or its actual output, never an
-   invented one. Add a mermaid diagram only when it explains faster than prose, such as a flow across components or an
-   ordering of calls; most PRs need none.
+   comments, and the supersede closing comment. Lead with the change and its effect, say each fact once, and cut filler,
+   hedging, and restated context. Where one makes the point faster than a sentence, show a real example taken from this
+   work, such as the failing config, the command run, or its actual output, never an invented one. Add a mermaid diagram
+   only when it explains faster than prose, such as a flow across components; most PRs need none.
+
+   Use plain words a newcomer follows and spell out abbreviations (`for example`, not `e.g.`; `environment`, not `env`).
+   Link what you mention where you mention it, on the words that name it (the issue, the code line, the upstream
+   documentation), never in a separate list of links.
 
    Keep the PR minimal: it changes only what its purpose and your fixes need. Treat a change outside that scope, in the
    PR or in your own fixes, as a finding and revert it in the fix commit. When the reverted change is valid on its own,

@@ -215,7 +215,9 @@ Write concise, factual text in a neutral register:
 - Prefer short declarative sentences with concrete subjects: the function, the file, the account, the command.
 - Keep each text as short as its facts allow: say each fact once and cut filler and restated context. Show a real
   example from the reproduction (the input, the command, its output) instead of describing it, and a diagram only where
-  **Diagrams** says it helps.
+  **Diagrams** says it helps. Use plain words a newcomer follows and spell out abbreviations (`for example`, not `e.g.`;
+  `environment`, not `env`). Link what you mention where you mention it, on the words that name it (the issue, the code
+  line, the upstream documentation), never in a separate list of links.
 
 ## Review and green
 
