@@ -40,6 +40,13 @@ Work in the repository selected by the user, or the current repository when none
    show a real example taken from this work, such as the failing config, the command run, or its actual output, never an
    invented one.
 
+   Keep the PR minimal: it changes only what its purpose and your fixes need. Treat a change outside that scope, in the
+   PR or in your own fixes, as a finding and revert it in the fix commit. Code the PR only moves counts as unchanged, so
+   the `/simp` pass leaves it as it was. Refactor only when the change is medium to large and would otherwise add real
+   maintenance or readability cost, such as a function that grows past one task or logic duplicated across callers; then
+   do the refactor and keep the public API backwards compatible, with the same names, signatures, and behavior for
+   existing callers.
+
 5. Have a reviewer with fresh context check the final PR diff, including your uncommitted fixes. Stage your own fixes
    first (`git add -A` in the worktree), so the reviewer's changes stay distinguishable from yours. Spawn an
    `opus-review` subagent and give it only the repository, the worktree path, the merge base, and the PR number.
