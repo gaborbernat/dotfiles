@@ -54,15 +54,15 @@
     ]],
     ["Home", [
       ["HA", "#1ea1e6", "Home Assistant", "ha.lan", "http://10.2.0.112:8123"],
-      ["Pz", "#0f9d8a", "Presence zones", "presence.lan", "http://10.2.0.112:42069"],
+      ["Pz", "#0f9d8a", "Presence zones", "presence.lan", "http://10.2.0.112:42069", null],
       ["BY", "#4a5a6a", "Back yard camera", "backyard-cam.lan", "https://10.2.10.21"],
       ["DW", "#4a5a6a", "Driveway camera", "driveway-cam.lan", "https://10.2.10.22"],
-      ["Pr", "#2f8f5b", "Printer", "printer.lan", "https://10.2.0.161"],
-      ["EV", "#cc2936", "Wall Connector", "charger.lan", "http://10.2.0.128"],
+      ["Pr", "#2f8f5b", "Printer", "printer.lan", "https://10.2.0.161", null],
+      ["EV", "#cc2936", "Wall Connector", "charger.lan", "http://10.2.0.128", null],
     ]],
     ["Network and NAS", [
       ["U", "#1f6feb", "UniFi", "unifi.lan", "https://10.2.0.1"],
-      ["AT", "#0a7fc2", "AT&T gateway", "att.lan", "http://192.168.1.254"],
+      ["AT", "#0a7fc2", "AT&T gateway", "att.lan", "http://192.168.1.254", null],
       ["N", "#5b5bd6", "NAS admin", "nas.lan", "https://10.2.0.213:52001/portal/"],
       ["Po", "#13bef9", "Portainer", "portainer.lan", "https://10.2.0.213:19943"],
       ["Gl", "#7a4fd6", "NAS monitor", "monitor.lan", "http://10.2.0.213:61208"],
@@ -77,11 +77,13 @@
   for (const [title, items] of sections) {
     const grid = el("div", { className: "grid" });
     for (const [badge, color, name, host, direct, path = ""] of items) {
+      // path null: a device without its own login, reached only at its direct address
+      const href = path === null ? direct : `https://${host.replace(/\.lan$/, ".bernat-nas.duckdns.org")}/${path}`;
       const b = el("span", { className: "badge", textContent: badge });
       b.style.setProperty("--c", color);
       const shown = direct.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
       grid.append(el("div", { className: "card" }, b, el("div", { className: "text" },
-        el("div", { className: "name" }, el("a", { href: `https://${host.replace(/\.lan$/, ".bernat-nas.duckdns.org")}/${path}`, textContent: name })),
+        el("div", { className: "name" }, el("a", { href, textContent: name })),
         el("div", { className: "host", textContent: host }),
         el("div", { className: "ip" }, el("a", { href: direct, textContent: shown, title: "Direct address" })),
       )));
