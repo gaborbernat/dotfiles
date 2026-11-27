@@ -173,5 +173,5 @@
     helper =
     helper = !{{ output "sh" "-c" "command -v gh || printf gh" | trim }} auth git-credential
 
-[includeIf "gitdir:~/"]
+[include]
     path = ~/.local/share/chezmoi-private/gitconfig_work
