@@ -153,6 +153,17 @@ export default class FocusedSwitcherExtension extends Extension {
                 return GLib.SOURCE_REMOVE;
             });
         });
+        // Steam and games under plain Proton place themselves on the primary display after they show: Unity puts its
+        // fullscreen window on the display saved as UnitySelectMonitor, and Wine's display 0 is the primary
+        this._returnToTvId = 0;
+        this._enteredMonitorId = global.display.connect('window-entered-monitor', (_display, _monitorIndex, window) => {
+            if (!this._tvWindows.has(window) || this._returnToTvId) return;
+            this._returnToTvId = GLib.idle_add(GLib.PRIORITY_DEFAULT, () => {
+                this._returnToTvId = 0;
+                for (const tvWindow of this._tvWindows.keys()) this._moveToTv(tvWindow);
+                return GLib.SOURCE_REMOVE;
+            });
+        });
         for (const window of global.get_window_actors().map((actor) => actor.meta_window))
             if (window?.get_window_type() === Meta.WindowType.NORMAL && isSteamWindow(window)) this._keepOnTv(window);
 
@@ -274,6 +285,8 @@ export default class FocusedSwitcherExtension extends Extension {
         this._pendingWindows = null;
         Main.layoutManager.disconnect(this._monitorsChangedId);
         if (this._relayoutTimeoutId) GLib.source_remove(this._relayoutTimeoutId);
+        global.display.disconnect(this._enteredMonitorId);
+        if (this._returnToTvId) GLib.source_remove(this._returnToTvId);
         if (this._refocusGameId) GLib.source_remove(this._refocusGameId);
         this._focusedGame = null;
         for (const [window, unmanagedId] of this._tvWindows) window.disconnect(unmanagedId);
